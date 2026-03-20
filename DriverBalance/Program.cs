@@ -1,6 +1,5 @@
 ﻿using ScottPlot;
 using System.Globalization;
-using System.Security.Principal;
 using System.Text.Json;
 
 public class TripRecord
@@ -178,23 +177,50 @@ public class TripSummaryService
         double avgSpeed = totalTime.TotalHours > 0 ? totalDistance / totalTime.TotalHours : 0;
         double fuelPer100km = totalDistance > 0 ? (totalFuel / totalDistance) * 100.0 : 0;
         // DPF index calculation
-        double goodKm = 0, allKm = 0;
+        double badKm = 0, fairKm = 0, goodKm = 0, excellentKm = 0, allKm = 0;
+        TimeSpan badTs = TimeSpan.Zero, fairTs = TimeSpan.Zero, goodTs = TimeSpan.Zero, excellentTs = TimeSpan.Zero;
+        int coldStarts = 0;
         foreach (var group in TripAnalysisService.ConcatenateTrips(records.OrderBy(t => t.StartTime).ToList(), analysisParams.ColdStartThreshold))
         {
+            coldStarts++;
             var concatTrip = analysisService.ConcatenateGroup(group);
             var bestScore = analysisService.GetBestScoreForGroup(group);
-            if (bestScore == DrivingScore.Excellent || bestScore == DrivingScore.Good)
-                goodKm += concatTrip.DistanceKm;
+            switch (bestScore)
+            {
+                case DrivingScore.Excellent: 
+                    excellentKm += concatTrip.DistanceKm;
+                    excellentTs += concatTrip.Duration;
+                    break;
+                case DrivingScore.Good: 
+                    goodKm += concatTrip.DistanceKm;
+                    goodTs += concatTrip.Duration;
+                    break;
+                case DrivingScore.Fair: 
+                    fairKm += concatTrip.DistanceKm;
+                    fairTs += concatTrip.Duration;
+                    break;
+                case DrivingScore.Bad: 
+                    badKm += concatTrip.DistanceKm;
+                    badTs += concatTrip.Duration;
+                    break;
+            }
+
             allKm += concatTrip.DistanceKm;
         }
-        double dpf = allKm > 0 ? goodKm / allKm : 0;
+        double dpf = allKm > 0 ? (goodKm + excellentKm) / allKm : 0;
         Console.WriteLine("--- Trip Summary ---");
+        Console.WriteLine($"Total cold starts: {coldStarts}");
         Console.WriteLine($"Total distance: {totalDistance:F2} km");
         Console.WriteLine($"Total time: {totalTime}");
         Console.WriteLine($"Total fuel burned: {totalFuel:F2} L");
         Console.WriteLine($"Average speed: {avgSpeed:F2} km/h");
         Console.WriteLine($"Fuel consumption: {fuelPer100km:F2} L/100km");
-        Console.WriteLine($"DPF index: {dpf:P2} ({goodKm:F1} km of {allKm:F1} km)");
+        Console.WriteLine("---------------------");
+        Console.WriteLine($"Excellent: {excellentKm:F1} km, duration: {excellentTs}");
+        Console.WriteLine($"Good: {goodKm:F1} km, duration: {goodTs}");
+        Console.WriteLine($"Fair: {fairKm:F1} km, duration: {fairTs}");
+        Console.WriteLine($"Bad: {badKm:F1} km, duration:  {badTs}");
+        Console.WriteLine($"DPF index: {dpf:P2} ({(goodKm + excellentKm):F1} km of {allKm:F1} km)");
     }
 }
 
