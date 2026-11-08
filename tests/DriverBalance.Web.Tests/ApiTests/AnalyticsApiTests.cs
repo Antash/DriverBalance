@@ -130,6 +130,19 @@ public sealed class AnalyticsApiTests(ApiFactory f) : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task ScoreMap_HonoursLevel()
+    {
+        var c = f.CreateClient();
+        var vid = await Api.NewVehicleAsync(c);
+        await Api.ImportFixtureAsync(c, vid);
+        async Task<int> Points(object? options) => (await JsonOf(await Api.PostAsync(c, $"/api/vehicles/{vid}/analytics/charts/score-map",
+            new { from = "2025-01-01", to = "2027-01-01", options }))).GetProperty("points").GetArrayLength();
+        int groups = await Points(null);
+        int trips = await Points(new { level = "Trip" });
+        Assert.True(trips > groups, $"trip level {trips} should exceed group level {groups}");
+    }
+
+    [Fact]
     public async Task Timeline_IncludesImportEvents()
     {
         var c = f.CreateClient();

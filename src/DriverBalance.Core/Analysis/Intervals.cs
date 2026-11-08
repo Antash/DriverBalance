@@ -29,7 +29,9 @@ public static class Intervals
         }
         var firstEvent = events[^1];
         var from = dataStart is { } ds && ds < firstEvent.Date ? ds : firstEvent.Date;
-        result.Add(new Period(from, firstEvent.Date, $"Before first {type}", null, firstEvent.Odo));
+        // Data starting on or after the first service leaves no "before" period to show.
+        if (from < firstEvent.Date)
+            result.Add(new Period(from, firstEvent.Date, $"Before first {type}", null, firstEvent.Odo));
         return result;
     }
 }

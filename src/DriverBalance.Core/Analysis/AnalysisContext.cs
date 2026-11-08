@@ -51,7 +51,9 @@ public sealed class AnalysisContext
         double shortKm = shortGroups.Sum(g => g.DistanceKm);
 
         double? odometerKm = Timeline.KmIn(period);
-        double? kmPerDay = period.Days > 0 ? (odometerKm ?? km) / period.Days : null;
+        // Per-day rates divide by elapsed days only: a period reaching into the future is clipped to today (inclusive).
+        int elapsedDays = Math.Min(period.To.DayNumber, Data.Today.DayNumber + 1) - period.From.DayNumber;
+        double? kmPerDay = elapsedDays > 0 ? (odometerKm ?? km) / elapsedDays : null;
 
         var usage = new UsageStats(
             tripCount, km, odometerKm, odometerKm > 0 ? km / odometerKm : null, period.Days, kmPerDay, time,

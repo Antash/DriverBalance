@@ -71,4 +71,22 @@ public class ScoreChartsTests
         Assert.Equal(new DateOnly(2025, 3, 5), days[1].Date);
         Assert.Equal(DrivingScore.Excellent, days[0].BestScore);
     }
+
+    [Fact]
+    public void ScoreMap_TripLevel_OnePointPerTripScoredIndividually()
+    {
+        var d = new DateTime(2025, 2, 1, 8, 0, 0);
+        // Two trips 10 min apart form one group (45 min cold-start gap): 25+25 min, fast.
+        var ctx = Ctx(T(d, 25, 40), T(d.AddMinutes(35), 25, 40));
+        var period = Year(2025);
+        var group = ScoreCharts.ScoreMap(ctx, period);
+        Assert.Single(group);
+        Assert.Equal(50, group[0].DurationMinutes, 6);
+
+        var trip = ScoreCharts.ScoreMap(ctx, period, TrendLevel.Trip);
+        Assert.Equal(2, trip.Count);
+        Assert.All(trip, t => Assert.Equal(25, t.DurationMinutes, 6));
+        Assert.All(trip, t => Assert.Equal(Scoring.Score(TimeSpan.FromMinutes(25), 40 / (25 / 60.0), P), t.Score));
+        Assert.NotEqual(group[0].Score, trip[0].Score);
+    }
 }

@@ -96,6 +96,22 @@ public class PeriodStatsTests
     }
 
     [Fact]
+    public void KmPerDay_UsesElapsedDaysOnly()
+    {
+        // Today is mid-June; the June period has 30 days but only 10 have elapsed (Jun 1..Jun 10 inclusive).
+        var today = new DateOnly(2025, 6, 10);
+        var trips = new[] { T(new DateTime(2025, 6, 2, 8, 0, 0), 30, 100) };
+        var ctx = AnalysisContext.Create(new VehicleData(trips, Array.Empty<Expense>(), Array.Empty<TyreSet>(), "CZK", today), P);
+        var june = new Period(new DateOnly(2025, 6, 1), new DateOnly(2025, 7, 1), "Jun");
+        var u = ctx.Stats(june).Usage;
+        Assert.Equal(30, u.Days);
+        Assert.Equal(10.0, u.KmPerDay!.Value, 9);
+
+        var future = new Period(new DateOnly(2025, 7, 1), new DateOnly(2025, 8, 1), "Jul");
+        Assert.Null(ctx.Stats(future).Usage.KmPerDay);
+    }
+
+    [Fact]
     public void Dpf_IsGoodPlusExcellentKmOverAllKm()
     {
         var d = new DateTime(2025, 2, 1, 8, 0, 0);

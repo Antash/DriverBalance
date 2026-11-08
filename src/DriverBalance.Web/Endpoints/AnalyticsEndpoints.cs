@@ -73,7 +73,7 @@ public static class AnalyticsEndpoints
             "monthly-score" => ScoreCharts.Monthly(c, p),
             "heatmap" => ScoreCharts.Heatmap(c, options?.Year ?? p.To.AddDays(-1).Year),
             "fuel-trend" => FuelCharts.Trend(c, p, options?.Level ?? TrendLevel.Group),
-            "score-map" => new ScoreMapChart(ScoreCharts.ScoreMap(c, p), ScoreZones.From(s.Parameters)),
+            "score-map" => new ScoreMapChart(ScoreCharts.ScoreMap(c, p, options?.Level ?? TrendLevel.Group), ScoreZones.From(s.Parameters)),
             "gap-histogram" => HabitCharts.Gaps(c, p),
             "when-you-drive" => HabitCharts.WhenYouDrive(c, p),
             "penalty-curve" => FuelCharts.PenaltyCurve(c, p),

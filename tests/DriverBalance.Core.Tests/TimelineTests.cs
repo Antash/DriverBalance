@@ -81,6 +81,20 @@ public class TimelineTests
         Assert.Equal(4493 - 1864, ctx.Stats(iv[1]).Usage.OdometerKm);
     }
 
+    [Theory]
+    [InlineData(2025, 3, 10)] // data starts on the first service day
+    [InlineData(2025, 4, 1)]  // data starts after the first service
+    public void Intervals_NoZeroDayBeforeFirst(int y, int m, int d)
+    {
+        var exps = new[]
+        {
+            new Expense { Date = new DateOnly(2025, 3, 10), Category = ExpenseCategory.Maintenance, Maintenance = MaintenanceType.OilChange, Odometer = 1864 },
+        };
+        var iv = Intervals.Build(MaintenanceType.OilChange, exps, new DateOnly(y, m, d), new DateOnly(2025, 6, 1));
+        Assert.Single(iv);
+        Assert.StartsWith("Current", iv[0].Label);
+    }
+
     [Fact]
     public void Intervals_TripOnServiceDay_InNewInterval()
     {
