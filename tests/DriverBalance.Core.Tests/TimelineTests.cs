@@ -89,13 +89,25 @@ public class TimelineTests
         {
             new Expense { Date = day, Category = ExpenseCategory.Maintenance, Maintenance = MaintenanceType.OilChange, Odometer = 2000 },
             new Expense { Date = day, Category = ExpenseCategory.Maintenance, Maintenance = MaintenanceType.OilChange | MaintenanceType.BrakeFluid, Odometer = 2000 },
-            new Expense { Date = day, Category = ExpenseCategory.Fuel, Maintenance = MaintenanceType.OilChange },
+            // not a Maintenance expense, so it must not create a boundary even with the flag set
+            new Expense { Date = new DateOnly(2025, 3, 1), Category = ExpenseCategory.Fuel, Maintenance = MaintenanceType.OilChange },
         };
-        var iv = Intervals.Build(MaintenanceType.OilChange, exps, new DateOnly(2025, 1, 1), new DateOnly(2025, 6, 1));
-        Assert.Equal(2, iv.Count); // two events on one day make one boundary
-        var trip = new DateTime(2025, 5, 10, 8, 0, 0);
-        Assert.True(iv[0].Contains(DateOnly.FromDateTime(trip)));
-        Assert.False(iv[1].Contains(DateOnly.FromDateTime(trip)));
+        var today = new DateOnly(2025, 6, 1);
+        var iv = Intervals.Build(MaintenanceType.OilChange, exps, new DateOnly(2025, 1, 1), today);
+        Assert.Equal(2, iv.Count); // two events on one day make one boundary; the Fuel row adds none
+        Assert.Equal(day, iv[1].To); // older interval is exclusive on the event date
+        Assert.Equal(day, iv[0].From);
+
+        static Trip T(DateTime start) =>
+            new("Private", start, 0, "", start.AddMinutes(30), 0, "", TimeSpan.FromMinutes(30), 10, 1, "");
+        var onDay = T(new DateTime(2025, 5, 10, 8, 0, 0));
+        var dayBefore = T(new DateTime(2025, 5, 9, 18, 0, 0));
+        var ctx = AnalysisContext.Create(
+            new VehicleData(new[] { dayBefore, onDay }, exps, Array.Empty<TyreSet>(), "CZK", today), new AnalysisParameters());
+        Assert.Equal(1, ctx.Stats(iv[0]).Usage.TripCount);
+        Assert.Equal(1, ctx.Stats(iv[1]).Usage.TripCount);
+        Assert.Equal(10, ctx.Stats(iv[0]).Usage.TripKm);
+        Assert.Equal(10, ctx.Stats(iv[1]).Usage.TripKm);
     }
 
     [Fact]
