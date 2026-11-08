@@ -74,6 +74,32 @@ public sealed class SecurityApiTests(LocalAuthFactory f) : IClassFixture<LocalAu
         Assert.Equal(HttpStatusCode.OK, (await ImportAsync(r => r.Headers.Add("Origin", "http://localhost:5173"))).StatusCode);
 
     [Fact]
+    public async Task Post_SameOriginOnUnlistedPort_Ok() =>
+        Assert.Equal(HttpStatusCode.OK, (await ImportAsync(r =>
+        {
+            r.Headers.Host = "localhost:5193";
+            r.Headers.Add("Origin", "http://LOCALHOST:5193");
+            r.Headers.Add("Sec-Fetch-Site", "same-origin");
+        })).StatusCode);
+
+    [Fact]
+    public async Task Post_OtherLocalhostPortThanHost_403() =>
+        Assert.Equal(HttpStatusCode.Forbidden, (await ImportAsync(r =>
+        {
+            r.Headers.Host = "localhost:5193";
+            r.Headers.Add("Origin", "http://localhost:9999");
+        })).StatusCode);
+
+    [Fact]
+    public async Task Post_SameOriginButCrossSiteFetchMetadata_403() =>
+        Assert.Equal(HttpStatusCode.Forbidden, (await ImportAsync(r =>
+        {
+            r.Headers.Host = "localhost:5193";
+            r.Headers.Add("Origin", "http://localhost:5193");
+            r.Headers.Add("Sec-Fetch-Site", "cross-site");
+        })).StatusCode);
+
+    [Fact]
     public async Task Post_NoOrigin_Ok() =>
         Assert.Equal(HttpStatusCode.OK, (await ImportAsync(_ => { })).StatusCode);
 
