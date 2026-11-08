@@ -1,3 +1,9 @@
 <Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DriverBalance.Core/DriverBalance.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DriverBalance.Core.Tests/DriverBalance.Core.Tests.csproj" />
+  </Folder>
   <Project Path="DriverBalance/DriverBalance.csproj" />
 </Solution>
