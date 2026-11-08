@@ -1,8 +1,132 @@
+import { useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { api } from '../api/client'
+import type { TokenCreated, TokenInfo, Vehicle, VehicleInput } from '../api/types'
+import { ParamsPanel } from '../components/ParamsPanel'
+import { errorLines } from '../lib/format'
+import { useTyreSets, useVehicle } from '../state/useVehicle'
+
+function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
+  const qc = useQueryClient()
+  const { data: sets = [] } = useTyreSets()
+  const [f, setF] = useState<VehicleInput>({
+    name: vehicle.name, homeCurrency: vehicle.homeCurrency, timeZone: vehicle.timeZone,
+    initialTyreSetId: vehicle.initialTyreSetId, isDefault: vehicle.isDefault,
+  })
+  const save = useMutation({
+    mutationFn: () => api.put<Vehicle>(`/vehicles/${vehicle.id}`, f),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['vehicles'] }),
+  })
+  return (
+    <section className="card">
+      <h2>Vehicle</h2>
+      <form className="stack" onSubmit={(e) => { e.preventDefault(); save.mutate() }}>
+        <label>Name<input required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></label>
+        <label>Home currency<input maxLength={3} value={f.homeCurrency} onChange={(e) => setF({ ...f, homeCurrency: e.target.value.toUpperCase() })} /></label>
+        <label>Time zone<input value={f.timeZone} onChange={(e) => setF({ ...f, timeZone: e.target.value })} /></label>
+        <label>Initial tyre set
+          <select value={f.initialTyreSetId ?? ''} onChange={(e) => setF({ ...f, initialTyreSetId: e.target.value ? Number(e.target.value) : null })}>
+            <option value="">- none -</option>
+            {sets.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </label>
+        <label className="check"><input type="checkbox" checked={f.isDefault} onChange={(e) => setF({ ...f, isDefault: e.target.checked })} /> Default vehicle</label>
+        {save.isError && <ul className="errors">{errorLines(save.error).map((m) => <li key={m}>{m}</li>)}</ul>}
+        <div className="row">
+          <button className="btn primary" type="submit" disabled={save.isPending}>Save vehicle</button>
+          {save.isSuccess && <span role="status" className="muted">Saved.</span>}
+        </div>
+      </form>
+    </section>
+  )
+}
+
+function TokensCard() {
+  const qc = useQueryClient()
+  const [name, setName] = useState('')
+  const [created, setCreated] = useState<TokenCreated | null>(null)
+  const [copied, setCopied] = useState(false)
+  const { data: tokens } = useQuery({ queryKey: ['tokens'], queryFn: () => api.get<TokenInfo[]>('/tokens') })
+  const create = useMutation({
+    mutationFn: () => api.post<TokenCreated>('/tokens', { name }),
+    onSuccess: (t) => { setCreated(t); setCopied(false); setName(''); void qc.invalidateQueries({ queryKey: ['tokens'] }) },
+  })
+  const revoke = useMutation({
+    mutationFn: (id: number) => api.del<void>(`/tokens/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tokens'] }),
+  })
+  const copy = async () => {
+    if (!created) return
+    try { await navigator.clipboard.writeText(created.token); setCopied(true) } catch { setCopied(false) }
+  }
+  return (
+    <section className="card">
+      <h2>API tokens</h2>
+      <form className="row" onSubmit={(e) => { e.preventDefault(); if (name.trim()) create.mutate() }}>
+        <label className="stack">Token name<input value={name} onChange={(e) => setName(e.target.value)} /></label>
+        <button className="btn primary" type="submit" disabled={!name.trim() || create.isPending}>Create token</button>
+      </form>
+      {create.isError && <ul className="errors">{errorLines(create.error).map((m) => <li key={m}>{m}</li>)}</ul>}
+      {created && (
+        <div className="warn" role="status">
+          <p>Copy this token now. It will not be shown again.</p>
+          <div className="token-once">{created.token}</div>
+          <div className="row">
+            <button className="btn small" onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>
+            <button className="btn small" onClick={() => setCreated(null)}>Done</button>
+          </div>
+        </div>
+      )}
+      <div className="table-wrap">
+        <table className="data">
+          <thead><tr><th>Name</th><th>Created</th><th>Last used</th><th /></tr></thead>
+          <tbody>
+            {(tokens ?? []).map((t) => (
+              <tr key={t.id}>
+                <td>{t.name}</td><td>{new Date(t.createdAt).toLocaleDateString()}</td>
+                <td>{t.lastUsedAt ? new Date(t.lastUsedAt).toLocaleString() : 'never'}</td>
+                <td><button className="btn small danger" onClick={() => { if (window.confirm(`Revoke token "${t.name}"?`)) revoke.mutate(t.id) }}>Revoke</button></td>
+              </tr>
+            ))}
+            {tokens?.length === 0 && <tr><td colSpan={4} className="muted">No tokens.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )
+}
+
+async function downloadExport() {
+  const res = await fetch('/api/export')
+  if (!res.ok) throw new Error(`Export failed (${res.status})`)
+  const url = URL.createObjectURL(await res.blob())
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `driverbalance-export-${new Date().toISOString().slice(0, 10)}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export default function SettingsPage() {
+  const vehicle = useVehicle()
+  const [panel, setPanel] = useState(false)
+  const exp = useMutation({ mutationFn: downloadExport })
   return (
     <section>
       <h1>Settings</h1>
-      <p className="muted">Coming soon.</p>
+      <VehicleCard key={vehicle.id + ':' + vehicle.name + ':' + vehicle.initialTyreSetId} vehicle={vehicle} />
+      <section className="card">
+        <h2>Analysis parameters</h2>
+        <p className="muted">Thresholds and chart settings apply to this vehicle.</p>
+        <button className="btn" onClick={() => setPanel(true)}>Open parameters</button>
+      </section>
+      <TokensCard />
+      <section className="card">
+        <h2>Export</h2>
+        <button className="btn" onClick={() => exp.mutate()} disabled={exp.isPending}>Export all data</button>
+        {exp.isError && <ul className="errors">{errorLines(exp.error).map((m) => <li key={m}>{m}</li>)}</ul>}
+      </section>
+      {panel && <ParamsPanel onClose={() => setPanel(false)} />}
     </section>
   )
 }
