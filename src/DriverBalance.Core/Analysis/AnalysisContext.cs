@@ -2,15 +2,34 @@ namespace DriverBalance.Core;
 
 public sealed class AnalysisContext
 {
-    private AnalysisContext(VehicleData data, AnalysisParameters parameters, IReadOnlyList<TripGroup> groups)
+    private AnalysisContext(VehicleData data, AnalysisParameters parameters, IReadOnlyList<TripGroup> groups, OdometerTimeline timeline)
     {
         Data = data;
         Parameters = parameters;
         Groups = groups;
+        Timeline = timeline;
     }
 
     public static AnalysisContext Create(VehicleData data, AnalysisParameters p) =>
-        new(data, p, TripGrouping.Build(data.Trips, p));
+        new(data, p, TripGrouping.Build(data.Trips, p), BuildTimeline(data));
+
+    private static OdometerTimeline BuildTimeline(VehicleData data)
+    {
+        var readings = new List<OdometerReading>();
+        foreach (var t in data.Trips)
+        {
+            if (t.StartOdometer > 0) readings.Add(new OdometerReading(t.Start, t.StartOdometer, OdometerSource.TripStart));
+            if (t.EndOdometer > 0) readings.Add(new OdometerReading(t.End, t.EndOdometer, OdometerSource.TripEnd));
+        }
+        foreach (var e in data.Expenses)
+        {
+            if (e.Odometer is > 0)
+                readings.Add(new OdometerReading(e.Date.AddDays(1).ToDateTime(TimeOnly.MinValue).AddTicks(-1), e.Odometer.Value, OdometerSource.Expense));
+        }
+        return OdometerTimeline.Build(readings);
+    }
+
+    public OdometerTimeline Timeline { get; }
 
     public IReadOnlyList<TripGroup> Groups { get; }
     public AnalysisParameters Parameters { get; }
@@ -31,11 +50,11 @@ public sealed class AnalysisContext
         var shortGroups = groups.Where(g => g.Duration < shortLimit).ToList();
         double shortKm = shortGroups.Sum(g => g.DistanceKm);
 
-        double? odometerKm = null; // filled from the odometer series in a later task
+        double? odometerKm = Timeline.KmIn(period);
         double? kmPerDay = period.Days > 0 ? (odometerKm ?? km) / period.Days : null;
 
         var usage = new UsageStats(
-            tripCount, km, odometerKm, null, period.Days, kmPerDay, time,
+            tripCount, km, odometerKm, odometerKm > 0 ? km / odometerKm : null, period.Days, kmPerDay, time,
             time.TotalHours > 0 ? km / time.TotalHours : null,
             groups.Count,
             km > 0 ? groups.Count / km * 100.0 : null,
