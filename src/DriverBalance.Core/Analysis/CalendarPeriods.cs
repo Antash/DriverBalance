@@ -12,6 +12,9 @@ public static class CalendarPeriods
         return new Period(from, from.AddMonths(1), from.ToString("yyyy-MM", CultureInfo.InvariantCulture));
     }
 
+    /// <summary>Monday of the ISO week containing <paramref name="d"/>.</summary>
+    public static DateOnly IsoWeekStart(DateOnly d) => d.AddDays(-(((int)d.DayOfWeek + 6) % 7));
+
     public static IReadOnlyList<Period> Years(DateOnly first, DateOnly last) =>
         Enumerable.Range(first.Year, Math.Max(0, last.Year - first.Year + 1)).Select(Year).ToList();
 
