@@ -60,9 +60,13 @@ public static class TyreEndpoints
         var row = await db.TyreSets.FirstOrDefaultAsync(t => t.Id == id && t.VehicleId == vid, ct);
         if (row is null) return Results.NotFound();
 
+        var errors = new List<string>();
         int used = await db.Expenses.CountAsync(e => e.VehicleId == vid && e.TyreSetId == id, ct);
-        if (used > 0)
-            return Results.Json(new ErrorsResponse([$"Tyre set is used by {used} expenses; retire it instead"]), statusCode: StatusCodes.Status409Conflict);
+        if (used > 0) errors.Add($"Tyre set is used by {used} expenses; retire it instead");
+        if (await db.Vehicles.AnyAsync(v => v.Id == vid && v.InitialTyreSetId == id, ct))
+            errors.Add("Tyre set is the vehicle's initial tyre set; retire it instead");
+        if (errors.Count > 0)
+            return Results.Json(new ErrorsResponse(errors), statusCode: StatusCodes.Status409Conflict);
 
         db.TyreSets.Remove(row);
         await db.SaveChangesAsync(ct);

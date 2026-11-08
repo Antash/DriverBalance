@@ -32,6 +32,7 @@ await DbSetup.InitializeAsync(app.Services);
 if (app.Environment.WebRootPath is { } webRoot && Directory.Exists(webRoot))
     app.UseStaticFiles();
 
+app.UseCrossSiteGuard();
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -57,7 +57,13 @@ public static class VolvoCsvParser
     private static int ParseInt(string s) => int.TryParse(CleanNumber(s), out var v) ? v : 0;
 
     private static double ParseDouble(string s) =>
-        double.TryParse(CleanNumber(s).Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : 0.0;
+        ToFinite(CleanNumber(s).Replace(',', '.'));
+
+    private static double ToFinite(string s)
+    {
+        if (!double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var v)) return 0.0;
+        return double.IsFinite(v) ? v : throw new FormatException($"Non-finite number '{s}'.");
+    }
 
     private static TimeSpan ParseDuration(string s)
     {

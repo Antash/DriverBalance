@@ -35,7 +35,7 @@ public sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider
 }
 
 /// <summary>One per test class: its own temp SQLite file and web root, a pinned clock and the test auth scheme.</summary>
-public sealed class ApiFactory : WebApplicationFactory<Program>
+public class ApiFactory : WebApplicationFactory<Program>
 {
     public static readonly DateTimeOffset Now = new(2026, 11, 8, 12, 0, 0, TimeSpan.Zero);
 
@@ -55,11 +55,17 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         {
             s.RemoveAll<TimeProvider>();
             s.AddSingleton<TimeProvider>(new FixedTimeProvider(Now));
-            s.AddAuthentication().AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
-            s.Configure<AuthenticationOptions>(o =>
-            {
-                o.DefaultScheme = o.DefaultAuthenticateScheme = o.DefaultChallengeScheme = TestAuthHandler.SchemeName;
-            });
+            ConfigureAuth(s);
+        });
+    }
+
+    /// <summary>Replaces the LocalUser scheme with the X-Test-User scheme; the security tests override this to keep the real one.</summary>
+    protected virtual void ConfigureAuth(IServiceCollection s)
+    {
+        s.AddAuthentication().AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
+        s.Configure<AuthenticationOptions>(o =>
+        {
+            o.DefaultScheme = o.DefaultAuthenticateScheme = o.DefaultChallengeScheme = TestAuthHandler.SchemeName;
         });
     }
 

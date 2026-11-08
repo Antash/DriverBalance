@@ -172,6 +172,43 @@ public sealed class ExpenseApiTests(ApiFactory f) : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task Tyres_DeleteInitialSet_409()
+    {
+        var c = f.CreateClient();
+        var vid = await Api.NewVehicleAsync(c);
+        var setId = (await Api.ReadAsync<JsonElement>(await Api.PostAsync(c, $"/api/vehicles/{vid}/tyres", new { name = "Summer", season = "Summer" }))).GetProperty("id").GetInt64();
+        (await c.PutAsJsonAsync($"/api/vehicles/{vid}", new { name = "Car", initialTyreSetId = setId }, ApiJson.Options)).EnsureSuccessStatusCode();
+
+        var blocked = await c.DeleteAsync($"/api/vehicles/{vid}/tyres/{setId}");
+        Assert.Equal(HttpStatusCode.Conflict, blocked.StatusCode);
+        Assert.Contains("initial tyre set", (await Api.ReadAsync<Api.ErrorsBody>(blocked)).Errors[0]);
+        var v = await Api.ReadAsync<Api.VehicleBody>(await c.GetAsync($"/api/vehicles/{vid}"));
+        Assert.Equal(setId, v.InitialTyreSetId);
+    }
+
+    [Theory]
+    [InlineData("Infinity")]
+    [InlineData("NaN")]
+    [InlineData("1e999")]
+    public async Task ImportCsv_NonFiniteNumber_SkippedAndAnalyticsStill200(string bad)
+    {
+        var c = f.CreateClient();
+        var vid = await Api.NewVehicleAsync(c);
+        var csv = "Category,Start,Start odometer,Start address,End,End odometer,End address,Duration,Distance,Fuel,Notes\n" +
+            "\"Private\",\"14.04.2025 11:45\",\"7 350\",\"A\",\"14.04.2025 12:30\",\"7 378\",\"B\",\"45 min\",\"28,4\",\"2,1\",\"\"\n" +
+            $"\"Private\",\"15.04.2025 11:45\",\"7 378\",\"A\",\"15.04.2025 12:30\",\"7 388\",\"B\",\"45 min\",\"{bad}\",\"2,1\",\"\"\n";
+        using var form = new MultipartFormDataContent();
+        form.Add(new StringContent(csv), "file", "bad.csv");
+        var r = await c.PostAsync($"/api/vehicles/{vid}/import/csv", form);
+        var body = await Api.ReadAsync<Api.ImportBody>(r);
+        Assert.Equal(1, body.Imported);
+        Assert.Single(body.Warnings);
+
+        Assert.Equal(HttpStatusCode.OK, (await Api.PostAsync(c, $"/api/vehicles/{vid}/analytics/overview", new { })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await c.GetAsync("/api/export")).StatusCode);
+    }
+
+    [Fact]
     public async Task Trips_ListGroupsNewestFirst_AndGetById()
     {
         var c = f.CreateClient();

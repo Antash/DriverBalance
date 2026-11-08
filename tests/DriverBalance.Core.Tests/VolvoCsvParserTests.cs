@@ -107,6 +107,19 @@ public class VolvoCsvParserTests
         Assert.Single(result.Warnings);
     }
 
+    [Theory]
+    [InlineData("Infinity")]
+    [InlineData("-Infinity")]
+    [InlineData("NaN")]
+    [InlineData("1e999")]
+    public void Parse_NonFiniteNumber_SkippedWithWarning(string bad)
+    {
+        var result = ParseRows(Row(), Row().Replace("\"28,4\"", $"\"{bad}\""), Row().Replace("\"2,1\"", $"\"{bad}\""));
+
+        Assert.Single(result.Trips);
+        Assert.Equal(2, result.Warnings.Count);
+    }
+
     [Fact]
     public void Validate_Defaults_Valid() =>
         Assert.Empty(new AnalysisParameters().Validate());
