@@ -5,6 +5,7 @@ import type { TripPage } from '../api/types'
 import { fmtDateTime, fmtDuration, fmtNum } from '../lib/format'
 import { useParams } from '../state/ParamsContext'
 import { ChartCard } from './ChartCard'
+import { SavedParamsNote } from './SavedParamsNote'
 import { TripDrawer } from './TripDrawer'
 
 const PAGE_SIZE = 25
@@ -30,6 +31,7 @@ export function TripList({ from, to, title = 'Trips' }: { from?: string; to?: st
   return (
     <ChartCard title={title} loading={isLoading} error={isError} empty={data?.total === 0}
       hint="Each row is one cold start; trips chained by short gaps are grouped.">
+      <SavedParamsNote />
       <div className="table-wrap">
         <table className="data">
           <thead>
