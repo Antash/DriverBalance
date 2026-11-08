@@ -84,4 +84,35 @@ describe('ParamsContext', () => {
     await waitFor(() => expect(posts()).toHaveLength(2))
     expect((posts()[1].body as { parameters: AnalysisParameters }).parameters.coldStartGapMinutes).toBe(77)
   })
+
+  it('an invalid draft is reported and analytics keep the last valid override', async () => {
+    const { result } = setup(() => ({ p: useParams(), q: useAnalytics('overview', {}) }))
+    await waitFor(() => expect(result.current.q.data).toBeDefined())
+    const posts = () => calls.filter((c) => c.method === 'POST')
+    const sent = () => posts().map((c) => (c.body as { parameters?: AnalysisParameters }).parameters)
+
+    act(() => result.current.p.setDraft({ coldStartGapMinutes: 60 }))
+    await waitFor(() => expect(result.current.p.override?.coldStartGapMinutes).toBe(60))
+    await waitFor(() => expect(posts()).toHaveLength(2))
+
+    act(() => result.current.p.setDraft({ shortDurationMinutes: 35 })) // Short > Medium
+    expect(result.current.p.errors).toEqual(['Durations must satisfy 0 < short <= medium <= long.'])
+    expect(result.current.p.valid).toBe(false)
+    await new Promise((r) => setTimeout(r, 450)) // past the debounce
+    expect(result.current.p.override).toEqual({ ...defaults, coldStartGapMinutes: 60 })
+    expect(sent().some((p) => p?.shortDurationMinutes === 35)).toBe(false)
+
+    act(() => result.current.p.setDraft({ mediumDurationMinutes: 36 })) // valid again
+    await waitFor(() => expect(result.current.p.override?.shortDurationMinutes).toBe(35))
+    expect(result.current.p.errors).toEqual([])
+  })
+
+  it('an invalid first edit sends no override at all', async () => {
+    const { result } = setup(() => ({ p: useParams(), q: useAnalytics('overview', {}) }))
+    await waitFor(() => expect(result.current.q.data).toBeDefined())
+    act(() => result.current.p.setDraft({ shortDurationMinutes: 35 }))
+    await new Promise((r) => setTimeout(r, 450))
+    expect(result.current.p.override).toBeUndefined()
+    expect(calls.filter((c) => c.method === 'POST')).toHaveLength(1)
+  })
 })

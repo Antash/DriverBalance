@@ -56,4 +56,14 @@ describe('ParamsPanel', () => {
     fireEvent.blur(input('Heatmap cap (km)'))
     expect(input('Heatmap cap (km)').value).toBe('100')
   })
+
+  it('shows the cross-field validation message live and disables Save', async () => {
+    await open()
+    fireEvent.change(input('Short trip (min)'), { target: { value: '35' } })
+    expect(screen.getByRole('alert').textContent).toMatch(/0 < short <= medium <= long/)
+    expect((screen.getByText('Save') as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.change(input('Medium trip (min)'), { target: { value: '36' } })
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect((screen.getByText('Save') as HTMLButtonElement).disabled).toBe(false)
+  })
 })

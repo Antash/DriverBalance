@@ -35,7 +35,7 @@ const GROUPS: { title: string; fields: Field[] }[] = [
 const LABELS: Record<string, string> = Object.fromEntries(GROUPS.flatMap((g) => g.fields.map((f) => [f.key, f.label])))
 
 export function ParamsPanel({ onClose }: { onClose(): void }) {
-  const { draft, dirty, setDraft, save, reset } = useParams()
+  const { draft, dirty, errors: problems, valid, setDraft, save, reset } = useParams()
   const [text, setText] = useState<Record<string, string>>({})
   const [errors, setErrors] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
@@ -92,11 +92,14 @@ export function ParamsPanel({ onClose }: { onClose(): void }) {
               ))}
             </fieldset>
           ))}
+          {problems.length > 0 && (
+            <ul className="errors" role="alert" aria-label="Parameter problems">{problems.map((m) => <li key={m}>{m}</li>)}</ul>
+          )}
           {Object.entries(invalid).map(([k, m]) => <p className="errors" role="alert" key={k}>{LABELS[k]}: {m}</p>)}
           {errors.length > 0 && <ul className="errors" role="status">{errors.map((e) => <li key={e}>{e}</li>)}</ul>}
         </div>
         <div className="drawer-foot">
-          <button className="btn primary" disabled={!dirty || saving || hasInvalid} onClick={onSave}>Save</button>
+          <button className="btn primary" disabled={!dirty || saving || hasInvalid || !valid} onClick={onSave}>Save</button>
           <button className="btn" disabled={!dirty} onClick={() => { reset(); setText({}); setInvalid({}); setErrors([]) }}>Reset</button>
         </div>
       </aside>

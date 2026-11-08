@@ -2,16 +2,20 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { keepPreviousData, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { AnalysisParameters } from '../api/types'
+import { validateParams } from '../lib/validateParams'
 
 export interface ParamsState {
   vehicleId: number
   saved: AnalysisParameters
   draft: AnalysisParameters
   dirty: boolean
+  /** Validation problems of the draft (same rules as the server); empty when valid. */
+  errors: string[]
+  valid: boolean
   setDraft(p: Partial<AnalysisParameters>): void
   save(): Promise<void>
   reset(): void
-  /** The full draft (debounced 300 ms) when dirty (the server replaces the saved set entirely), else undefined. Analytics use this; Save uses the live draft. */
+  /** The full draft (debounced 300 ms) when dirty (the server replaces the saved set entirely), else undefined. While the draft is invalid it stays at the last valid draft (or undefined) so charts never request invalid parameters. Analytics use this; Save uses the live draft. */
   override: AnalysisParameters | undefined
 }
 
@@ -32,31 +36,34 @@ export function ParamsProvider({ vehicleId, children }: { vehicleId: number; chi
 
   const draft = useMemo(() => (saved ? { ...saved, ...edits } : undefined), [saved, edits])
   const dirty = !!saved && !!draft && !same(saved, draft)
+  const errors = useMemo(() => (draft ? validateParams(draft) : []), [draft])
+  const valid = errors.length === 0
 
   // Analytics recompute from a debounced copy of the draft; edits/Save/close always use the live draft.
   const [settled, setSettled] = useState<AnalysisParameters | undefined>(undefined)
   useEffect(() => {
     if (!draft) return
     if (!dirty) { setSettled(undefined); return }
+    if (!valid) return // keep the last valid override
     const t = window.setTimeout(() => setSettled(draft), 300)
     return () => window.clearTimeout(t)
-  }, [draft, dirty])
+  }, [draft, dirty, valid])
 
   const setDraft = useCallback((p: Partial<AnalysisParameters>) => setEdits((e) => ({ ...e, ...p })), [])
   const reset = useCallback(() => setEdits({}), [])
   const save = useCallback(async () => {
-    if (!draft) return
+    if (!draft || !valid) return
     const stored = await api.put<AnalysisParameters>(`/vehicles/${vehicleId}/parameters`, draft)
     qc.setQueryData(['parameters', vehicleId], stored)
     setEdits({})
     await qc.invalidateQueries({ queryKey: ['analytics', vehicleId] })
-  }, [draft, vehicleId, qc])
+  }, [draft, valid, vehicleId, qc])
 
   const value = useMemo<ParamsState | null>(
     () => saved && draft
-      ? { vehicleId, saved, draft, dirty, setDraft, save, reset, override: dirty ? settled : undefined }
+      ? { vehicleId, saved, draft, dirty, errors, valid, setDraft, save, reset, override: dirty ? settled : undefined }
       : null,
-    [vehicleId, saved, draft, dirty, settled, setDraft, save, reset],
+    [vehicleId, saved, draft, dirty, errors, valid, settled, setDraft, save, reset],
   )
 
   if (!value) return <p className="muted pad">{isError ? 'Could not load parameters.' : 'Loading…'}</p>
