@@ -22,8 +22,13 @@ builder.Services.AddScoped<VehicleDataLoader>();
 builder.Services.AddScoped<AnalysisSessionFactory>();
 
 builder.Services.AddAuthentication(LocalUserHandler.SchemeName)
-    .AddScheme<AuthenticationSchemeOptions, LocalUserHandler>(LocalUserHandler.SchemeName, _ => { });
-builder.Services.AddAuthorization();
+    .AddScheme<AuthenticationSchemeOptions, LocalUserHandler>(LocalUserHandler.SchemeName, _ => { })
+    .AddScheme<AuthenticationSchemeOptions, ApiTokenHandler>(ApiTokenHandler.SchemeName, _ => { });
+builder.Services.AddAuthorization(o => o.AddPolicy("ApiToken", p =>
+    p.AddAuthenticationSchemes(ApiTokenHandler.SchemeName).RequireAuthenticatedUser()));
+
+// Stateless streamable HTTP: no session affinity, every request is authenticated on its own.
+builder.Services.AddMcpServer().WithHttpTransport(o => o.Stateless = true).WithTools<CarTools>();
 
 var app = builder.Build();
 
@@ -43,7 +48,10 @@ AnalyticsEndpoints.Map(api);
 TripEndpoints.Map(api);
 ExpenseEndpoints.Map(api);
 TyreEndpoints.Map(api);
+TokenEndpoints.Map(api);
 ExportEndpoints.Map(api);
+
+app.MapMcp("/mcp").RequireAuthorization("ApiToken");
 
 // SPA fallback: anything that is not an API or MCP path gets the front end.
 app.MapFallback(async ctx =>

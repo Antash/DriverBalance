@@ -39,7 +39,7 @@ public static class ExpenseEndpoints
     private static async Task<IResult> Create(long vid, Expense body, VehicleDataLoader loader, DriverBalanceDbContext db, CancellationToken ct)
     {
         await loader.GetVehicleAsync(vid, ct);
-        var expense = await ValidateAsync(vid, body, db, ct);
+        var expense = await ExpenseRules.ValidateAsync(vid, body, db, ct);
         var row = (expense with { Id = 0, Source = ExpenseSource.Web }).ToRow();
         row.VehicleId = vid;
         db.Expenses.Add(row);
@@ -53,7 +53,7 @@ public static class ExpenseEndpoints
         var row = await db.Expenses.FirstOrDefaultAsync(x => x.Id == id && x.VehicleId == vid, ct);
         if (row is null) return Results.NotFound();
 
-        var e = await ValidateAsync(vid, body, db, ct);
+        var e = await ExpenseRules.ValidateAsync(vid, body, db, ct);
         row.Date = e.Date; row.Category = e.Category; row.Amount = e.Amount; row.Currency = e.Currency; row.HomeAmount = e.HomeAmount;
         row.Odometer = e.Odometer; row.Note = e.Note; row.CoversFrom = e.CoversFrom; row.CoversTo = e.CoversTo; row.Litres = e.Litres;
         row.FullTank = e.FullTank; row.Station = e.Station; row.MaintenanceFlags = (int)e.Maintenance;
@@ -70,20 +70,5 @@ public static class ExpenseEndpoints
         db.Expenses.Remove(row);
         await db.SaveChangesAsync(ct);
         return Results.NoContent();
-    }
-
-    /// <summary>Returns the expense with a normalised currency, or throws a 400 listing every problem.</summary>
-    private static async Task<Expense> ValidateAsync(long vid, Expense e, DriverBalanceDbContext db, CancellationToken ct)
-    {
-        var errors = new List<string>();
-        if (e.Amount <= 0) errors.Add("Amount must be greater than 0.");
-        if (!VehicleEndpoints.IsCurrency(e.Currency ?? "")) errors.Add("Currency must be a 3-letter code.");
-        if (e.HomeAmount is < 0) errors.Add("Home amount must not be negative.");
-        if (e.Litres is { } l && !(l > 0)) errors.Add("Litres must be greater than 0.");
-        if (e.CoversFrom is { } from && e.CoversTo is { } to && from > to) errors.Add("CoversFrom must not be after CoversTo.");
-        if (e.TyreSetId is { } setId && !await db.TyreSets.AnyAsync(t => t.Id == setId && t.VehicleId == vid, ct))
-            errors.Add("Tyre set does not exist on this vehicle.");
-        if (errors.Count > 0) throw new ApiValidationException(errors);
-        return e with { Currency = e.Currency!.ToUpperInvariant() };
     }
 }
