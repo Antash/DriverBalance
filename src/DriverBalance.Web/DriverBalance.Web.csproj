@@ -15,4 +15,23 @@
     <PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.4.0" />
   </ItemGroup>
 
+
+  <!-- Publish only: build the SPA in ../../web and ship it as wwwroot. Plain `dotnet build`/`dotnet test` never touch node. -->
+  <PropertyGroup>
+    <WebAppDir>$(MSBuildThisFileDirectory)..\..\web\</WebAppDir>
+  </PropertyGroup>
+
+  <Target Name="BuildWebApp" BeforeTargets="ComputeFilesToPublish" Condition="'$(SkipWebBuild)' != 'true'">
+    <Exec Command="npm ci" WorkingDirectory="$(WebAppDir)" />
+    <Exec Command="npm run build" WorkingDirectory="$(WebAppDir)" />
+    <ItemGroup>
+      <WebAppDist Include="$(WebAppDir)dist\**\*" />
+    </ItemGroup>
+    <RemoveDir Directories="$(MSBuildProjectDirectory)\wwwroot" />
+    <Copy SourceFiles="@(WebAppDist)" DestinationFiles="@(WebAppDist->'$(MSBuildProjectDirectory)\wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <ItemGroup>
+      <ResolvedFileToPublish Include="@(WebAppDist)" RelativePath="wwwroot\%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+
 </Project>

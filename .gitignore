@@ -363,3 +363,8 @@ MigrationBackup/
 FodyWeavers.xsd
 # Superpowers brainstorm/build scratch
 .superpowers/
+
+# Web frontend
+web/node_modules/
+web/dist/
+src/DriverBalance.Web/wwwroot/
