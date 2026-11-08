@@ -44,7 +44,7 @@ public static class VolvoCsvParser
                     FuelLiters: ParseDouble(parts[9]),
                     Notes: parts[10]));
             }
-            catch (FormatException ex)
+            catch (Exception ex) when (ex is FormatException or OverflowException or ArgumentOutOfRangeException)
             {
                 warnings.Add($"Line {lineNo}: {ex.Message} Row skipped.");
             }

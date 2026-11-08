@@ -86,6 +86,28 @@ public class VolvoCsvParserTests
     }
 
     [Fact]
+    public void Parse_BadDateRow_SkippedWithWarning()
+    {
+        var bad = Row().Replace("14.04.2025 11:45", "not a date");
+        var result = ParseRows(Row(), bad);
+
+        Assert.Single(result.Trips);
+        Assert.Single(result.Warnings);
+    }
+
+    [Theory]
+    [InlineData("99999999999 min")]
+    [InlineData("2147483647 h")]
+    [InlineData("99999999999 h")]
+    public void Parse_OverflowDuration_SkippedWithWarning(string duration)
+    {
+        var result = ParseRows(Row(), Row(duration));
+
+        Assert.Single(result.Trips);
+        Assert.Single(result.Warnings);
+    }
+
+    [Fact]
     public void Validate_Defaults_Valid() =>
         Assert.Empty(new AnalysisParameters().Validate());
 
