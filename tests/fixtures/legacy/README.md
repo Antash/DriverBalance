@@ -11,16 +11,8 @@ Fresh empty temp dir containing `appsettings.json` (copy of `DriverBalance/appse
 The project was built first (`dotnet build DriverBalance`) so build warnings stay out of stdout.
 
 ```
-cd <tempdir>
-CSV="$(cygpath -w "$REPO/tests/fixtures/synthetic-trips.csv")"   # Windows path, as runprintf '1
-%s
-3
-4
-10
-11
-0
-' "$CSV" \
-  | dotnet run --no-build --project <repo>/DriverBalance > legacy-output.txt
+CSV="$(cygpath -w "$REPO/tests/fixtures/synthetic-trips.csv")"   # Windows path, as run
+printf '1\n%s\n3\n4\n10\n11\n0\n' "$CSV" \
 ```
 
 Stdin: `1` + CSV path (import), `3` summary, `4` analyze trips, `10` report since last per type,
