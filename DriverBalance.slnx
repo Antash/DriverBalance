@@ -8,5 +8,4 @@
     <Project Path="tests/DriverBalance.Core.Tests/DriverBalance.Core.Tests.csproj" />
     <Project Path="tests/DriverBalance.Web.Tests/DriverBalance.Web.Tests.csproj" />
   </Folder>
-  <Project Path="DriverBalance/DriverBalance.csproj" />
 </Solution>
