@@ -72,3 +72,4 @@ table.data td.num, table.data th.num { text-align: right; font-variant-numeric: 
 .btn.danger { color: var(--err); }
 .token-once { font-family: ui-monospace, Consolas, monospace; word-break: break-all; background: var(--page); padding: 8px; border-radius: 6px; border: 1px solid var(--axis); }
 .warn { background: var(--warn-bg); border-radius: 6px; padding: 6px 10px; }
+.field-error { color: var(--err); font-size: 12px; }

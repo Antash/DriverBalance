@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { Expense, ExpenseCategory, MaintenanceType, TyreSet, Vehicle } from '../api/types'
-import { buildExpensePayload, emptyFormState, pricePerLitre, toFormState, usesTyreSet, type ExpenseFormState } from '../lib/expenseForm'
+import { buildExpensePayload, parseDecimal, validateExpenseForm, emptyFormState, pricePerLitre, toFormState, usesTyreSet, type ExpenseFormState } from '../lib/expenseForm'
 import { errorLines, fmtMoney, invalidateVehicleData } from '../lib/format'
 
 export const CATEGORIES: ExpenseCategory[] = [
@@ -32,12 +32,13 @@ export function ExpenseForm({ vehicle, tyreSets, initial, onDone }: {
   vehicle: Vehicle; tyreSets: TyreSet[]; initial?: Expense; onDone(): void
 }) {
   const qc = useQueryClient()
+  const [submitted, setSubmitted] = useState(false)
   const [f, setF] = useState<ExpenseFormState>(() => (initial ? toFormState(initial) : emptyFormState(vehicle.homeCurrency)))
   const set = <K extends keyof ExpenseFormState>(k: K, v: ExpenseFormState[K]) => setF((s) => ({ ...s, [k]: v }))
 
   const save = useMutation({
     mutationFn: () => {
-      const body = buildExpensePayload(f)
+      const body = buildExpensePayload(f, vehicle.homeCurrency)
       return initial
         ? api.put<Expense>(`/vehicles/${vehicle.id}/expenses/${initial.id}`, body)
         : api.post<Expense>(`/vehicles/${vehicle.id}/expenses`, body)
@@ -45,31 +46,33 @@ export function ExpenseForm({ vehicle, tyreSets, initial, onDone }: {
     onSuccess: async () => { await invalidateVehicleData(qc, vehicle.id); onDone() },
   })
 
-  const ppl = f.category === 'Fuel' ? pricePerLitre(Number(f.amount.replace(',', '.')), Number(f.litres.replace(',', '.'))) : null
-  const foreign = f.currency.trim().toUpperCase() !== vehicle.homeCurrency
+  const errors = validateExpenseForm(f, vehicle.homeCurrency)
+  const err = (k: string) => (submitted && errors[k] ? <span className="field-error" role="alert">{errors[k]}</span> : null)
+  const ppl = f.category === 'Fuel' ? pricePerLitre(parseDecimal(f.amount) ?? NaN, parseDecimal(f.litres) ?? NaN) : null
+  const foreign = f.currency.trim().toUpperCase() !== vehicle.homeCurrency.toUpperCase()
   const toggle = (t: MaintenanceType) =>
     set('maintenance', f.maintenance.includes(t) ? f.maintenance.filter((x) => x !== t) : [...f.maintenance, t])
 
   return (
-    <form className="form-grid" onSubmit={(e) => { e.preventDefault(); save.mutate() }}>
+    <form className="form-grid" onSubmit={(e) => { e.preventDefault(); setSubmitted(true); if (Object.keys(errors).length === 0) save.mutate() }}>
       <label>Date<input type="date" required value={f.date} onChange={(e) => set('date', e.target.value)} /></label>
       <label>Category
         <select value={f.category} onChange={(e) => set('category', e.target.value as ExpenseCategory)}>
           {CATEGORIES.map((c) => <option key={c} value={c}>{label(c)}</option>)}
         </select>
       </label>
-      <label>Amount<input inputMode="decimal" required value={f.amount} onChange={(e) => set('amount', e.target.value)} /></label>
+      <label>Amount<input inputMode="decimal" value={f.amount} onChange={(e) => set('amount', e.target.value)} />{err('amount')}</label>
       <label>Currency<input maxLength={3} value={f.currency} onChange={(e) => set('currency', e.target.value)} /></label>
       {foreign && (
         <label>Amount in {vehicle.homeCurrency} (optional)
-          <input inputMode="decimal" value={f.homeAmount} onChange={(e) => set('homeAmount', e.target.value)} />
+          <input inputMode="decimal" value={f.homeAmount} onChange={(e) => set('homeAmount', e.target.value)} />{err('homeAmount')}
         </label>
       )}
-      <label>Odometer (km)<input inputMode="numeric" value={f.odometer} onChange={(e) => set('odometer', e.target.value)} /></label>
+      <label>Odometer (km)<input inputMode="numeric" value={f.odometer} onChange={(e) => set('odometer', e.target.value)} />{err('odometer')}</label>
 
       {f.category === 'Fuel' && (
         <>
-          <label>Litres<input inputMode="decimal" value={f.litres} onChange={(e) => set('litres', e.target.value)} /></label>
+          <label>Litres<input inputMode="decimal" value={f.litres} onChange={(e) => set('litres', e.target.value)} />{err('litres')}</label>
           <label>Station<input value={f.station} onChange={(e) => set('station', e.target.value)} /></label>
           <label className="check">
             <input type="checkbox" checked={f.fullTank} onChange={(e) => set('fullTank', e.target.checked)} /> Full tank

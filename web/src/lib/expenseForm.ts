@@ -23,11 +23,25 @@ export type ExpensePayload = Omit<Expense, 'id' | 'source'>
 export const MOUNT_TYPES: MaintenanceType[] = ['TyreSwap', 'NewTyres']
 
 export const emptyToNull = (v: string): string | null => (v.trim() === '' ? null : v.trim())
-const num = (v: string): number | null => {
-  const t = v.trim().replace(',', '.')
-  if (t === '') return null
-  const n = Number(t)
-  return Number.isFinite(n) ? n : null
+/** Czech-style input: spaces/NBSP are thousands separators, comma is the decimal mark. Blank or malformed gives null. */
+export function parseDecimal(input: string): number | null {
+  const t = input.replace(/[\s ]/g, '').replace(',', '.')
+  return /^\d+(\.\d+)?$/.test(t) ? Number(t) : null
+}
+
+const num = (v: string): number | null => parseDecimal(v)
+const isHome = (currency: string, home: string) => currency.trim().toUpperCase() === home.toUpperCase()
+
+/** Field name -> message for every visible field that cannot be parsed. Empty means the form may be submitted. */
+export function validateExpenseForm(f: ExpenseFormState, homeCurrency: string): Record<string, string> {
+  const errors: Record<string, string> = {}
+  const bad = (v: string) => v.trim() !== '' && parseDecimal(v) === null
+  if (f.amount.trim() === '') errors.amount = 'Amount is required.'
+  else if (parseDecimal(f.amount) === null) errors.amount = 'Enter a number, e.g. 1 500 or 12,50.'
+  if (f.category === 'Fuel' && bad(f.litres)) errors.litres = 'Enter a number, e.g. 40,5.'
+  if (!isHome(f.currency, homeCurrency) && bad(f.homeAmount)) errors.homeAmount = 'Enter a number, e.g. 1 500 or 12,50.'
+  if (f.odometer.trim() !== '' && !Number.isInteger(parseDecimal(f.odometer))) errors.odometer = 'Enter a whole number of km.'
+  return errors
 }
 
 export function pricePerLitre(totalPrice: number, litres: number): number | null {
@@ -39,15 +53,15 @@ export function usesTyreSet(category: ExpenseCategory, maintenance: MaintenanceT
   return category === 'Tyres' || (category === 'Maintenance' && maintenance.some((m) => MOUNT_TYPES.includes(m)))
 }
 
-export function buildExpensePayload(f: ExpenseFormState): ExpensePayload {
+export function buildExpensePayload(f: ExpenseFormState, homeCurrency: string): ExpensePayload {
   const fuel = f.category === 'Fuel'
   const maint = f.category === 'Maintenance'
   return {
     date: f.date,
     category: f.category,
-    amount: num(f.amount) ?? 0,
+    amount: parseDecimal(f.amount) ?? 0, // validateExpenseForm rejects anything unparsable before submit
     currency: f.currency.trim().toUpperCase(),
-    homeAmount: num(f.homeAmount),
+    homeAmount: isHome(f.currency, homeCurrency) ? null : num(f.homeAmount),
     odometer: num(f.odometer),
     note: emptyToNull(f.note),
     coversFrom: emptyToNull(f.coversFrom),

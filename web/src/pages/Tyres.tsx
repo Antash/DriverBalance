@@ -66,11 +66,11 @@ function SetForm({ vehicleId, initial, onDone }: { vehicleId: number; initial?: 
   )
 }
 
-function AssignRow({ expense, sets, vehicleId }: { expense: Expense; sets: TyreSet[]; vehicleId: number }) {
+function AssignRow({ expense, sets, vehicleId, homeCurrency }: { expense: Expense; sets: TyreSet[]; vehicleId: number; homeCurrency: string }) {
   const qc = useQueryClient()
   const [setId, setSetId] = useState('')
   const assign = useMutation({
-    mutationFn: () => api.put<Expense>(`/vehicles/${vehicleId}/expenses/${expense.id}`, buildExpensePayload({ ...toFormState(expense), tyreSetId: setId })),
+    mutationFn: () => api.put<Expense>(`/vehicles/${vehicleId}/expenses/${expense.id}`, buildExpensePayload({ ...toFormState(expense), tyreSetId: setId }, homeCurrency)),
     onSuccess: () => invalidateVehicleData(qc, vehicleId),
   })
   return (
@@ -145,7 +145,7 @@ export default function TyresPage() {
       {unassigned.length > 0 && (
         <section className="card">
           <h2>Swaps without a tyre set</h2>
-          {unassigned.map((e) => <AssignRow key={e.id} expense={e} sets={sets} vehicleId={vehicleId} />)}
+          {unassigned.map((e) => <AssignRow key={e.id} expense={e} sets={sets} vehicleId={vehicleId} homeCurrency={vehicle.homeCurrency} />)}
         </section>
       )}
 
