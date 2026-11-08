@@ -12,7 +12,14 @@ The project was built first (`dotnet build DriverBalance`) so build warnings sta
 
 ```
 cd <tempdir>
-printf '1\n<abs path>\tests\fixtures\synthetic-trips.csv\n3\n4\n10\n11\n0\n' \
+CSV="$(cygpath -w "$REPO/tests/fixtures/synthetic-trips.csv")"   # Windows path, as runprintf '1
+%s
+3
+4
+10
+11
+0
+' "$CSV" \
   | dotnet run --no-build --project <repo>/DriverBalance > legacy-output.txt
 ```
 
