@@ -79,8 +79,13 @@ public sealed class AnalysisContext
             else highway += g.DistanceKm;
         }
 
-        var fuel = new FuelStats(liters, km > 0 ? liters / km * 100.0 : null, null, null);
-        var money = new MoneyStats(0m, new Dictionary<ExpenseCategory, decimal>(), null, 0);
+        var segments = FuelEconomy.Segments(Data.Expenses.Where(e => e.Category == ExpenseCategory.Fuel), Timeline)
+            .Where(s => period.Contains(s.EndDate)).ToList();
+        double segKm = segments.Sum(s => s.EndOdometer - s.StartOdometer);
+        double segLitres = segments.Sum(s => s.Litres);
+        var fuel = new FuelStats(liters, km > 0 ? liters / km * 100.0 : null,
+            segKm > 0 ? segLitres / segKm * 100.0 : null, segments.Count > 0 ? segKm : null);
+        var money = Money.For(period, Data.Expenses, Data.HomeCurrency, odometerKm ?? km);
 
         return new PeriodStats(period, usage, scores, new DrivingMix(city, mixed, highway), fuel, money);
     }
