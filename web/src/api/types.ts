@@ -271,3 +271,38 @@ export interface RouteStat {
   from: string; to: string; count: number; km: number; avgLPer100: number | null; typicalScore: DrivingScore
   trend: { date: DateOnly; lPer100: number | null }[]
 }
+
+// ---- Overview, timeline ----
+
+export interface DpfHealthSummary {
+  lastLongDrive: DateOnly | null
+  daysSince: number | null
+  kmSince: number | null
+  needsLongDrive: boolean
+  series: { date: DateOnly; daysSinceLongDrive: number }[]
+  /** `label` reads "<n> days"; `from`..`to` is the stretch without a long drive. */
+  worstStretches: Period[]
+}
+
+export interface OverviewData {
+  thisMonth: PeriodStats
+  thisYear: PeriodStats
+  dpfHealth: DpfHealthSummary
+  recentExpenses: Expense[]
+  reminders: Reminder[]
+}
+
+export type TimelineEventKind = 'Maintenance' | 'TyreMount' | 'Expense' | 'Import'
+export interface TimelineEvent {
+  date: DateOnly
+  kind: TimelineEventKind
+  label: string
+  odometer: number | null
+  amount: number | null
+  refId: number | null
+}
+export interface TimelineChart {
+  odometer: { date: DateOnly; km: number }[]
+  events: TimelineEvent[]
+  tyreBands: TyreMountSpan[]
+}

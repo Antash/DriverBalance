@@ -102,3 +102,17 @@ table.data tr.sub td { background: var(--page); font-size: 13px; }
 .kv dt { color: var(--text-2); }
 .kv dd { margin: 0; text-align: right; word-break: break-word; }
 .sparkline polyline { stroke: var(--series-1); }
+
+/* Overview KPI tiles, DPF strip, interval small multiples */
+.kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+.kpi-name { font-size: 13px; color: var(--text-2); }
+.kpi-value { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.kpi-unit { font-size: 14px; font-weight: 400; color: var(--text-2); }
+.dpf-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; }
+.callout { margin: 12px 0 0; padding: 8px 12px; border-radius: 6px; background: var(--warn-bg); border: 1px solid var(--border); }
+.card h3 { font-size: 14px; margin: 12px 0 4px; }
+ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.multiples { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.multiple { margin: 0; }
+.multiple figcaption { font-size: 13px; color: var(--text-2); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
