@@ -3,6 +3,7 @@
   Registers (or removes) a per-user Scheduled Task that starts DriverBalance at logon.
 .DESCRIPTION
   Runs %LOCALAPPDATA%\DriverBalance\app\DriverBalance.Web.exe with that folder as working directory.
+  The exe is a console program, so the task starts it through "conhost.exe --headless" and no window appears at logon.
   No administrator rights are needed. Safe to run repeatedly.
 .PARAMETER Unregister
   Removes the "DriverBalance" task instead.
@@ -30,7 +31,8 @@ if (-not (Test-Path $exe)) {
 }
 
 $user = "$env:USERDOMAIN\$env:USERNAME"
-$action = New-ScheduledTaskAction -Execute $exe -WorkingDirectory $appDir
+# conhost --headless runs the console exe without creating a visible console window.
+$action = New-ScheduledTaskAction -Execute 'conhost.exe' -Argument "--headless `"$exe`"" -WorkingDirectory $appDir
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $user
 $principal = New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Limited
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `

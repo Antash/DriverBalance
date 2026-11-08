@@ -17,7 +17,8 @@
     <PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.4.0" />
   </ItemGroup>
 
-  <!-- Publish only: build the SPA in ../../web and ship it as wwwroot. Plain `dotnet build`/`dotnet test` never touch node. -->
+  <!-- Publish only: build the SPA in ../../web and ship it as wwwroot of the publish output (never copied into the source
+       wwwroot, so `dotnet run` does not serve a stale UI). Plain `dotnet build`/`dotnet test` never touch node. -->
   <PropertyGroup>
     <WebAppDir>$(MSBuildThisFileDirectory)..\..\web\</WebAppDir>
   </PropertyGroup>
@@ -28,11 +29,9 @@
     <ItemGroup>
       <WebAppDist Include="$(WebAppDir)dist\**\*" />
     </ItemGroup>
-    <RemoveDir Directories="$(MSBuildProjectDirectory)\wwwroot" />
-    <Copy SourceFiles="@(WebAppDist)" DestinationFiles="@(WebAppDist->'$(MSBuildProjectDirectory)\wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" />
   </Target>
 
-  <!-- A leftover wwwroot from an earlier publish is globbed as Content at evaluation time (stale names, duplicates
+  <!-- A leftover wwwroot in the project folder (from older versions of this target) is globbed as Content at evaluation time (stale names, duplicates
        -> NETSDK1152), so drop every wwwroot entry and publish exactly what this build produced. -->
   <Target Name="PublishWebApp" AfterTargets="ComputeResolvedFilesToPublishList" DependsOnTargets="BuildWebApp" Condition="'$(SkipWebBuild)' != 'true'">
     <ItemGroup>
