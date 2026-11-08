@@ -1,16 +1,18 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { ApiError } from '../api/client'
 import type { AnalysisParameters } from '../api/types'
 import { useParams } from '../state/ParamsContext'
 
-type Field = { key: keyof AnalysisParameters; label: string; step?: string }
+type Field = { key: keyof AnalysisParameters; label: string; step?: string; int?: boolean }
+
+const INT = true
 
 const GROUPS: { title: string; fields: Field[] }[] = [
-  { title: 'Cold start', fields: [{ key: 'coldStartGapMinutes', label: 'Gap between trips (min)' }] },
+  { title: 'Cold start', fields: [{ key: 'coldStartGapMinutes', label: 'Gap between trips (min)', int: INT }] },
   { title: 'Score thresholds', fields: [
-    { key: 'shortDurationMinutes', label: 'Short trip (min)' },
-    { key: 'mediumDurationMinutes', label: 'Medium trip (min)' },
-    { key: 'longDurationMinutes', label: 'Long trip (min)' },
+    { key: 'shortDurationMinutes', label: 'Short trip (min)', int: INT },
+    { key: 'mediumDurationMinutes', label: 'Medium trip (min)', int: INT },
+    { key: 'longDurationMinutes', label: 'Long trip (min)', int: INT },
   ] },
   { title: 'Driving mix', fields: [
     { key: 'heavyTrafficSpeedKmh', label: 'Heavy traffic below (km/h)' },
@@ -18,38 +20,49 @@ const GROUPS: { title: string; fields: Field[] }[] = [
     { key: 'mixedSpeedKmh', label: 'Mixed below (km/h)' },
   ] },
   { title: 'Charts', fields: [
-    { key: 'dpfMovingAverageWeeks', label: 'DPF moving average (weeks)' },
+    { key: 'dpfMovingAverageWeeks', label: 'DPF moving average (weeks)', int: INT },
     { key: 'fuelTrendMinLPer100', label: 'Fuel trend min (L/100)' },
     { key: 'fuelTrendMaxLPer100', label: 'Fuel trend max (L/100)' },
     { key: 'lowessSpan', label: 'LOWESS span', step: '0.05' },
     { key: 'heatmapKmCap', label: 'Heatmap cap (km)' },
   ] },
   { title: 'Reminders', fields: [
-    { key: 'longDriveHintDays', label: 'Long-drive hint (days)' },
-    { key: 'exportReminderDays', label: 'Export reminder (days)' },
+    { key: 'longDriveHintDays', label: 'Long-drive hint (days)', int: INT },
+    { key: 'exportReminderDays', label: 'Export reminder (days)', int: INT },
   ] },
 ]
+
+const LABELS: Record<string, string> = Object.fromEntries(GROUPS.flatMap((g) => g.fields.map((f) => [f.key, f.label])))
 
 export function ParamsPanel({ onClose }: { onClose(): void }) {
   const { draft, dirty, setDraft, save, reset } = useParams()
   const [text, setText] = useState<Record<string, string>>({})
   const [errors, setErrors] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
-  const timer = useRef<number | undefined>(undefined)
+  const [invalid, setInvalid] = useState<Record<string, string>>({})
 
-  useEffect(() => () => window.clearTimeout(timer.current), [])
-
-  const change = (key: keyof AnalysisParameters, raw: string) => {
-    setText((t) => ({ ...t, [key]: raw }))
-    window.clearTimeout(timer.current)
-    timer.current = window.setTimeout(() => {
-      const n = Number(raw)
-      if (raw.trim() !== '' && Number.isFinite(n)) setDraft({ [key]: n })
-    }, 300)
+  const change = (f: Field, raw: string) => {
+    setText((t) => ({ ...t, [f.key]: raw }))
+    const n = Number(raw)
+    const problem = raw.trim() === '' || !Number.isFinite(n) ? 'Enter a number.'
+      : f.int && !Number.isInteger(n) ? 'Enter a whole number.' : null
+    setInvalid((v) => {
+      const next = { ...v }
+      if (problem) next[f.key] = problem; else delete next[f.key]
+      return next
+    })
+    if (!problem) setDraft({ [f.key]: n })
   }
 
+  // Leaving a field drops any invalid text so the input shows the draft again.
+  const blur = (key: string) => {
+    setText((t) => { const next = { ...t }; delete next[key]; return next })
+    setInvalid((v) => { const next = { ...v }; delete next[key]; return next })
+  }
+
+  const hasInvalid = Object.keys(invalid).length > 0
+
   const onSave = async () => {
-    window.clearTimeout(timer.current)
     setSaving(true)
     setErrors([])
     try { await save(); setText({}) }
@@ -72,18 +85,19 @@ export function ParamsPanel({ onClose }: { onClose(): void }) {
               {g.fields.map((f) => (
                 <label className="field" key={f.key}>
                   <span>{f.label}</span>
-                  <input type="number" inputMode="decimal" step={f.step ?? 'any'}
+                  <input type="number" inputMode="decimal" step={f.int ? '1' : f.step ?? 'any'} aria-invalid={!!invalid[f.key]}
                     value={text[f.key] ?? String(draft[f.key])}
-                    onChange={(e) => change(f.key, e.target.value)} />
+                    onChange={(e) => change(f, e.target.value)} onBlur={() => blur(f.key)} />
                 </label>
               ))}
             </fieldset>
           ))}
-          {errors.length > 0 && <ul className="errors" role="alert">{errors.map((e) => <li key={e}>{e}</li>)}</ul>}
+          {Object.entries(invalid).map(([k, m]) => <p className="errors" role="alert" key={k}>{LABELS[k]}: {m}</p>)}
+          {errors.length > 0 && <ul className="errors" role="status">{errors.map((e) => <li key={e}>{e}</li>)}</ul>}
         </div>
         <div className="drawer-foot">
-          <button className="btn primary" disabled={!dirty || saving} onClick={onSave}>Save</button>
-          <button className="btn" disabled={!dirty} onClick={() => { window.clearTimeout(timer.current); reset(); setText({}); setErrors([]) }}>Reset</button>
+          <button className="btn primary" disabled={!dirty || saving || hasInvalid} onClick={onSave}>Save</button>
+          <button className="btn" disabled={!dirty} onClick={() => { reset(); setText({}); setInvalid({}); setErrors([]) }}>Reset</button>
         </div>
       </aside>
     </>

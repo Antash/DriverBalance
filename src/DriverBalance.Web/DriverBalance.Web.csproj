@@ -5,6 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>DriverBalance.Web</RootNamespace>
+    <!-- wwwroot is filled by the publish-time web build; the static-web-assets pipeline would snapshot it too early. -->
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,13 +17,12 @@
     <PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.4.0" />
   </ItemGroup>
 
-
   <!-- Publish only: build the SPA in ../../web and ship it as wwwroot. Plain `dotnet build`/`dotnet test` never touch node. -->
   <PropertyGroup>
     <WebAppDir>$(MSBuildThisFileDirectory)..\..\web\</WebAppDir>
   </PropertyGroup>
 
-  <Target Name="BuildWebApp" BeforeTargets="ComputeFilesToPublish" Condition="'$(SkipWebBuild)' != 'true'">
+  <Target Name="BuildWebApp" BeforeTargets="ComputeResolvedFilesToPublishList" Condition="'$(SkipWebBuild)' != 'true'">
     <Exec Command="npm ci" WorkingDirectory="$(WebAppDir)" />
     <Exec Command="npm run build" WorkingDirectory="$(WebAppDir)" />
     <ItemGroup>
@@ -29,7 +30,13 @@
     </ItemGroup>
     <RemoveDir Directories="$(MSBuildProjectDirectory)\wwwroot" />
     <Copy SourceFiles="@(WebAppDist)" DestinationFiles="@(WebAppDist->'$(MSBuildProjectDirectory)\wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" />
+  </Target>
+
+  <!-- A leftover wwwroot from an earlier publish is globbed as Content at evaluation time (stale names, duplicates
+       -> NETSDK1152), so drop every wwwroot entry and publish exactly what this build produced. -->
+  <Target Name="PublishWebApp" AfterTargets="ComputeResolvedFilesToPublishList" DependsOnTargets="BuildWebApp" Condition="'$(SkipWebBuild)' != 'true'">
     <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="$([System.String]::Copy('%(ResolvedFileToPublish.RelativePath)').Replace('\', '/').StartsWith('wwwroot/'))" />
       <ResolvedFileToPublish Include="@(WebAppDist)" RelativePath="wwwroot\%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
     </ItemGroup>
   </Target>

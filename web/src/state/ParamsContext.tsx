@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { keepPreviousData, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { AnalysisParameters } from '../api/types'
@@ -11,7 +11,7 @@ export interface ParamsState {
   setDraft(p: Partial<AnalysisParameters>): void
   save(): Promise<void>
   reset(): void
-  /** The full draft when dirty (the server replaces the saved set entirely), else undefined. */
+  /** The full draft (debounced 300 ms) when dirty (the server replaces the saved set entirely), else undefined. Analytics use this; Save uses the live draft. */
   override: AnalysisParameters | undefined
 }
 
@@ -33,6 +33,15 @@ export function ParamsProvider({ vehicleId, children }: { vehicleId: number; chi
   const draft = useMemo(() => (saved ? { ...saved, ...edits } : undefined), [saved, edits])
   const dirty = !!saved && !!draft && !same(saved, draft)
 
+  // Analytics recompute from a debounced copy of the draft; edits/Save/close always use the live draft.
+  const [settled, setSettled] = useState<AnalysisParameters | undefined>(undefined)
+  useEffect(() => {
+    if (!draft) return
+    if (!dirty) { setSettled(undefined); return }
+    const t = window.setTimeout(() => setSettled(draft), 300)
+    return () => window.clearTimeout(t)
+  }, [draft, dirty])
+
   const setDraft = useCallback((p: Partial<AnalysisParameters>) => setEdits((e) => ({ ...e, ...p })), [])
   const reset = useCallback(() => setEdits({}), [])
   const save = useCallback(async () => {
@@ -45,9 +54,9 @@ export function ParamsProvider({ vehicleId, children }: { vehicleId: number; chi
 
   const value = useMemo<ParamsState | null>(
     () => saved && draft
-      ? { vehicleId, saved, draft, dirty, setDraft, save, reset, override: dirty ? draft : undefined }
+      ? { vehicleId, saved, draft, dirty, setDraft, save, reset, override: dirty ? settled : undefined }
       : null,
-    [vehicleId, saved, draft, dirty, setDraft, save, reset],
+    [vehicleId, saved, draft, dirty, settled, setDraft, save, reset],
   )
 
   if (!value) return <p className="muted pad">{isError ? 'Could not load parameters.' : 'Loading…'}</p>
