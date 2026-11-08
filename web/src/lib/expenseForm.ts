@@ -1,3 +1,4 @@
+import { iso } from './dates'
 import type { Expense, ExpenseCategory, MaintenanceType } from '../api/types'
 
 export interface ExpenseFormState {
@@ -88,7 +89,7 @@ export function toFormState(e: Expense): ExpenseFormState {
 }
 
 export function emptyFormState(currency: string, today = new Date()): ExpenseFormState {
-  const d = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  const d = iso(today)
   return {
     date: d, category: 'Fuel', amount: '', currency, homeAmount: '', odometer: '', note: '', coversFrom: '', coversTo: '',
     litres: '', fullTank: true, station: '', maintenance: [], maintenanceDescription: '', tyreSetId: '',

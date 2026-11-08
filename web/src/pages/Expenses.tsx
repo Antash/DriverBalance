@@ -8,11 +8,11 @@ import { Chart } from '../components/Chart'
 import { CATEGORIES, ExpenseForm, label } from '../components/ExpenseForm'
 import { Modal } from '../components/Modal'
 import { PeriodPicker, type PeriodValue } from '../components/PeriodPicker'
+import { iso } from '../lib/dates'
 import { CATEGORY_COLOR_INDEX, errorLines, fmtMoney, invalidateVehicleData } from '../lib/format'
 import { useParams, useAnalytics } from '../state/ParamsContext'
 import { useTyreSets, useVehicle } from '../state/useVehicle'
 
-const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 function thisYear(): PeriodValue {
   const y = new Date().getFullYear()
   return { from: iso(new Date(y, 0, 1)), to: iso(new Date(y + 1, 0, 1)), label: 'This year' }

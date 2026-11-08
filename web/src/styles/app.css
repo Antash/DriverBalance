@@ -73,3 +73,32 @@ table.data td.num, table.data th.num { text-align: right; font-variant-numeric: 
 .token-once { font-family: ui-monospace, Consolas, monospace; word-break: break-all; background: var(--page); padding: 8px; border-radius: 6px; border: 1px solid var(--axis); }
 .warn { background: var(--warn-bg); border-radius: 6px; padding: 6px 10px; }
 .field-error { color: var(--err); font-size: 12px; }
+
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.hint { margin: 0 0 8px; font-size: 13px; }
+.empty { padding: 24px 0; text-align: center; }
+.toolbar label.inline { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-2); }
+.toolbar input[type="date"], .toolbar select, .card-head select { padding: 4px 8px; border: 1px solid var(--axis); border-radius: 6px; background: var(--surface); }
+.segmented { display: inline-flex; }
+.segmented .btn { border-radius: 0; }
+.segmented .btn:first-child { border-radius: 6px 0 0 6px; }
+.segmented .btn:last-child { border-radius: 0 6px 6px 0; margin-left: -1px; }
+.btn.active { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 16px; overflow-x: auto; }
+.tabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 8px 12px; cursor: pointer; color: var(--text-2); white-space: nowrap; }
+.tabs button.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+.breadcrumb { margin-bottom: 12px; }
+button.link { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; text-decoration: underline; }
+tr.clickable { cursor: pointer; }
+tr.clickable:hover, table.data tr[aria-selected="true"] { background: var(--grid); }
+table.data tr.group-row th { padding-top: 14px; color: var(--text); border-bottom-color: var(--axis); }
+table.data tr.sub td { background: var(--page); font-size: 13px; }
+.delta.good { color: var(--score-excellent); }
+.delta.bad { color: var(--score-bad); }
+.delta-word { font-size: 12px; }
+.pager { align-items: center; margin-top: 8px; }
+.kv { margin: 0; }
+.kv > div { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--grid); }
+.kv dt { color: var(--text-2); }
+.kv dd { margin: 0; text-align: right; word-break: break-word; }
+.sparkline polyline { stroke: var(--series-1); }

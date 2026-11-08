@@ -181,3 +181,93 @@ export interface CumulativeCostPoint {
   cumulativeKm: number | null
   costPerKm: number | null
 }
+
+// ---- Analytics (statistics, trips, charts) ----
+
+export interface UsageStats {
+  tripCount: number
+  tripKm: number
+  odometerKm: number | null
+  tripCoverage: number | null
+  days: number
+  kmPerDay: number | null
+  /** .NET TimeSpan, "[d.]hh:mm:ss". */
+  drivingTime: string
+  averageSpeedKmh: number | null
+  coldStarts: number
+  coldStartsPer100Km: number | null
+  shortGroups: number
+  shortShareByCount: number | null
+  shortShareByKm: number | null
+}
+
+export interface ScoreBucket { km: number; duration: string; groups: number }
+
+export interface PeriodStats {
+  period: Period
+  usage: UsageStats
+  scores: { buckets: Partial<Record<DrivingScore, ScoreBucket>>; dpfIndex: number | null }
+  mix: { cityKm: number; mixedKm: number; highwayKm: number }
+  fuel: { tripLiters: number; tripLPer100: number | null; fullTankLPer100: number | null; fullTankKm: number | null }
+  money: { total: number; byCategory: Partial<Record<ExpenseCategory, number>>; costPerKm: number | null; needsConversionCount: number }
+}
+
+export interface PeriodWithStats { period: Period; stats: PeriodStats }
+
+export interface Trip {
+  id: number
+  category: string
+  start: string
+  startOdometer: number
+  startAddress: string
+  end: string
+  endOdometer: number
+  endAddress: string
+  duration: string
+  distanceKm: number
+  fuelLiters: number
+  notes: string
+  averageSpeedKmh: number
+}
+
+export interface TripGroup {
+  trips: Trip[]
+  score: DrivingScore
+  start: string
+  end: string
+  distanceKm: number
+  duration: string
+  fuelLiters: number
+  averageSpeedKmh: number
+  lPer100: number | null
+  startDate: DateOnly
+}
+
+export interface TripPage { total: number; page: number; pageSize: number; groups: TripGroup[] }
+
+export type TrendLevel = 'Group' | 'Trip'
+export interface ChartBody { from?: DateOnly; to?: DateOnly; options?: { level?: TrendLevel; year?: number } }
+
+export interface MonthlyScoreChart {
+  months: { month: string; excellentKm: number; goodKm: number; fairKm: number; badKm: number }[]
+  weeks: { weekStart: DateOnly; dpf: number | null; dpfMovingAverage: number | null }[]
+}
+export interface HeatmapDay { date: DateOnly; km: number; bestScore: DrivingScore; intensity: number }
+export interface FuelTrendChart {
+  points: { time: string; lPer100: number; km: number; score: DrivingScore; firstTripId: number; tripCount: number }[]
+  smooth: { time: string; lPer100: number }[]
+}
+export interface ScoreMapChart {
+  points: { durationMinutes: number; averageSpeedKmh: number; km: number; score: DrivingScore; start: string; firstTripId: number }[]
+  zones: { shortMin: number; mediumMin: number; longMin: number; heavyKmh: number; cityKmh: number; mixedKmh: number }
+}
+export interface GapHistogram { bins: { from: number; to: number | null; count: number }[]; thresholdMinutes: number }
+/** dayOfWeek 0 = Monday. */
+export interface HourCell { dayOfWeek: number; hour: number; km: number; trips: number; badShare: number | null }
+export interface PenaltyBin { fromMinutes: number; toMinutes: number | null; medianLPer100: number | null; p25: number | null; p75: number | null; count: number }
+export interface SeasonPoint { year: number; month: number; km: number; lPer100: number | null }
+export interface PlaceStat { address: string; starts: number; ends: number }
+export interface RouteStat {
+  from: string; to: string; count: number; km: number; avgLPer100: number | null; typicalScore: DrivingScore
+  trend: { date: DateOnly; lPer100: number | null }[]
+}

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { addDays, iso } from '../lib/dates'
 
 export interface PeriodValue {
   from: string
@@ -7,8 +8,6 @@ export interface PeriodValue {
   label: string
 }
 
-const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-const addDays = (s: string, n: number) => { const d = new Date(`${s}T00:00:00`); d.setDate(d.getDate() + n); return iso(d) }
 
 function presetPeriods(today = new Date()): Record<string, PeriodValue> {
   const y = today.getFullYear(), m = today.getMonth()

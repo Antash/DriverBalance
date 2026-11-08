@@ -6,6 +6,26 @@ export const fmtMoney = (n: number | null | undefined, currency: string) =>
 export const fmtKm = (n: number | null | undefined) =>
   n == null ? '—' : `${new Intl.NumberFormat('en', { maximumFractionDigits: 0 }).format(n)} km`
 
+export const fmtNum = (n: number | null | undefined, digits = 1) =>
+  n == null || !Number.isFinite(n) ? '—' : new Intl.NumberFormat('en', { maximumFractionDigits: digits, minimumFractionDigits: 0 }).format(n)
+
+export const fmtPct = (n: number | null | undefined, digits = 0) =>
+  n == null || !Number.isFinite(n) ? '—' : `${new Intl.NumberFormat('en', { maximumFractionDigits: digits }).format(n * 100)}%`
+
+export const fmtLPer100 = (n: number | null | undefined) => (n == null || !Number.isFinite(n) ? '—' : `${fmtNum(n, 1)} L/100`)
+
+/** .NET TimeSpan ("[d.]hh:mm:ss[.fff]") as "2 h 05 min". */
+export function fmtDuration(ts: string | null | undefined): string {
+  const m = ts ? /^(?:(\d+)\.)?(\d+):(\d+):(\d+)/.exec(ts) : null
+  if (!m) return '—'
+  const hours = Number(m[1] ?? 0) * 24 + Number(m[2])
+  const min = Number(m[3])
+  return hours > 0 ? `${hours} h ${String(min).padStart(2, '0')} min` : `${min} min`
+}
+
+/** "2025-03-04T08:05:00" as "2025-03-04 08:05". */
+export const fmtDateTime = (s: string) => s.slice(0, 16).replace('T', ' ')
+
 export function daysAgo(date: string, today = new Date()): number {
   const d = new Date(`${date}T00:00:00`)
   const t = new Date(today.getFullYear(), today.getMonth(), today.getDate())
