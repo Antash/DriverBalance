@@ -1,0 +1,6 @@
+[
+  { "Date": "2025-03-10T00:00:00", "Type": 3, "Description": "Oil + brake fluid", "CurrentOdometer": 1864, "Cost": 0, "Currency": "" },
+  { "Date": "2025-06-02T00:00:00", "Type": 4, "Description": "Tyre swap", "CurrentOdometer": 3269, "Cost": 2500, "Currency": "CZK" },
+  { "Date": "2025-09-15T00:00:00", "Type": 1, "Description": "Oil change", "CurrentOdometer": 4493, "Cost": 9800, "Currency": "CZK" },
+  { "Date": "2025-11-03T00:00:00", "Type": 4, "Description": "Tyre swap", "CurrentOdometer": 5148, "Cost": 2700, "Currency": "CZK" }
+]
