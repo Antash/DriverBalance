@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/DriverBalance.Core/DriverBalance.Core.csproj" />
     <Project Path="src/DriverBalance.Data/DriverBalance.Data.csproj" />
+    <Project Path="src/DriverBalance.Web/DriverBalance.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DriverBalance.Core.Tests/DriverBalance.Core.Tests.csproj" />
