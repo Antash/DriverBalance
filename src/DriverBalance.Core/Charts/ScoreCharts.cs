@@ -60,6 +60,11 @@ public static class ScoreCharts
             .ToList();
     }
 
+    public static IReadOnlyList<ScoreMapPoint> ScoreMap(AnalysisContext c, Period p) =>
+        c.GroupsIn(p)
+            .Select(g => new ScoreMapPoint(g.Duration.TotalMinutes, g.AverageSpeedKmh, g.DistanceKm, g.Score, g.Start, g.Trips[0].Id))
+            .ToList();
+
     private static double KmOf(IEnumerable<TripGroup> groups, DrivingScore score) =>
         groups.Where(g => g.Score == score).Sum(g => g.DistanceKm);
 }
