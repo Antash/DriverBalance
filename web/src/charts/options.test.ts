@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { scoreColor } from '../components/chartTheme'
 import { gapOption } from './gapOption'
 import { heatmapOption } from './heatmapOption'
 
@@ -7,6 +8,16 @@ describe('heatmapOption', () => {
     { date: '2025-01-06', km: 80, bestScore: 'Excellent' as const, intensity: 0.8 },
     { date: '2025-01-07', km: 10, bestScore: 'Bad' as const, intensity: 0.1 },
   ]
+  it('gives every series the score colour so legend swatches match the cells', () => {
+    const tokens = { excellent: '#0a0', good: '#fa1', fair: '#e85', bad: '#d33' }
+    for (const [k, v] of Object.entries(tokens)) document.documentElement.style.setProperty(`--score-${k}`, v)
+    const o = heatmapOption(days, 2025)() as { series: { name: 'Excellent' | 'Good' | 'Fair' | 'Bad'; itemStyle: { color: string } }[] }
+    expect(o.series).toHaveLength(4)
+    for (const s of o.series) {
+      expect(s.itemStyle.color).toBe(scoreColor(s.name))
+      expect(s.itemStyle.color).not.toBe('')
+    }
+  })
   it('encodes best score as colour and intensity as opacity, without a visualMap over the score string', () => {
     const o = heatmapOption(days, 2025)() as { visualMap?: unknown; series: { name: string; data: { value: unknown[]; itemStyle: { opacity: number } }[] }[] }
     expect(o.visualMap).toBeUndefined()

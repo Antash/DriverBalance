@@ -27,6 +27,7 @@ export function heatmapOption(days: HeatmapDay[], year: number): () => EChartsOp
       },
       series: SCORES.map((s) => ({
         name: s, type: 'heatmap' as const, coordinateSystem: 'calendar',
+        itemStyle: { color: scoreColor(s) },
         data: days.filter((d) => d.bestScore === s).map((d) => ({
           value: [d.date, d.intensity, d.km, d.bestScore],
           itemStyle: { color: scoreColor(s), opacity: 0.25 + 0.75 * Math.min(1, Math.max(0, d.intensity)) },
