@@ -49,4 +49,24 @@ public class MoneyTests
         var s = AnalysisContext.Create(data, new AnalysisParameters()).Stats(Jan);
         Assert.Equal(100m, s.Money.Total);
     }
+
+    [Fact]
+    public void Money_NonDivisibleAmortization_RoundedTo2dp()
+    {
+        var e = new Expense
+        {
+            Date = new DateOnly(2026, 1, 30), Category = ExpenseCategory.Insurance, Amount = 1000m,
+            CoversFrom = new DateOnly(2026, 1, 30), CoversTo = new DateOnly(2026, 2, 1),
+        };
+        var jan = Money.For(Jan, new[] { e }, "CZK", 7);
+        var feb = Money.For(CalendarPeriods.Month(2026, 2), new[] { e }, "CZK", null);
+        Assert.Equal(666.67m, jan.Total);
+        Assert.Equal(666.67m, jan.ByCategory[ExpenseCategory.Insurance]);
+        Assert.Equal(95.24m, jan.CostPerKm);
+        Assert.Equal(333.33m, feb.Total);
+        var ctx = AnalysisContext.Create(new VehicleData(Array.Empty<Trip>(), new[] { e }, Array.Empty<TyreSet>(), "CZK", new DateOnly(2026, 6, 1)), new AnalysisParameters());
+        var monthly = MoneyCharts.Monthly(ctx, new Period(new DateOnly(2026, 1, 1), new DateOnly(2026, 3, 1), "x"));
+        Assert.Equal(666.67m, monthly[0].ByCategory[ExpenseCategory.Insurance]);
+        Assert.Equal(333.33m, monthly[1].ByCategory[ExpenseCategory.Insurance]);
+    }
 }

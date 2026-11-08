@@ -65,4 +65,19 @@ public class FuelEconomyTests
         Assert.Equal(600, ctx.Stats(CalendarPeriods.Month(2026, 1)).Fuel.FullTankKm);
         Assert.Null(ctx.Stats(CalendarPeriods.Month(2026, 2)).Fuel.FullTankLPer100);
     }
+
+    [Fact]
+    public void FuelEconomy_NullLitresInSegment_Skipped()
+    {
+        var fills = new[]
+        {
+            Fill(new DateOnly(2026, 1, 1), 1000, 40, true),
+            new Expense { Date = new DateOnly(2026, 1, 10), Category = ExpenseCategory.Fuel, Odometer = 1300, Litres = null, FullTank = false },
+            Fill(new DateOnly(2026, 1, 20), 1600, 25, true),
+            Fill(new DateOnly(2026, 1, 30), 2000, 30, true),
+        };
+        var s = Assert.Single(FuelEconomy.Segments(fills, Timeline()));
+        Assert.Equal(new DateOnly(2026, 1, 30), s.EndDate);
+        Assert.Equal(30, s.Litres);
+    }
 }

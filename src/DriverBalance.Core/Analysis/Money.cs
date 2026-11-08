@@ -18,6 +18,8 @@ public static class Money
         return (p.Contains(e.Date) ? 1 : 0, 1);
     }
 
+    public static decimal Round(decimal v) => Math.Round(v, 2, MidpointRounding.AwayFromZero);
+
     public static MoneyStats For(Period p, IEnumerable<Expense> expenses, string homeCurrency, double? km)
     {
         var byCategory = new Dictionary<ExpenseCategory, decimal>();
@@ -32,7 +34,7 @@ public static class Money
             total += portion;
             byCategory[e.Category] = byCategory.GetValueOrDefault(e.Category) + portion;
         }
-        decimal? perKm = km is > 0 ? total / (decimal)km.Value : null;
-        return new MoneyStats(total, byCategory, perKm, needsConversion);
+        decimal? perKm = km is > 0 ? Round(total / (decimal)km.Value) : null;
+        return new MoneyStats(Round(total), byCategory.ToDictionary(kv => kv.Key, kv => Round(kv.Value)), perKm, needsConversion);
     }
 }

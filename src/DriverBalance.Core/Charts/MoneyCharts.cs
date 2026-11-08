@@ -45,7 +45,7 @@ public static class MoneyCharts
             running += g.Sum(x => x.Amount!.Value);
             int? odo = c.Timeline.AtEndOfDay(g.Key);
             double? km = odo is { } o && firstKm is { } f ? o - f : null;
-            result.Add(new CumulativeCostPoint(g.Key, running, km, km is > 0 ? running / (decimal)km.Value : null));
+            result.Add(new CumulativeCostPoint(g.Key, Money.Round(running), km, km is > 0 ? Money.Round(running / (decimal)km.Value) : null));
         }
         return result;
     }
