@@ -1,4 +1,4 @@
-﻿using ScottPlot;
+using ScottPlot;
 using System.Globalization;
 using System.Text.Json;
 
@@ -23,7 +23,84 @@ public class TripRecord
         if (obj is not TripRecord other) return false;
         return StartTime == other.StartTime && EndTime == other.EndTime;
     }
+
     public override int GetHashCode() => HashCode.Combine(StartTime, EndTime);
+}
+[Flags]
+public enum MaintenanceType
+{
+    // Custom (user-provided description) is represented by 0
+    Custom = 0,
+    OilChange = 1 << 0,
+    BrakeFluid = 1 << 1,
+    TyreSwap = 1 << 2,
+    BrakePads = 1 << 3,
+    TransmissionOil = 1 << 4,
+    HaldexOil = 1 << 5,
+    Coolant = 1 << 6,
+    CabinFilter = 1 << 7,
+    AirFilter = 1 << 8,
+    FuelFilter = 1 << 9,
+    ACCleaning = 1 << 10,
+    NewTyres = 1 << 11,
+}
+
+public class MaintenanceRecord
+{
+    public DateTime Date { get; set; }
+    public MaintenanceType Type { get; set; }
+    // Optional freeform description (used for Custom or Other details)
+    public string Description { get; set; }
+    // Current odometer reading at the time of maintenance
+    public int CurrentOdometer { get; set; }
+    // Use decimal for currency amounts
+    public decimal Cost { get; set; }
+    // ISO currency code or user text
+    public string Currency { get; set; }
+    public override bool Equals(object? obj)
+    {
+        if (obj is not MaintenanceRecord other) return false;
+        return Date == other.Date && Type == other.Type && Description == other.Description && CurrentOdometer == other.CurrentOdometer && Cost == other.Cost && Currency == other.Currency;
+    }
+    public override int GetHashCode() => HashCode.Combine(Date, Type, Description, CurrentOdometer, Cost, Currency);
+}
+
+public interface IMaintenanceRepository
+{
+    List<MaintenanceRecord> GetAll();
+    void Add(MaintenanceRecord record);
+    void Save();
+    void Load();
+}
+
+public class JsonMaintenanceRepository : IMaintenanceRepository
+{
+    private readonly string _filePath;
+    private List<MaintenanceRecord> _records = new();
+    public JsonMaintenanceRepository(string filePath) => _filePath = filePath.Trim('\"', '\'');
+    public List<MaintenanceRecord> GetAll() => _records;
+    public void Add(MaintenanceRecord record)
+    {
+        _records.Add(record);
+    }
+    public void Save()
+    {
+        _records = _records.OrderBy(r => r.Date).ToList();
+        var json = JsonSerializer.Serialize(_records, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText(_filePath, json);
+    }
+    public void Load()
+    {
+        if (File.Exists(_filePath))
+        {
+            var json = File.ReadAllText(_filePath);
+            _records = JsonSerializer.Deserialize<List<MaintenanceRecord>>(json) ?? new List<MaintenanceRecord>();
+        }
+        else
+        {
+            _records = new List<MaintenanceRecord>();
+        }
+    }
 }
 
 public interface ITripRepository
@@ -38,7 +115,7 @@ public class JsonTripRepository : ITripRepository
 {
     private readonly string _filePath;
     private List<TripRecord> _records = new();
-    public JsonTripRepository(string filePath) => _filePath = filePath;
+    public JsonTripRepository(string filePath) => _filePath = filePath.Trim(['\"', '\'']);
     public List<TripRecord> GetAll() => _records;
     public void AddRange(IEnumerable<TripRecord> records, out List<TripRecord> duplicates)
     {
@@ -53,6 +130,7 @@ public class JsonTripRepository : ITripRepository
     }
     public void Save()
     {
+        _records = _records.OrderBy(r => r.StartTime).ToList();
         var json = JsonSerializer.Serialize(_records, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(_filePath, json);
     }
@@ -167,6 +245,19 @@ public class TripImporter
     }
 }
 
+static class TimeSpanFormatter
+{
+    public static string Format(TimeSpan ts)
+    {
+        if (ts.TotalHours < 1)
+            return $"{ts.TotalMinutes:F0} min";
+        else if (ts.TotalHours < 24)
+            return $"{ts.TotalHours:F1} hours";
+        else
+            return $"{ts.TotalHours:F0} hours";
+    }
+}
+
 public class TripSummaryService
 {
     public void PrintSummary(IEnumerable<TripRecord> records, TripAnalysisService analysisService, TripAnalysisParameters analysisParams)
@@ -211,15 +302,15 @@ public class TripSummaryService
         Console.WriteLine("--- Trip Summary ---");
         Console.WriteLine($"Total cold starts: {coldStarts}");
         Console.WriteLine($"Total distance: {totalDistance:F2} km");
-        Console.WriteLine($"Total time: {totalTime}");
+        Console.WriteLine($"Total time: {TimeSpanFormatter.Format(totalTime)}");
         Console.WriteLine($"Total fuel burned: {totalFuel:F2} L");
         Console.WriteLine($"Average speed: {avgSpeed:F2} km/h");
         Console.WriteLine($"Fuel consumption: {fuelPer100km:F2} L/100km");
         Console.WriteLine("---------------------");
-        Console.WriteLine($"Excellent: {excellentKm:F1} km, duration: {excellentTs}");
-        Console.WriteLine($"Good: {goodKm:F1} km, duration: {goodTs}");
-        Console.WriteLine($"Fair: {fairKm:F1} km, duration: {fairTs}");
-        Console.WriteLine($"Bad: {badKm:F1} km, duration:  {badTs}");
+        Console.WriteLine($"Excellent: {excellentKm:F1} km, duration: {TimeSpanFormatter.Format(excellentTs)}");
+        Console.WriteLine($"Good: {goodKm:F1} km, duration: {TimeSpanFormatter.Format(goodTs)}");
+        Console.WriteLine($"Fair: {fairKm:F1} km, duration: {TimeSpanFormatter.Format(fairTs)}");
+        Console.WriteLine($"Bad: {badKm:F1} km, duration:  {TimeSpanFormatter.Format(badTs)}");
         Console.WriteLine($"DPF index: {dpf:P2} ({(goodKm + excellentKm):F1} km of {allKm:F1} km)");
     }
 }
@@ -273,7 +364,7 @@ public class TripAnalysisService
             double avgSpeed = drivingDurationHours > 0 ? totalDistance / drivingDurationHours : 0;
             double fuelPer100km = totalDistance > 0 ? (totalFuel / totalDistance) * 100.0 : 0;
             TimeSpan totalDrivingDuration = TimeSpan.FromHours(drivingDurationHours);
-            Console.WriteLine($"{concatTrip.StartTime} - {concatTrip.EndTime}: {totalDistance:F1} km, {totalDrivingDuration}, Avg speed: {avgSpeed:F1} km/h, Fuel: {fuelPer100km:F2} L/100km, Score: {bestScore}");
+            Console.WriteLine($"{concatTrip.StartTime} - {concatTrip.EndTime}: {totalDistance:F1} km, {TimeSpanFormatter.Format(totalDrivingDuration)}, Avg speed: {avgSpeed:F1} km/h, Fuel: {fuelPer100km:F2} L/100km, Score: {bestScore}");
         }
     }
 
@@ -367,8 +458,10 @@ public class AppConfig
 class Program
 {
     const string JsonDbFile = "triprecords.json";
+    const string MaintenanceDbFile = "maintenancerecords.json";
     const string ConfigFile = "appsettings.json";
     static ITripRepository repository = new JsonTripRepository(JsonDbFile);
+    static IMaintenanceRepository maintenanceRepo = new JsonMaintenanceRepository(MaintenanceDbFile);
     static TripImporter importer = new TripImporter();
     static TripSummaryService summaryService = new TripSummaryService();
     static AppConfig config = AppConfig.Load(ConfigFile);
@@ -378,6 +471,7 @@ class Program
     static void Main(string[] args)
     {
         repository.Load();
+        maintenanceRepo.Load();
         while (true)
         {
             Console.WriteLine("\n--- Trip Record Manager ---");
@@ -388,6 +482,10 @@ class Program
             Console.WriteLine("5. Generate chart");
             Console.WriteLine("6. Visualize calendar heatmap");
             Console.WriteLine("7. Fuel consumption trend");
+            Console.WriteLine("8. Add maintenance record");
+            Console.WriteLine("9. List maintenance records");
+            Console.WriteLine("10. Trip report by maintenance type (since last)");
+            Console.WriteLine("11. Trip report by all maintenance periods");
             Console.WriteLine("0. Exit");
             Console.Write("Enter command number: ");
             var input = Console.ReadLine();
@@ -414,8 +512,21 @@ class Program
                 case "7":
                     PlotFuelConsumptionTrend();
                     break;
+                case "8":
+                    AddMaintenanceInteractive();
+                    break;
+                case "9":
+                    ListMaintenanceRecords();
+                    break;
+                case "10":
+                    ReportTripsByMaintenanceType();
+                    break;
+                case "11":
+                    ReportAllMaintenancePeriods();
+                    break;
                 case "0":
                     repository.Save();
+                    maintenanceRepo.Save();
                     Console.WriteLine("Exiting.");
                     return;
                 default:
@@ -428,7 +539,7 @@ class Program
     static void ImportCsvInteractive()
     {
         Console.Write("Enter path to CSV file: ");
-        var filePath = Console.ReadLine();
+        var filePath = Console.ReadLine().Trim("\"").ToString();
         if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
         {
             Console.WriteLine("File not found.");
@@ -454,6 +565,371 @@ class Program
         {
             Console.WriteLine($"{r.Category} | {r.StartTime} | {r.DistanceKm} km | {r.FuelLiters} L");
         }
+    }
+
+    static void AddMaintenanceInteractive()
+    {
+        Console.Write("Enter maintenance date (yyyy-MM-dd) [today]: ");
+        var dateInput = Console.ReadLine();
+        DateTime date;
+        if (string.IsNullOrWhiteSpace(dateInput)) date = DateTime.Today;
+        else if (!DateTime.TryParse(dateInput, out date))
+        {
+            Console.WriteLine("Invalid date.");
+            return;
+        }
+
+        Console.WriteLine("Select maintenance types (comma-separated numbers). You can select multiple:");
+        var typeValues = Enum.GetValues(typeof(MaintenanceType)).Cast<MaintenanceType>().ToList();
+        for (int i = 0; i < typeValues.Count; i++)
+            Console.WriteLine($"{i + 1}. {typeValues[i]}");
+        Console.Write("Your selection: ");
+        var sel = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(sel))
+        {
+            Console.WriteLine("No type selected.");
+            return;
+        }
+        var parts = sel.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        MaintenanceType combined = MaintenanceType.Custom;
+        bool customSelected = false;
+        foreach (var p in parts)
+        {
+            if (int.TryParse(p, out var idx) && idx >= 1 && idx <= typeValues.Count)
+            {
+                var val = typeValues[idx - 1];
+                if (val == MaintenanceType.Custom) customSelected = true;
+                combined |= val;
+            }
+            else
+            {
+                Console.WriteLine($"Ignoring invalid selection: '{p}'");
+            }
+        }
+
+        if (!customSelected && combined == MaintenanceType.Custom)
+        {
+            Console.WriteLine("No valid type selected.");
+            return;
+        }
+
+        string description = "";
+        if (customSelected)
+        {
+            Console.Write("Enter custom description: ");
+            description = Console.ReadLine() ?? "";
+        }
+
+        Console.Write("Enter cost amount (numeric) or leave empty for 0: ");
+        var costInput = Console.ReadLine();
+        decimal cost = 0m;
+        if (!string.IsNullOrWhiteSpace(costInput))
+        {
+            if (!decimal.TryParse(costInput.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out cost))
+            {
+                Console.WriteLine("Invalid cost.");
+                return;
+            }
+        }
+
+        Console.Write("Enter currency (e.g. USD, EUR) or leave empty: ");
+        var currency = Console.ReadLine() ?? "";
+
+        Console.Write("Enter current odometer reading (numeric) or leave empty for 0: ");
+        var odoInput = Console.ReadLine();
+        int currentOdometer = 0;
+        if (!string.IsNullOrWhiteSpace(odoInput))
+        {
+            if (!int.TryParse(odoInput.Replace("\u00A0", "").Replace(" ", ""), out currentOdometer))
+            {
+                Console.WriteLine("Invalid odometer value.");
+                return;
+            }
+        }
+
+        var record = new MaintenanceRecord
+        {
+            Date = date,
+            Type = combined,
+            Description = description,
+            CurrentOdometer = currentOdometer,
+            Cost = cost,
+            Currency = currency
+        };
+        maintenanceRepo.Add(record);
+        maintenanceRepo.Save();
+        Console.WriteLine("Maintenance record added.");
+    }
+
+    static void ListMaintenanceRecords()
+    {
+        var records = maintenanceRepo.GetAll();
+        Console.WriteLine($"Total maintenance records: {records.Count}");
+        foreach (var r in records.OrderByDescending(r => r.Date))
+        {
+            Console.WriteLine($"{r.Date:yyyy-MM-dd} | Types: {r.Type} | Odometer: {r.CurrentOdometer} | Cost: {r.Cost} {r.Currency} | Desc: {r.Description}");
+        }
+    }
+
+    static List<TripRecord> GetTripsSinceLastMaintenance(MaintenanceType maintenanceType)
+    {
+        var allTrips = repository.GetAll().OrderBy(t => t.StartTime).ToList();
+        var maintenanceRecords = maintenanceRepo.GetAll()
+            .Where(r => r.Type.HasFlag(maintenanceType))
+            .OrderByDescending(r => r.Date)
+            .FirstOrDefault();
+
+        if (maintenanceRecords == null)
+        {
+            return allTrips;
+        }
+
+        return allTrips.Where(t => t.StartTime.Date >= maintenanceRecords.Date).ToList();
+    }
+
+    static List<MaintenanceRecord> GetMaintenanceEventsForType(MaintenanceType maintenanceType)
+    {
+        return maintenanceRepo.GetAll()
+            .Where(r => r.Type.HasFlag(maintenanceType))
+            .OrderBy(r => r.Date)
+            .ToList();
+    }
+
+    static List<TripRecord> GetTripsInPeriod(DateTime startDate, DateTime endDate)
+    {
+        return repository.GetAll()
+            .Where(t => t.StartTime.Date >= startDate && t.StartTime.Date < endDate)
+            .OrderBy(t => t.StartTime)
+            .ToList();
+    }
+
+    static int GetOdometerDistanceForPeriod(DateTime startDate, DateTime endDate, MaintenanceType maintenanceType)
+    {
+        var records = maintenanceRepo.GetAll()
+            .Where(r => r.Type.HasFlag(maintenanceType))
+            .OrderBy(r => r.Date)
+            .ToList();
+
+        var startRecord = records.LastOrDefault(r => r.Date < startDate);
+        var endRecord = records.FirstOrDefault(r => r.Date >= endDate);
+
+        if (startRecord == null || endRecord == null || endRecord.CurrentOdometer < startRecord.CurrentOdometer)
+            return 0;
+
+        return endRecord.CurrentOdometer - startRecord.CurrentOdometer;
+    }
+
+    static void CalculateAndPrintMetricsForPeriod(
+        List<TripRecord> trips, 
+        DateTime periodStart, 
+        DateTime periodEnd, 
+        MaintenanceType maintenanceType,
+        int odometerDistance)
+    {
+        if (trips.Count == 0)
+        {
+            Console.WriteLine($"  No trip data for period {periodStart:yyyy-MM-dd} to {periodEnd:yyyy-MM-dd}");
+            if (odometerDistance > 0)
+            {
+                Console.WriteLine($"  Distance (from odometer): {odometerDistance} km");
+            }
+            return;
+        }
+
+        double totalDistance = trips.Sum(r => r.DistanceKm);
+        double totalFuel = trips.Sum(r => r.FuelLiters);
+        TimeSpan totalTime = trips.Aggregate(TimeSpan.Zero, (sum, r) => sum + r.Duration);
+        double avgSpeed = totalTime.TotalHours > 0 ? totalDistance / totalTime.TotalHours : 0;
+        double fuelPer100km = totalDistance > 0 ? (totalFuel / totalDistance) * 100.0 : 0;
+
+        // Calculate DPF index and cold starts
+        var groups = TripAnalysisService.ConcatenateTrips(trips, analysisParams.ColdStartThreshold);
+        int coldStarts = groups.Count;
+
+        double badKm = 0, fairKm = 0, goodKm = 0, excellentKm = 0, allKm = 0;
+        TimeSpan badTs = TimeSpan.Zero, fairTs = TimeSpan.Zero, goodTs = TimeSpan.Zero, excellentTs = TimeSpan.Zero;
+
+        foreach (var group in groups)
+        {
+            var concatTrip = analysisService.ConcatenateGroup(group);
+            var bestScore = analysisService.GetBestScoreForGroup(group);
+            switch (bestScore)
+            {
+                case DrivingScore.Excellent:
+                    excellentKm += concatTrip.DistanceKm;
+                    excellentTs += concatTrip.Duration;
+                    break;
+                case DrivingScore.Good:
+                    goodKm += concatTrip.DistanceKm;
+                    goodTs += concatTrip.Duration;
+                    break;
+                case DrivingScore.Fair:
+                    fairKm += concatTrip.DistanceKm;
+                    fairTs += concatTrip.Duration;
+                    break;
+                case DrivingScore.Bad:
+                    badKm += concatTrip.DistanceKm;
+                    badTs += concatTrip.Duration;
+                    break;
+            }
+
+            allKm += concatTrip.DistanceKm;
+        }
+
+        double dpf = allKm > 0 ? (goodKm + excellentKm) / allKm : 0;
+
+        Console.WriteLine($"  Period: {periodStart:yyyy-MM-dd} to {periodEnd:yyyy-MM-dd}");
+        Console.WriteLine($"    Cold starts: {coldStarts}");
+        Console.WriteLine($"    Total distance: {totalDistance:F2} km");
+        Console.WriteLine($"    Total time: {TimeSpanFormatter.Format(totalTime)}");
+        Console.WriteLine($"    Total fuel: {totalFuel:F2} L");
+        Console.WriteLine($"    Average speed: {avgSpeed:F2} km/h");
+        Console.WriteLine($"    Fuel consumption: {fuelPer100km:F2} L/100km");
+        Console.WriteLine($"    DPF index: {dpf:P2}");
+        Console.WriteLine($"      Excellent: {excellentKm:F1} km ({TimeSpanFormatter.Format(excellentTs)})");
+        Console.WriteLine($"      Good: {goodKm:F1} km ({TimeSpanFormatter.Format(goodTs)})");
+        Console.WriteLine($"      Fair: {fairKm:F1} km ({TimeSpanFormatter.Format(fairTs)})");
+        Console.WriteLine($"      Bad: {badKm:F1} km ({TimeSpanFormatter.Format(badTs)})");
+    }
+
+    static void ReportTripsByMaintenanceType()
+    {
+        var allMaintenanceTypes = Enum.GetValues(typeof(MaintenanceType))
+            .Cast<MaintenanceType>()
+            .Where(t => t != MaintenanceType.Custom)
+            .ToList();
+
+        if (allMaintenanceTypes.Count == 0)
+        {
+            Console.WriteLine("No maintenance types to report on.");
+            return;
+        }
+
+        Console.WriteLine("\n--- Trip Report by Maintenance Type ---\n");
+
+        foreach (var maintenanceType in allMaintenanceTypes)
+        {
+            var trips = GetTripsSinceLastMaintenance(maintenanceType);
+
+            if (trips.Count == 0)
+            {
+                Console.WriteLine($"{maintenanceType}: No trips recorded.");
+                continue;
+            }
+
+            Console.WriteLine($"\n{maintenanceType}:");
+            Console.WriteLine(new string('-', 60));
+
+            double totalDistance = trips.Sum(r => r.DistanceKm);
+            double totalFuel = trips.Sum(r => r.FuelLiters);
+            TimeSpan totalTime = trips.Aggregate(TimeSpan.Zero, (sum, r) => sum + r.Duration);
+            double avgSpeed = totalTime.TotalHours > 0 ? totalDistance / totalTime.TotalHours : 0;
+            double fuelPer100km = totalDistance > 0 ? (totalFuel / totalDistance) * 100.0 : 0;
+
+            // Calculate DPF index and cold starts
+            var groups = TripAnalysisService.ConcatenateTrips(trips, analysisParams.ColdStartThreshold);
+            int coldStarts = groups.Count;
+
+            double badKm = 0, fairKm = 0, goodKm = 0, excellentKm = 0, allKm = 0;
+            TimeSpan badTs = TimeSpan.Zero, fairTs = TimeSpan.Zero, goodTs = TimeSpan.Zero, excellentTs = TimeSpan.Zero;
+
+            foreach (var group in groups)
+            {
+                var concatTrip = analysisService.ConcatenateGroup(group);
+                var bestScore = analysisService.GetBestScoreForGroup(group);
+                switch (bestScore)
+                {
+                    case DrivingScore.Excellent:
+                        excellentKm += concatTrip.DistanceKm;
+                        excellentTs += concatTrip.Duration;
+                        break;
+                    case DrivingScore.Good:
+                        goodKm += concatTrip.DistanceKm;
+                        goodTs += concatTrip.Duration;
+                        break;
+                    case DrivingScore.Fair:
+                        fairKm += concatTrip.DistanceKm;
+                        fairTs += concatTrip.Duration;
+                        break;
+                    case DrivingScore.Bad:
+                        badKm += concatTrip.DistanceKm;
+                        badTs += concatTrip.Duration;
+                        break;
+                }
+
+                allKm += concatTrip.DistanceKm;
+            }
+
+            double dpf = allKm > 0 ? (goodKm + excellentKm) / allKm : 0;
+
+            Console.WriteLine($"Total cold starts: {coldStarts}");
+            Console.WriteLine($"Total distance: {totalDistance:F2} km");
+            Console.WriteLine($"Total time: {TimeSpanFormatter.Format(totalTime)}");
+            Console.WriteLine($"Total fuel burned: {totalFuel:F2} L");
+            Console.WriteLine($"Average speed: {avgSpeed:F2} km/h");
+            Console.WriteLine($"Fuel consumption: {fuelPer100km:F2} L/100km");
+            Console.WriteLine($"DPF index: {dpf:P2} ({(goodKm + excellentKm):F1} km of {allKm:F1} km)");
+            Console.WriteLine($"  Excellent: {excellentKm:F1} km ({TimeSpanFormatter.Format(excellentTs)})");
+            Console.WriteLine($"  Good: {goodKm:F1} km ({TimeSpanFormatter.Format(goodTs)})");
+            Console.WriteLine($"  Fair: {fairKm:F1} km ({TimeSpanFormatter.Format(fairTs)})");
+            Console.WriteLine($"  Bad: {badKm:F1} km ({TimeSpanFormatter.Format(badTs)})");
+        }
+
+        Console.WriteLine("\n");
+    }
+
+    static void ReportAllMaintenancePeriods()
+    {
+        var allMaintenanceTypes = Enum.GetValues(typeof(MaintenanceType))
+            .Cast<MaintenanceType>()
+            .Where(t => t != MaintenanceType.Custom)
+            .ToList();
+
+        if (allMaintenanceTypes.Count == 0)
+        {
+            Console.WriteLine("No maintenance types to report on.");
+            return;
+        }
+
+        Console.WriteLine("\n--- Trip Report by All Maintenance Periods ---\n");
+
+        foreach (var maintenanceType in allMaintenanceTypes)
+        {
+            var maintenanceEvents = GetMaintenanceEventsForType(maintenanceType);
+
+            if (maintenanceEvents.Count == 0)
+            {
+                Console.WriteLine($"{maintenanceType}: No maintenance records found.");
+                continue;
+            }
+
+            Console.WriteLine($"\n{maintenanceType}:");
+            Console.WriteLine(new string('=', 80));
+
+            // Report each period between consecutive maintenance events
+            for (int i = 0; i < maintenanceEvents.Count; i++)
+            {
+                DateTime periodStart = maintenanceEvents[i].Date;
+                DateTime periodEnd = i + 1 < maintenanceEvents.Count 
+                    ? maintenanceEvents[i + 1].Date 
+                    : DateTime.Today.AddDays(1);  // Current period until today
+
+                // Get trips in this period
+                var trips = GetTripsInPeriod(periodStart, periodEnd);
+
+                // Get odometer distance for this period
+                int odometerDistance = 0;
+                if (i + 1 < maintenanceEvents.Count)
+                {
+                    odometerDistance = maintenanceEvents[i + 1].CurrentOdometer - maintenanceEvents[i].CurrentOdometer;
+                }
+
+                CalculateAndPrintMetricsForPeriod(trips, periodStart, periodEnd, maintenanceType, odometerDistance);
+                Console.WriteLine();
+            }
+        }
+
+        Console.WriteLine();
     }
 
     static void GenerateChart()
@@ -828,5 +1304,18 @@ class Program
         int daysOffset = DayOfWeek.Monday - jan4.DayOfWeek;
         DateTime firstMonday = jan4.AddDays(daysOffset);
         return firstMonday.AddDays((weekOfYear - 1) * 7);
+    }
+}
+
+public static class TimeHelpers
+{
+    public static string FormatTimeSpan(TimeSpan ts)
+    {
+        if (ts.TotalHours < 1)
+            return $"{ts.TotalMinutes:F0} min";
+        else if (ts.TotalHours < 24)
+            return $"{ts.TotalHours:F1} hours";
+        else
+            return $"{ts.TotalHours:F0} hours";
     }
 }
