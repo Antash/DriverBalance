@@ -58,7 +58,7 @@ export function ScoreMap({ level, onTrip, ...range }: RangeProps & TripClickProp
   const opt = useMemo(() => (data ? option(data) : undefined), [data])
   return (
     <ChartCard title="Score map" loading={isLoading && !data} error={isError} empty={!!data && data.points.length === 0}
-      hint="Each dot is a drive group. Shaded zones show where a drive scores Fair, Good or Excellent; everything else is Bad. Click a dot for the trip.">
+      hint={`Each dot is a ${level === 'Group' ? 'drive group' : 'single trip'}. Shaded zones show where a drive scores Fair, Good or Excellent; everything else is Bad. Click a dot for the trip.`}>
       {opt && <Chart option={opt} height={380} onPointClick={(d) => { const id = (d as PointData | undefined)?.firstTripId; if (id != null) onTrip?.(id) }} />}
     </ChartCard>
   )

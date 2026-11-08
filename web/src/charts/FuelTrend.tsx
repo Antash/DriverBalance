@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import type { EChartsOption } from 'echarts'
 import type { FuelTrendChart, TrendLevel } from '../api/types'
-import { axisStyle, chartTheme, scoreColor } from '../components/chartTheme'
+import { axisStyle, chartTheme, scoreColor, timeZoom, ZOOM_GRID_BOTTOM } from '../components/chartTheme'
 import { Chart } from '../components/Chart'
 import { ChartCard } from '../components/ChartCard'
 import { fmtDateTime, fmtNum } from '../lib/format'
@@ -24,7 +24,8 @@ function option(d: FuelTrendChart): () => EChartsOption {
           return `${fmtDateTime(pd.value[0])}<br/>${fmtNum(pd.value[1], 1)} L/100 over ${fmtNum(pd.km, 1)} km<br/>${pd.tripCount} trip(s), score ${pd.score}<br/><i>Click for details</i>`
         },
       },
-      grid: { left: 8, right: 16, top: 40, bottom: 8, containLabel: true },
+      grid: { left: 8, right: 16, top: 40, bottom: ZOOM_GRID_BOTTOM, containLabel: true },
+      dataZoom: timeZoom(),
       xAxis: { type: 'time', ...axisStyle() },
       yAxis: { type: 'value', scale: true, name: 'L/100 km', nameTextStyle: { color: t.muted }, ...axisStyle() },
       series: [
@@ -49,7 +50,7 @@ export function FuelTrend({ level, onTrip, ...range }: RangeProps & TripClickPro
   const opt = useMemo(() => (data ? option(data) : undefined), [data])
   return (
     <ChartCard title="Fuel consumption trend" loading={isLoading && !data} error={isError} empty={!!data && data.points.length === 0}
-      hint={`One dot per ${level === 'Group' ? 'drive group' : 'trip'}; the line is the smoothed trend. Click a dot for the trip.`}>
+      hint={`One dot per ${level === 'Group' ? 'drive group' : 'trip'}; the line is the smoothed trend. Click a dot for the trip. Scroll or use the slider to zoom.`}>
       {opt && <Chart option={opt} onPointClick={(d) => { const id = (d as PointData | undefined)?.firstTripId; if (id != null) onTrip?.(id) }} />}
     </ChartCard>
   )

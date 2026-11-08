@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import type { EChartsOption } from 'echarts'
 import type { MonthlyScoreChart } from '../api/types'
-import { axisStyle, chartTheme, scoreColor } from '../components/chartTheme'
+import { axisStyle, chartTheme, scoreColor, timeZoom, ZOOM_GRID_BOTTOM } from '../components/chartTheme'
 import { Chart } from '../components/Chart'
 import { ChartCard } from '../components/ChartCard'
 import { fmtNum, fmtPct } from '../lib/format'
@@ -14,7 +14,8 @@ function barsOption(d: MonthlyScoreChart): () => EChartsOption {
   return () => ({
     legend: { top: 0 },
     tooltip: { trigger: 'axis', valueFormatter: (v) => `${fmtNum(Number(v), 0)} km` } as EChartsOption['tooltip'],
-    grid: { left: 8, right: 16, top: 40, bottom: 8, containLabel: true },
+    grid: { left: 8, right: 16, top: 40, bottom: ZOOM_GRID_BOTTOM, containLabel: true },
+    dataZoom: timeZoom(),
     xAxis: { type: 'category', data: d.months.map((m) => m.month), ...axisStyle() },
     yAxis: { type: 'value', name: 'km', nameTextStyle: { color: chartTheme().muted }, ...axisStyle() },
     series: SCORES.map((s, i) => ({
@@ -31,7 +32,8 @@ function dpfOption(d: MonthlyScoreChart): () => EChartsOption {
     return {
       legend: { top: 0 },
       tooltip: { trigger: 'axis', valueFormatter: (v) => (v == null ? '—' : fmtPct(Number(v))) } as EChartsOption['tooltip'],
-      grid: { left: 8, right: 16, top: 40, bottom: 8, containLabel: true },
+      grid: { left: 8, right: 16, top: 40, bottom: ZOOM_GRID_BOTTOM, containLabel: true },
+      dataZoom: timeZoom(),
       xAxis: { type: 'time', ...axisStyle() },
       yAxis: {
         type: 'value', min: 0, max: 1, name: 'DPF index', nameTextStyle: { color: t.muted },

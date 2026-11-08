@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import * as echarts from 'echarts'
 import { echartsBaseOption } from './chartTheme'
+import { carryZoom, structureKey } from '../lib/chartZoom'
 
 /** Thin wrapper over echarts: init on mount, setOption on change, resize on layout change, dispose on unmount. */
 export function Chart({ option, height = 320, onPointClick }: {
@@ -17,9 +18,18 @@ export function Chart({ option, height = 320, onPointClick }: {
   const latest = useRef(option)
 
 
+  const shape = useRef<string | null>(null)
+
   const apply = () => {
+    const c = chart.current
+    if (!c) return
     const o = typeof latest.current === 'function' ? latest.current() : latest.current
-    chart.current?.setOption({ ...echartsBaseOption(), ...o } as echarts.EChartsOption, true)
+    let next = { ...echartsBaseOption(), ...o } as Record<string, unknown>
+    // A refresh of the same chart (new numbers, theme change) keeps the user's zoom; a new range or series resets it.
+    const key = structureKey(next)
+    if (key === shape.current) next = carryZoom(next, (c.getOption() as { dataZoom?: unknown }).dataZoom)
+    shape.current = key
+    c.setOption(next as echarts.EChartsOption, true)
   }
 
   useEffect(() => {

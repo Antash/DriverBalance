@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { EChartsOption } from 'echarts'
 import { api } from '../api/client'
 import type { CumulativeCostPoint, Expense, ExpenseCategory, MonthlyCost } from '../api/types'
-import { chartTheme, axisStyle } from '../components/chartTheme'
+import { chartTheme, axisStyle, timeZoom, ZOOM_GRID_BOTTOM } from '../components/chartTheme'
 import { Chart } from '../components/Chart'
 import { CATEGORIES, ExpenseForm, label } from '../components/ExpenseForm'
 import { Modal } from '../components/Modal'
@@ -71,11 +71,13 @@ function cumulativeOption(points: CumulativeCostPoint[], currency: string): ECha
   return {
     legend: { show: false },
     tooltip: { trigger: 'axis', valueFormatter: (v) => `${fmtMoney(Number(v), currency)} / km` } as EChartsOption['tooltip'],
-    xAxis: { type: 'category', data: pts.map((p) => p.date), ...axisStyle() },
+    grid: { left: 8, right: 16, top: 24, bottom: ZOOM_GRID_BOTTOM, containLabel: true },
+    dataZoom: timeZoom(),
+    xAxis: { type: 'time', ...axisStyle() },
     yAxis: { type: 'value', name: `${currency} / km`, nameTextStyle: { color: t.muted }, ...axisStyle() },
     series: [{
       name: 'Cost per km', type: 'line', showSymbol: pts.length < 40, symbolSize: 8, lineStyle: { width: 2 },
-      itemStyle: { color: t.series[0], borderColor: t.surface, borderWidth: 2 }, data: pts.map((p) => p.costPerKm),
+      itemStyle: { color: t.series[0], borderColor: t.surface, borderWidth: 2 }, data: pts.map((p) => [p.date, p.costPerKm]),
     }],
   }
 }

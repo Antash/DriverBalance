@@ -43,3 +43,16 @@ export function axisStyle() {
     splitLine: { lineStyle: { color: t.grid } },
   }
 }
+
+/** Wheel/drag zoom plus a slider; charts using it need `grid.bottom: ZOOM_GRID_BOTTOM`. */
+export const ZOOM_GRID_BOTTOM = 44
+export function timeZoom() {
+  const t = chartTheme()
+  return [
+    { type: 'inside' as const },
+    {
+      type: 'slider' as const, height: 18, bottom: 6, borderColor: t.grid, fillerColor: 'transparent',
+      textStyle: { color: t.muted }, dataBackground: { lineStyle: { color: t.axis }, areaStyle: { color: t.grid } },
+    },
+  ]
+}

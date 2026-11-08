@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import type { EChartsOption } from 'echarts'
 import type { TimelineChart, TimelineEventKind, TyreSet } from '../api/types'
-import { axisStyle, chartTheme } from '../components/chartTheme'
+import { axisStyle, chartTheme, timeZoom, ZOOM_GRID_BOTTOM } from '../components/chartTheme'
 import { Chart } from '../components/Chart'
 import { ChartCard } from '../components/ChartCard'
 import { fmtNum } from '../lib/format'
@@ -31,7 +31,8 @@ function timelineOption(d: TimelineChart, sets: TyreSet[], end: string): () => E
     return {
       legend: { top: 0, data: ['Odometer', ...KINDS.filter((k) => d.events.some((e) => e.kind === k.kind)).map((k) => k.name)] },
       tooltip: { trigger: 'item' },
-      grid: { left: 8, right: 16, top: 40, bottom: 8, containLabel: true },
+      grid: { left: 8, right: 16, top: 40, bottom: ZOOM_GRID_BOTTOM, containLabel: true },
+      dataZoom: timeZoom(),
       xAxis: { type: 'time', ...axisStyle() },
       yAxis: { type: 'value', scale: true, name: 'km', nameTextStyle: { color: t.muted }, ...axisStyle() },
       series: [
