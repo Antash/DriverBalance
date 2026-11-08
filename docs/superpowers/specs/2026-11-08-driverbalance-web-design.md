@@ -154,6 +154,46 @@ The mockup was agreed during brainstorming (`.superpowers/brainstorm/.../interva
 
 UI language is English. Units are km, L and the home currency.
 
+### Live parameters (owner requirement, added 2026-11-08)
+
+"All parameters should be configurable on the fly": cold-start gap, duration and speed thresholds for the scores, the city/mixed/highway speed bands, the moving-average window, fuel-trend outlier limits (1–30 L/100), LOWESS span, heatmap km cap, short-trip limit, and export-reminder days.
+
+- Every analysis parameter is a per-vehicle setting, editable from a **parameters panel** available on every stats page, not only in Settings.
+- Changing a value recomputes all numbers and charts on the page immediately. There are no cached scores (Rulings 10).
+- **Try mode:** you can preview changes without saving, then "Save as default" or "Reset". An unsaved state is clearly marked.
+- Defaults come from today's `appsettings.json`. Validation keeps thresholds ordered (short ≤ medium ≤ long, heavy-traffic ≤ city ≤ mixed).
+- Where a chart shows a threshold, it is drawn on the chart. The builder decides whether lines can be dragged directly; nice-to-have.
+
+### Visualizations
+
+Existing charts are kept and improved:
+- **Monthly km by score** + weekly DPF moving average.
+- **Calendar heatmap**, with any year chosen from a picker.
+- **Fuel trend:** today's version works on cold-start groups. It gains a switch between group and individual-trip level, colour by score, and point size by km. Hovering a point shows trip details and clicking it opens them.
+
+New, built on data that already exists:
+1. **Score map:** a scatter of driving duration (x) against average speed (y) for every group or trip, with the four score zones drawn as shaded areas from the live thresholds. It shows directly why a trip scored badly and how close it came.
+2. **Gap histogram:** time between consecutive trips, with the cold-start threshold as a line. It helps choose the 45-minute value.
+3. **When you drive:** heatmap of weekday × hour of day, showing km and share of bad trips.
+4. **Penalty curve for short trips:** L/100 km against trip duration, as a binned median with spread. It shows how much short trips cost.
+5. **Places and routes:**
+   - most frequent start/end addresses and A→B routes, with count, km, average score and L/100 km;
+   - a per-route trend over time, comparing the same commute across seasons.
+
+   No map and no geocoding in v1. Addresses are text.
+6. **Seasonality:** L/100 km and km by month of year, one line per year.
+7. **DPF health strip:**
+   - days and km since the last Excellent/Good group;
+   - a running "needs a long drive" hint when the gap goes past a configurable limit (default 14 days);
+   - on Overview, the worst stretches without a long drive.
+8. **Vehicle timeline:** odometer over time with service events, tyre mounts (as coloured bands per set), imports and expenses as markers. This is the "what happened between maintenance" view.
+9. **Money:**
+   - monthly cost stacked by category;
+   - a treemap of total cost by category;
+   - cumulative cost per km over ownership;
+   - cost per km per interval.
+10. **Interval small multiples:** the same small chart (km/day, cold starts/100 km, DPF, L/100 km, cost/km) repeated across all intervals of a type, to spot drift at a glance.
+
 ### MCP server (Telegram assistant)
 
 - Built with the official C# MCP SDK (`ModelContextProtocol.AspNetCore`), streamable HTTP at `/mcp` on the same app. Requests need a bearer `ApiToken` (created in Settings), which also sets the user. There are no anonymous calls, even locally.
@@ -186,6 +226,8 @@ UI language is English. Units are km, L and the home currency.
 `dotnet run` on the web project (or a published exe) serves everything at `http://localhost:<port>`. Development uses the Vite dev server proxying to the API. Starting at Windows login is required from phase 4 (see Rulings 11).
 
 ## Delivery order
+
+The owner asked for **no questions until a first working version exists to play with**. The first version is phases 1–3 plus the MCP endpoint in DriverBalance (phase 4 without the family-assistant wiring). Wiring the bot needs that repo's security fix first. Phase 5 needs the owner's Volvo developer account. Both come after the owner has assessed the first version.
 
 Each phase ends usable:
 
