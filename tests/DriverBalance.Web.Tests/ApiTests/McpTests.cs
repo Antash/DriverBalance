@@ -237,6 +237,27 @@ public sealed class McpTests(ApiFactory f) : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task ZeroAmount_ValidOnlyForMaintenance_SameRulesForRestAndMcp()
+    {
+        var c = f.ClientFor(1);
+        var vid = await Api.NewVehicleAsync(c);
+        await using var mcp = await McpHelpers.ConnectAsync(f, (await McpHelpers.CreateTokenAsync(c)).Token);
+
+        var free = McpHelpers.JsonOf(await McpHelpers.CallAsync(mcp, "log_maintenance", new { vehicleId = vid, types = new[] { "Coolant" }, cost = 0 }));
+        var id = (long)free["id"]!;
+
+        // REST can edit the zero-amount Maintenance expense MCP created.
+        var put = await c.PutAsJsonAsync($"/api/vehicles/{vid}/expenses/{id}",
+            new { date = "2026-11-01", category = "Maintenance", amount = 0, currency = "CZK", odometer = 5000, maintenance = new[] { "Coolant" } }, ApiJson.Options);
+        Assert.Equal(HttpStatusCode.OK, put.StatusCode);
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await Api.PostAsync(c, $"/api/vehicles/{vid}/expenses",
+            new { date = "2026-11-01", category = "Fuel", amount = 0, currency = "CZK" })).StatusCode);
+        Assert.True((await McpHelpers.CallAsync(mcp, "add_expense", new { vehicleId = vid, category = "Fuel", amount = 0 })).IsError);
+        Assert.True((await McpHelpers.CallAsync(mcp, "log_maintenance", new { vehicleId = vid, types = new[] { "Coolant" }, cost = -1 })).IsError);
+    }
+
+    [Fact]
     public async Task Mcp_GetStats_EqualsApiStats()
     {
         var c = f.ClientFor(1);

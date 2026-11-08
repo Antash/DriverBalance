@@ -84,7 +84,7 @@ public sealed class CarTools(DriverBalanceDbContext db, VehicleDataLoader loader
         "Optional: odometer, date (default today), description. Cost is in the vehicle's home currency.")]
     public Task<CallToolResult> LogMaintenance(
         [Description("What was done, any of: " + MaintenanceNames + ", Custom. An empty list means Custom.")] string[] types,
-        [Description("Total cost, greater than 0.")] decimal cost,
+        [Description("Total cost, 0 or more (0 for free or unknown-cost work).")] decimal cost,
         [Description("Odometer in km. Optional.")] int? odometer = null,
         [Description(DateDoc)] string? date = null,
         [Description("Free-text description. Optional.")] string? description = null,
@@ -118,7 +118,7 @@ public sealed class CarTools(DriverBalanceDbContext db, VehicleDataLoader loader
         {
             Date = ParseDate(date, "date") ?? loader.TodayFor(v), Category = ExpenseCategory.Maintenance, Amount = cost ?? 0,
             Currency = v.HomeCurrency, Maintenance = MaintenanceType.TyreSwap, TyreSetId = tyreSetId, Odometer = odometer,
-        }, ct, allowZeroAmount: true);
+        }, ct);
     });
 
     [McpServerTool(Name = "list_tyre_sets", ReadOnly = true), Description("List the vehicle's tyre sets (id, name, season, retired). Optional: vehicleId.")]
@@ -240,9 +240,9 @@ public sealed class CarTools(DriverBalanceDbContext db, VehicleDataLoader loader
             ?? throw new ApiValidationException("No vehicle exists yet; create one in the DriverBalance web app first.");
     }
 
-    private async Task<CallToolResult> SaveAsync(VehicleRow v, Expense e, CancellationToken ct, bool allowZeroAmount = false)
+    private async Task<CallToolResult> SaveAsync(VehicleRow v, Expense e, CancellationToken ct)
     {
-        var valid = await ExpenseRules.ValidateAsync(v.Id, e with { Id = 0, Source = ExpenseSource.Mcp }, db, ct, allowZeroAmount);
+        var valid = await ExpenseRules.ValidateAsync(v.Id, e with { Id = 0, Source = ExpenseSource.Mcp }, db, ct);
         var row = valid.ToRow();
         row.VehicleId = v.Id;
         db.Expenses.Add(row);

@@ -9,13 +9,14 @@ public static class ExpenseRules
 {
     /// <summary>
     /// Returns the expense with a normalised currency, or throws a 400-style <see cref="ApiValidationException"/> listing every problem.
-    /// <paramref name="allowZeroAmount"/> exists for free actions such as a tyre swap done at home; negatives are always rejected.
+    /// Amount must be greater than 0, except that Maintenance may be exactly 0 (free or unknown-cost services, free tyre swaps,
+    /// migrated records); negatives are always rejected.
     /// </summary>
-    public static async Task<Expense> ValidateAsync(long vid, Expense e, DriverBalanceDbContext db, CancellationToken ct, bool allowZeroAmount = false)
+    public static async Task<Expense> ValidateAsync(long vid, Expense e, DriverBalanceDbContext db, CancellationToken ct)
     {
         var errors = new List<string>();
-        if (allowZeroAmount ? e.Amount < 0 : e.Amount <= 0)
-            errors.Add(allowZeroAmount ? "Amount must not be negative." : "Amount must be greater than 0.");
+        if (e.Amount < 0) errors.Add("Amount must not be negative.");
+        else if (e.Amount == 0 && e.Category != ExpenseCategory.Maintenance) errors.Add("Amount must be greater than 0.");
         if (!VehicleEndpoints.IsCurrency(e.Currency ?? "")) errors.Add("Currency must be a 3-letter code.");
         if (e.HomeAmount is < 0) errors.Add("Home amount must not be negative.");
         if (e.Litres is { } l && !(l > 0)) errors.Add("Litres must be greater than 0.");
