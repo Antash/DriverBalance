@@ -29,3 +29,6 @@ Stdin: `1` + CSV path (import), `3` summary, `4` analyze trips, `10` report sinc
   spans midnight into a maintenance date (checked by script). Maintenance odometers are the end
   odometer of the last trip before each date: 1864, 3269, 4493, 5148.
 - Trip 2025-07-12 22:50 to 07-13 00:25 spans midnight on its own (not a maintenance date).
+- Normalisation: the `Imported 119 new records from '...'` line (line 15) originally held the machine's
+  absolute CSV path; it was replaced by `<repo>/tests/fixtures/synthetic-trips.csv`. This line is
+  machine-specific; ignore it in tests. Everything else is verbatim.

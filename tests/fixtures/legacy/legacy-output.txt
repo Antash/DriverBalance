@@ -12,7 +12,7 @@
 10. Trip report by maintenance type (since last)
 11. Trip report by all maintenance periods
 0. Exit
-Enter command number: Enter path to CSV file: Imported 119 new records from 'C:\Users\user\source\repos\DriverBalance\tests\fixtures\synthetic-trips.csv'.
+Enter command number: Enter path to CSV file: Imported 119 new records from '<repo>/tests/fixtures/synthetic-trips.csv'.
 
 --- Trip Record Manager ---
 1. Upload (import) new CSV file
