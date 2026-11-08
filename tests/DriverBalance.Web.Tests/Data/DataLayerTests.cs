@@ -204,4 +204,87 @@ public class DataLayerTests
         var t = new TyreSet { Name = "Winter", Season = TyreSeason.Winter, Description = "x", PurchaseDate = new DateOnly(2024, 10, 1), Retired = true };
         Assert.Equal(t, t.ToRow().ToDomain());
     }
+
+    private static TripRow NewTrip(long vehicleId, long userId = 0) => new Trip("Private", new DateTime(2025, 2, 1, 8, 0, 0), 1, "a",
+        new DateTime(2025, 2, 1, 9, 0, 0), 2, "b", TimeSpan.FromHours(1), 1, 0.1, "").ToRow();
+
+    [Fact]
+    public async Task Write_AddWithForeignUserId_Throws()
+    {
+        using var db = new TestDb();
+        var v1 = db.SeedVehicle(1);
+        using var ctx = db.For(1);
+        var row = NewTrip(v1); row.VehicleId = v1; row.UserId = 2;
+        ctx.Trips.Add(row);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => ctx.SaveChangesAsync());
+    }
+
+    [Fact]
+    public async Task Write_UpdateOrRemoveForeignStub_Throws()
+    {
+        using var db = new TestDb();
+        db.SeedVehicle(1);
+        var v2 = db.SeedVehicle(2);
+        long foreignId;
+        using (var c2 = db.For(2))
+        {
+            var r = NewTrip(v2); r.VehicleId = v2; c2.Trips.Add(r);
+            await c2.SaveChangesAsync();
+            foreignId = r.Id;
+        }
+        using (var ctx = db.For(1))
+        {
+            ctx.Trips.Update(new TripRow { Id = foreignId, UserId = 2, VehicleId = v2, Category = "x" });
+            await Assert.ThrowsAsync<InvalidOperationException>(() => ctx.SaveChangesAsync());
+        }
+        using (var ctx = db.For(1))
+        {
+            ctx.Trips.Remove(new TripRow { Id = foreignId, UserId = 2, VehicleId = v2 });
+            await Assert.ThrowsAsync<InvalidOperationException>(() => ctx.SaveChangesAsync());
+        }
+        using var check = db.For(2);
+        Assert.Equal(1, await check.Trips.CountAsync());
+    }
+
+    [Fact]
+    public async Task Write_UpdateStubWithoutUserId_Throws()
+    {
+        using var db = new TestDb();
+        var v1 = db.SeedVehicle(1);
+        using var ctx = db.For(1);
+        ctx.Trips.Update(new TripRow { Id = 5, VehicleId = v1 });
+        await Assert.ThrowsAsync<InvalidOperationException>(() => ctx.SaveChangesAsync());
+    }
+
+    [Fact]
+    public async Task Fk_TripOnForeignVehicle_FailsAtDatabase()
+    {
+        using var db = new TestDb();
+        db.SeedVehicle(1);
+        var v2 = db.SeedVehicle(2);
+        using var ctx = db.For(1);
+        var row = NewTrip(v2); row.VehicleId = v2; // UserId stamped as 1, vehicle belongs to 2
+        ctx.Trips.Add(row);
+        await Assert.ThrowsAsync<DbUpdateException>(() => ctx.SaveChangesAsync());
+    }
+
+    [Fact]
+    public async Task Fk_DeletingVehicle_RemovesItsRows()
+    {
+        using var db = new TestDb();
+        var v1 = db.SeedVehicle(1);
+        using (var ctx = db.For(1))
+        {
+            using var r = new StreamReader(TestDb.Fixture("synthetic-trips.csv"));
+            await new ImportService(ctx).ImportCsvAsync(v1, "t.csv", r, default);
+        }
+        using (var ctx = db.For(1))
+        {
+            ctx.Vehicles.Remove(await ctx.Vehicles.SingleAsync(v => v.Id == v1));
+            await ctx.SaveChangesAsync();
+        }
+        using var check = db.For(1);
+        Assert.Empty(await check.Trips.ToListAsync());
+        Assert.Empty(await check.ImportBatches.ToListAsync());
+    }
 }

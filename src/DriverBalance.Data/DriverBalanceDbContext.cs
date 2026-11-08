@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace DriverBalance.Data;
 
@@ -34,6 +35,32 @@ public sealed class DriverBalanceDbContext(DbContextOptions<DriverBalanceDbConte
         b.Entity<TyreSetRow>().HasIndex(x => x.VehicleId);
         b.Entity<ImportBatchRow>().HasIndex(x => x.VehicleId);
         b.Entity<ApiTokenRow>().HasIndex(x => x.TokenHash).IsUnique();
+
+        // Owner integrity: composite keys make a child's UserId match its vehicle's UserId at the DB level.
+        b.Entity<VehicleRow>().HasAlternateKey(x => new { x.UserId, x.Id });
+        b.Entity<TyreSetRow>().HasAlternateKey(x => new { x.UserId, x.Id });
+        b.Entity<TripRow>().HasOne<VehicleRow>().WithMany()
+            .HasForeignKey(x => new { x.UserId, x.VehicleId }).HasPrincipalKey(v => new { v.UserId, v.Id }).OnDelete(DeleteBehavior.Cascade);
+        b.Entity<ExpenseRow>().HasOne<VehicleRow>().WithMany()
+            .HasForeignKey(x => new { x.UserId, x.VehicleId }).HasPrincipalKey(v => new { v.UserId, v.Id }).OnDelete(DeleteBehavior.Cascade);
+        b.Entity<TyreSetRow>().HasOne<VehicleRow>().WithMany()
+            .HasForeignKey(x => new { x.UserId, x.VehicleId }).HasPrincipalKey(v => new { v.UserId, v.Id }).OnDelete(DeleteBehavior.Cascade);
+        b.Entity<ImportBatchRow>().HasOne<VehicleRow>().WithMany()
+            .HasForeignKey(x => new { x.UserId, x.VehicleId }).HasPrincipalKey(v => new { v.UserId, v.Id }).OnDelete(DeleteBehavior.Cascade);
+        b.Entity<TripRow>().HasOne<ImportBatchRow>().WithMany()
+            .HasForeignKey(x => x.ImportBatchId).OnDelete(DeleteBehavior.SetNull);
+        // Composite set-null would null UserId too, so deleting a tyre set still referenced by expenses is restricted.
+        b.Entity<ExpenseRow>().HasOne<TyreSetRow>().WithMany()
+            .HasForeignKey(x => new { x.UserId, x.TyreSetId }).HasPrincipalKey(t => new { t.UserId, t.Id }).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<VehicleRow>().HasOne<TyreSetRow>().WithMany()
+            .HasForeignKey(x => x.InitialTyreSetId).OnDelete(DeleteBehavior.SetNull);
+
+        foreach (var type in new[] { typeof(VehicleRow), typeof(TripRow), typeof(ExpenseRow), typeof(TyreSetRow), typeof(ImportBatchRow), typeof(ApiTokenRow) })
+        {
+            var e = b.Entity(type);
+            e.HasOne(typeof(UserRow)).WithMany().HasForeignKey(nameof(IUserOwned.UserId)).OnDelete(DeleteBehavior.Cascade);
+            e.Property(nameof(IUserOwned.UserId)).Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Throw);
+        }
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
@@ -48,10 +75,15 @@ public sealed class DriverBalanceDbContext(DbContextOptions<DriverBalanceDbConte
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 
+    /// <summary>Stamps new rows and rejects any write touching another user's row (query filters do not apply to SaveChanges).</summary>
     private void StampUser()
     {
         foreach (var entry in ChangeTracker.Entries<IUserOwned>())
+        {
             if (entry.State == EntityState.Added && entry.Entity.UserId == 0)
                 entry.Entity.UserId = user.UserId;
+            if (entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted && entry.Entity.UserId != user.UserId)
+                throw new InvalidOperationException($"Refusing to write {entry.Metadata.ClrType.Name} owned by user {entry.Entity.UserId} as user {user.UserId}.");
+        }
     }
 }

@@ -45,6 +45,8 @@ namespace DriverBalance.Data.Migrations
                     b.HasIndex("TokenHash")
                         .IsUnique();
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("ApiTokens");
                 });
 
@@ -116,6 +118,10 @@ namespace DriverBalance.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UserId", "TyreSetId");
+
+                    b.HasIndex("UserId", "VehicleId");
+
                     b.HasIndex("VehicleId", "Date");
 
                     b.ToTable("Expenses");
@@ -155,6 +161,8 @@ namespace DriverBalance.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("VehicleId");
+
+                    b.HasIndex("UserId", "VehicleId");
 
                     b.ToTable("ImportBatches");
                 });
@@ -213,7 +221,11 @@ namespace DriverBalance.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ImportBatchId");
+
                     b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "VehicleId");
 
                     b.HasIndex("VehicleId", "Start", "End")
                         .IsUnique();
@@ -253,6 +265,8 @@ namespace DriverBalance.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("VehicleId");
+
+                    b.HasIndex("UserId", "VehicleId");
 
                     b.ToTable("TyreSets");
                 });
@@ -315,9 +329,109 @@ namespace DriverBalance.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("InitialTyreSetId");
+
                     b.HasIndex("UserId");
 
                     b.ToTable("Vehicles");
+                });
+
+            modelBuilder.Entity("DriverBalance.Data.ApiTokenRow", b =>
+                {
+                    b.HasOne("DriverBalance.Data.UserRow", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("DriverBalance.Data.ExpenseRow", b =>
+                {
+                    b.HasOne("DriverBalance.Data.UserRow", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DriverBalance.Data.TyreSetRow", null)
+                        .WithMany()
+                        .HasForeignKey("UserId", "TyreSetId")
+                        .HasPrincipalKey("UserId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("DriverBalance.Data.VehicleRow", null)
+                        .WithMany()
+                        .HasForeignKey("UserId", "VehicleId")
+                        .HasPrincipalKey("UserId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("DriverBalance.Data.ImportBatchRow", b =>
+                {
+                    b.HasOne("DriverBalance.Data.UserRow", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DriverBalance.Data.VehicleRow", null)
+                        .WithMany()
+                        .HasForeignKey("UserId", "VehicleId")
+                        .HasPrincipalKey("UserId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("DriverBalance.Data.TripRow", b =>
+                {
+                    b.HasOne("DriverBalance.Data.ImportBatchRow", null)
+                        .WithMany()
+                        .HasForeignKey("ImportBatchId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("DriverBalance.Data.UserRow", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DriverBalance.Data.VehicleRow", null)
+                        .WithMany()
+                        .HasForeignKey("UserId", "VehicleId")
+                        .HasPrincipalKey("UserId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("DriverBalance.Data.TyreSetRow", b =>
+                {
+                    b.HasOne("DriverBalance.Data.UserRow", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DriverBalance.Data.VehicleRow", null)
+                        .WithMany()
+                        .HasForeignKey("UserId", "VehicleId")
+                        .HasPrincipalKey("UserId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("DriverBalance.Data.VehicleRow", b =>
+                {
+                    b.HasOne("DriverBalance.Data.TyreSetRow", null)
+                        .WithMany()
+                        .HasForeignKey("InitialTyreSetId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("DriverBalance.Data.UserRow", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }
