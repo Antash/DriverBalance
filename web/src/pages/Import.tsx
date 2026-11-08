@@ -84,13 +84,18 @@ export default function ImportPage() {
     queryKey: ['import-batches', vehicleId],
     queryFn: () => api.get<ImportBatch[]>(`/vehicles/${vehicleId}/import/batches`),
   })
-  const lastTrip = batches?.map((b) => b.lastTrip).filter((d): d is string => !!d).sort().at(-1)
+  // Newest trip overall (not newest batch), so legacy-migrated and manually added trips count too.
+  const { data: last } = useQuery({
+    queryKey: ['import-batches', vehicleId, 'last-trip'],
+    queryFn: () => api.get<{ lastTrip: string | null }>(`/vehicles/${vehicleId}/import/last-trip`),
+  })
+  const lastTrip = last?.lastTrip ?? undefined
   const age = lastTrip ? daysAgo(lastTrip) : null
 
   return (
     <section>
       <h1>Import</h1>
-      {batches && (
+      {last && (
         <p className={age != null && age >= saved.exportReminderDays ? 'warn' : 'muted'}>
           {age == null ? 'No trips imported yet.' : `Last trip: ${age} day${age === 1 ? '' : 's'} ago (${lastTrip}).`}
         </p>

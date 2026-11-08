@@ -22,13 +22,29 @@ public sealed class LegacyMigrationService(DriverBalanceDbContext db)
         {
             var seen = (await db.Trips.Where(t => t.VehicleId == vehicleId).Select(t => new { t.Start, t.End }).ToListAsync(ct))
                 .Select(t => (t.Start, t.End)).ToHashSet();
+            var newTrips = new List<TripRow>();
             foreach (var trip in LegacyJsonReader.ReadTrips(tripsJson))
             {
                 if (!seen.Add((trip.Start, trip.End))) { tripsSkipped++; continue; }
                 var row = trip.ToRow();
                 row.VehicleId = vehicleId;
                 db.Trips.Add(row);
+                newTrips.Add(row);
                 tripsImported++;
+            }
+            if (newTrips.Count > 0)
+            {
+                // Shown in the import history like any other import; linked so the trips can be traced to it.
+                var batch = new ImportBatchRow
+                {
+                    VehicleId = vehicleId, FileName = "legacy triprecords.json", ImportedAt = DateTime.UtcNow,
+                    Imported = newTrips.Count, Skipped = tripsSkipped,
+                    FirstTrip = DateOnly.FromDateTime(newTrips.Min(t => t.Start)),
+                    LastTrip = DateOnly.FromDateTime(newTrips.Max(t => t.Start)),
+                };
+                db.ImportBatches.Add(batch);
+                await db.SaveChangesAsync(ct); // need the batch id
+                foreach (var row in newTrips) row.ImportBatchId = batch.Id;
             }
         }
 

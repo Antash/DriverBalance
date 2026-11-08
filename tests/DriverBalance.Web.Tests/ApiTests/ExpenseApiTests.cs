@@ -172,6 +172,25 @@ public sealed class ExpenseApiTests(ApiFactory f) : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task ImportLastTrip_UsesTrips_AndLegacyMigrationShowsInBatches()
+    {
+        var c = f.CreateClient();
+        var vid = await Api.NewVehicleAsync(c);
+        var empty = await Api.ReadAsync<JsonElement>(await c.GetAsync($"/api/vehicles/{vid}/import/last-trip"));
+        Assert.Equal(JsonValueKind.Null, empty.GetProperty("lastTrip").ValueKind);
+
+        using var form = new MultipartFormDataContent();
+        form.Add(new StreamContent(File.OpenRead(Data.TestDb.Fixture("synthetic-triprecords.json"))), "trips", "triprecords.json");
+        Assert.Equal(HttpStatusCode.OK, (await c.PostAsync($"/api/vehicles/{vid}/import/legacy", form)).StatusCode);
+
+        var last = await Api.ReadAsync<JsonElement>(await c.GetAsync($"/api/vehicles/{vid}/import/last-trip"));
+        Assert.Equal(JsonValueKind.String, last.GetProperty("lastTrip").ValueKind);
+        var batches = await Api.ReadAsync<JsonElement>(await c.GetAsync($"/api/vehicles/{vid}/import/batches"));
+        Assert.Equal(1, batches.GetArrayLength());
+        Assert.Equal(last.GetProperty("lastTrip").GetString(), batches[0].GetProperty("lastTrip").GetString());
+    }
+
+    [Fact]
     public async Task Tyres_DeleteInitialSet_409()
     {
         var c = f.CreateClient();

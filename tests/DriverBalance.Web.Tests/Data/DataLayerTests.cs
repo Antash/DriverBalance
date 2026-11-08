@@ -80,6 +80,25 @@ public class DataLayerTests
     }
 
     [Fact]
+    public async Task LegacyMigration_CreatesImportBatchLinkedToTrips()
+    {
+        using var db = new TestDb();
+        var vehicleId = db.SeedVehicle(1);
+        await Migrate(db, vehicleId);
+        await Migrate(db, vehicleId); // all duplicates: no second batch
+
+        using var check = db.For(1);
+        var batch = Assert.Single(await check.ImportBatches.ToListAsync());
+        Assert.Equal("legacy triprecords.json", batch.FileName);
+        Assert.Equal(4, batch.Imported);
+        Assert.Equal(0, batch.Skipped);
+        var trips = await check.Trips.ToListAsync();
+        Assert.All(trips, t => Assert.Equal(batch.Id, t.ImportBatchId));
+        Assert.Equal(DateOnly.FromDateTime(trips.Min(t => t.Start)), batch.FirstTrip);
+        Assert.Equal(DateOnly.FromDateTime(trips.Max(t => t.Start)), batch.LastTrip);
+    }
+
+    [Fact]
     public async Task LegacyMigration_ZeroCostGetsNote()
     {
         using var db = new TestDb();
