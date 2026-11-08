@@ -105,10 +105,12 @@ public class PeriodStatsTests
         var june = new Period(new DateOnly(2025, 6, 1), new DateOnly(2025, 7, 1), "Jun");
         var u = ctx.Stats(june).Usage;
         Assert.Equal(30, u.Days);
+        Assert.Equal(10, u.ElapsedDays);
         Assert.Equal(10.0, u.KmPerDay!.Value, 9);
 
         var future = new Period(new DateOnly(2025, 7, 1), new DateOnly(2025, 8, 1), "Jul");
         Assert.Null(ctx.Stats(future).Usage.KmPerDay);
+        Assert.Equal(0, ctx.Stats(future).Usage.ElapsedDays);
     }
 
     [Fact]

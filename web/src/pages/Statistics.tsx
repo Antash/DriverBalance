@@ -9,6 +9,7 @@ import { CompareTable } from '../components/CompareTable'
 import { PeriodTable } from '../components/PeriodTable'
 import { StatsTable } from '../components/StatsTable'
 import { TripList } from '../components/TripList'
+import { comparisonRequest } from '../lib/compare'
 import { addDays, addYears, iso } from '../lib/dates'
 import { fmtNum } from '../lib/format'
 import { parseStatsState, statsStateToParams, type StatsUrlState } from '../lib/urlState'
@@ -108,10 +109,9 @@ function Custom({ state, update, currency }: LevelProps) {
   const aOk = !!from && !!to && to >= from
   const bOk = comparing && !!cmpFrom && !!cmpTo && cmpTo >= cmpFrom
   const periods = useMemo(() => {
-    const list: { from: string; to: string; label: string }[] = []
-    if (aOk) list.push({ from: from!, to: addDays(to!, 1), label: 'Range' })
-    if (bOk) list.push({ from: cmpFrom!, to: addDays(cmpTo!, 1), label: 'Compare' })
-    return list
+    if (!aOk) return []
+    // Baseline (the "Compare with" range) first: the table reads baseline -> main range.
+    return comparisonRequest({ from: from!, to: addDays(to!, 1) }, bOk ? { from: cmpFrom!, to: addDays(cmpTo!, 1) } : null).periods
   }, [aOk, bOk, from, to, cmpFrom, cmpTo])
   const stats = useAnalytics<PeriodStats[]>('stats', { periods })
 
@@ -146,7 +146,7 @@ function Custom({ state, update, currency }: LevelProps) {
           {stats.data!.every((s) => s.usage.tripCount === 0) && <p className="muted empty">No trips in this period</p>}
           {bOk
             ? <CompareTable a={stats.data![0]} b={stats.data![1]} currency={currency}
-                labelA={rangeLabel(from!, to!)} labelB={rangeLabel(cmpFrom!, cmpTo!)} />
+                labelA={`Baseline ${rangeLabel(cmpFrom!, cmpTo!)}`} labelB={rangeLabel(from!, to!)} />
             : <StatsTable stats={stats.data![0]} currency={currency} />}
         </section>
       )}

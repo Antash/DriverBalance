@@ -62,7 +62,8 @@ public sealed class AnalysisContext
             km > 0 ? groups.Count / km * 100.0 : null,
             shortGroups.Count,
             groups.Count > 0 ? (double)shortGroups.Count / groups.Count : null,
-            km > 0 ? shortKm / km : null);
+            km > 0 ? shortKm / km : null,
+            Math.Max(0, elapsedDays));
 
         var buckets = new Dictionary<DrivingScore, ScoreBucket>();
         foreach (var score in Enum.GetValues<DrivingScore>())

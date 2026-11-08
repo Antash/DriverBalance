@@ -23,6 +23,13 @@ export function fmtDuration(ts: string | null | undefined): string {
   return hours > 0 ? `${hours} h ${String(min).padStart(2, '0')} min` : `${min} min`
 }
 
+/** .NET TimeSpan ("[d.]hh:mm:ss[.fff]") as fractional hours; null when unparsable. */
+export function timeSpanHours(ts: string | null | undefined): number | null {
+  const m = ts ? /^(?:(\d+)\.)?(\d+):(\d+):(\d+(?:\.\d+)?)/.exec(ts) : null
+  if (!m) return null
+  return Number(m[1] ?? 0) * 24 + Number(m[2]) + Number(m[3]) / 60 + Number(m[4]) / 3600
+}
+
 /** "2025-03-04T08:05:00" as "2025-03-04 08:05". */
 export const fmtDateTime = (s: string) => s.slice(0, 16).replace('T', ' ')
 

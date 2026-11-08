@@ -199,6 +199,8 @@ export interface UsageStats {
   shortGroups: number
   shortShareByCount: number | null
   shortShareByKm: number | null
+  /** Days of the period that have elapsed (clipped to today); denominator of per-day rates. */
+  elapsedDays: number
 }
 
 export interface ScoreBucket { km: number; duration: string; groups: number }
