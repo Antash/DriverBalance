@@ -109,7 +109,8 @@ export interface MultiMetricRow {
   best: number[]; worst: number[]
 }
 
-function extremes(values: (number | null)[], better: 'up' | 'down' | null): { best: number[]; worst: number[] } {
+function extremes(values: (number | null)[], better: 'up' | 'down' | null, ranked: boolean[]): { best: number[]; worst: number[] } {
+  values = values.map((v, i) => (ranked[i] ? v : null))
   const present = values.filter((v): v is number => v != null)
   if (better == null || present.length < 2) return { best: [], worst: [] }
   const hi = Math.max(...present), lo = Math.min(...present)
@@ -119,11 +120,20 @@ function extremes(values: (number | null)[], better: 'up' | 'down' | null): { be
 }
 
 /** Any number of periods side by side, with the best and worst marked on metrics that have a good direction. */
-export function compareMany(list: PeriodStats[]): MultiMetricRow[] {
-  const make = (key: MetricKey, label: string, group: MetricGroup, better: 'up' | 'down' | null, values: (number | null)[]): MultiMetricRow =>
-    ({ key, label, group, better, values, ...extremes(values, better) })
+/** Volumes that only trips can measure: with no trips in a period they are unknown, not zero. */
+const TRIP_VOLUMES: MetricKey[] = ['tripKm', 'coldStarts', 'drivingHoursPerDay']
 
-  const rows = METRICS.map((m) => make(m.key, m.label, m.group, m.better, list.map((s) => m.read(s))))
+/**
+ * Any number of periods side by side, with the best and worst marked on metrics that have a good direction.
+ * Periods without trips (e.g. before the trip data starts) show their odometer and money figures but are not ranked.
+ */
+export function compareMany(list: PeriodStats[]): MultiMetricRow[] {
+  const ranked = list.map((s) => s.usage.tripCount > 0)
+  const make = (key: MetricKey, label: string, group: MetricGroup, better: 'up' | 'down' | null, values: (number | null)[]): MultiMetricRow =>
+    ({ key, label, group, better, values, ...extremes(values, better, ranked) })
+  const read = (m: Def, s: PeriodStats) => (s.usage.tripCount === 0 && TRIP_VOLUMES.includes(m.key) ? null : m.read(s))
+
+  const rows = METRICS.map((m) => make(m.key, m.label, m.group, m.better, list.map((s) => read(m, s))))
   const categories = new Set(list.flatMap((s) => Object.keys(s.money.byCategory)) as ExpenseCategory[])
   for (const c of [...categories].sort()) {
     rows.push(make(`cat:${c}`, categoryLabel(c), 'Money', null, list.map((s) => s.money.byCategory[c] ?? null)))

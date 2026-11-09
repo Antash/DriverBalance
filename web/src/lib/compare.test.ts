@@ -160,3 +160,22 @@ describe('compareMany', () => {
     expect(many(rows, 'cat:Maintenance').values).toEqual([null, 5])
   })
 })
+
+describe('compareMany with a period that has no trips', () => {
+  const noTrips = () => { const s = stats({ tripKm: 0, costPerKm: 0, coldPer100: null }); s.usage.tripCount = 0; s.usage.coldStarts = 0; s.usage.drivingTime = '00:00:00'; return s }
+  const many = (rows: ReturnType<typeof compareMany>, k: MetricKey) => rows.find((r) => r.key === k)!
+
+  it('shows trip-based volumes as unknown instead of zero', () => {
+    const rows = compareMany([noTrips(), stats()])
+    expect(many(rows, 'tripKm').values[0]).toBeNull()
+    expect(many(rows, 'coldStarts').values[0]).toBeNull()
+    expect(many(rows, 'drivingHoursPerDay').values[0]).toBeNull()
+    expect(many(rows, 'odometerKm').values[0]).toBe(100)
+  })
+
+  it('leaves the period out of best and worst', () => {
+    const rows = compareMany([noTrips(), stats({ costPerKm: 1 }), stats({ costPerKm: 2 })])
+    expect(many(rows, 'costPerKm').best).toEqual([1])
+    expect(many(rows, 'costPerKm').worst).toEqual([2])
+  })
+})
