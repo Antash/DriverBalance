@@ -141,3 +141,4 @@ table.data thead th { vertical-align: bottom; }
 .amount-row label:first-child { flex: 1; }
 .amount-row label:last-child { width: 70px; }
 .work-editor > .btn { align-self: flex-start; }
+.chart-scroll { overflow-x: auto; }

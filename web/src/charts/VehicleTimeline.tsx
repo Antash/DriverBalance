@@ -1,12 +1,13 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import type { EChartsOption } from 'echarts'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { Expense, TimelineChart, TimelineEventKind, TyreSet } from '../api/types'
-import { axisStyle, chartTheme, timeZoom, ZOOM_GRID_BOTTOM } from '../components/chartTheme'
+import { axisStyle, chartTheme } from '../components/chartTheme'
 import { Chart } from '../components/Chart'
 import { ChartCard } from '../components/ChartCard'
 import { fmtMoney, fmtNum } from '../lib/format'
+import { timelineWidthPercent } from '../lib/timelineWidth'
 import { MILESTONE_GROUPS, odometerAt, serviceMilestones, type MilestoneGroupKey, type ServiceMilestone } from '../lib/milestones'
 import { partLine, tyreDisplayName } from '../lib/tyreSummary'
 import { useAnalytics, useParams } from '../state/ParamsContext'
@@ -59,8 +60,7 @@ function timelineOption(d: TimelineChart, sets: TyreSet[], maintenance: Expense[
         data: ['Odometer', ...groupsShown.map((g) => ({ name: g.name, icon: ICONS[g.key].path })), ...kindsShown.map((k) => k.name)],
       },
       tooltip: { trigger: 'item' },
-      grid: { left: 8, right: 16, top: 40, bottom: ZOOM_GRID_BOTTOM, containLabel: true },
-      dataZoom: timeZoom(),
+      grid: { left: 8, right: 16, top: 40, bottom: 8, containLabel: true },
       // Pad the time axis so edge icons aren't clipped, and leave headroom above the line for the tallest icon stack.
       xAxis: { type: 'time', min: (v: Extent) => v.min - (v.max - v.min) * 0.02, max: (v: Extent) => v.max + (v.max - v.min) * 0.02, ...axisStyle() },
       yAxis: {
@@ -128,12 +128,20 @@ export function VehicleTimeline({ from, to, title = 'Timeline' }: { from: string
     queryKey: ['expenses', vehicleId, 'maintenance'],
     queryFn: () => api.get<Expense[]>(`/vehicles/${vehicleId}/expenses?category=Maintenance`),
   })
+  const scroller = useRef<HTMLDivElement>(null)
+  const widthPercent = timelineWidthPercent(data?.odometer[0]?.date ?? null, data?.odometer.at(-1)?.date ?? null)
+  useEffect(() => { const el = scroller.current; if (el) el.scrollLeft = el.scrollWidth }, [widthPercent])
   const opt = useMemo(() => (data ? timelineOption(data, sets, maintenance, from, to) : undefined), [data, sets, maintenance, from, to])
   return (
     <ChartCard title={title} loading={isLoading && !data} error={isError} empty={!!data && data.odometer.length === 0}
       emptyText="No odometer data in this period"
       hint="Odometer over time with service milestones: oil, tyres, brakes, filters and other service; a visit with several kinds of work stacks its icons. Hover for details. Shaded bands show which tyre set was fitted.">
-      {opt && <Chart option={opt} height={280} />}
+      {opt && (
+        // No zoom: up to 10 years fit the card; a longer history scrolls sideways, opening on the most recent years.
+        <div className="chart-scroll" ref={scroller}>
+          <div style={{ width: `${widthPercent}%` }}><Chart option={opt} height={260} /></div>
+        </div>
+      )}
     </ChartCard>
   )
 }
