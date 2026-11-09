@@ -5,7 +5,7 @@ import { api } from '../api/client'
 import { DpfHealthStrip } from '../charts/DpfHealthStrip'
 import { VehicleTimeline } from '../charts/VehicleTimeline'
 import { ChartCard } from '../components/ChartCard'
-import { ExpenseForm, label } from '../components/ExpenseForm'
+import { ExpenseForm } from '../components/ExpenseForm'
 import { Modal } from '../components/Modal'
 import type { OverviewData, Ownership, PeriodStats } from '../api/types'
 import { addDays, addYears, iso } from '../lib/dates'
@@ -121,37 +121,23 @@ export default function OverviewPage() {
             <Kpis title="This year" stats={data.thisYear} currency={cur} hasDpf={vehicle.hasDpf} />
           </div>
 
-          <OwnershipCard currency={cur} />
+          <VehicleTimeline from={addYears(today, -1)} to={addDays(today, 1)} title="Last 12 months" />
 
           {vehicle.hasDpf && data.dpfHealth && <DpfHealthStrip health={data.dpfHealth} />}
 
-          <ChartCard title="Reminders" empty={data.reminders.length === 0} emptyText="Nothing needs attention.">
-            <ul className="plain">
-              {data.reminders.map((r, i) => (
-                <li key={`${r.kind}-${i}`}><span aria-hidden>{SEVERITY_ICON[r.severity] ?? '•'}</span> <span className="sr-only">{r.severity}: </span>{r.message}</li>
-              ))}
-            </ul>
-          </ChartCard>
+          {data.reminders.length > 0 && (
+            <ChartCard title="Reminders">
+              <ul className="plain">
+                {data.reminders.map((r, i) => (
+                  <li key={`${r.kind}-${i}`}><span aria-hidden>{SEVERITY_ICON[r.severity] ?? '•'}</span> <span className="sr-only">{r.severity}: </span>{r.message}</li>
+                ))}
+              </ul>
+            </ChartCard>
+          )}
 
-          <ChartCard title="Recent expenses" empty={data.recentExpenses.length === 0} emptyText="No expenses yet.">
-            <div className="table-wrap">
-              <table className="data">
-                <thead><tr><th>Date</th><th>Category</th><th className="num">Amount</th><th>Note</th></tr></thead>
-                <tbody>
-                  {data.recentExpenses.map((e) => (
-                    <tr key={e.id}>
-                      <td>{fmtDate(e.date)}</td><td>{label(e.category)}</td>
-                      <td className="num">{fmtMoney(e.amount, e.currency)}</td><td>{e.note ?? ''}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </ChartCard>
+          <OwnershipCard currency={cur} />
         </>
       )}
-
-      <VehicleTimeline from={addYears(today, -1)} to={addDays(today, 1)} title="Last 12 months" />
 
       {adding && (
         <Modal title="Add expense" onClose={() => setAdding(false)}>
