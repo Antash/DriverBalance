@@ -358,6 +358,21 @@ namespace DriverBalance.Data.Migrations
                     b.Property<decimal?>("EstimatedResaleValue")
                         .HasColumnType("TEXT");
 
+                    b.Property<decimal?>("FinancingAmount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("FinancingBalloon")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FinancingFrequency")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("FinancingPayments")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly?>("FinancingStart")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("FuelType")
                         .IsRequired()
                         .HasColumnType("TEXT");

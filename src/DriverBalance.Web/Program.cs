@@ -48,6 +48,7 @@ ImportEndpoints.Map(api);
 AnalyticsEndpoints.Map(api);
 TripEndpoints.Map(api);
 ExpenseEndpoints.Map(api);
+PurchaseCostEndpoints.Map(api);
 TyreEndpoints.Map(api);
 DocumentEndpoints.Map(api);
 TokenEndpoints.Map(api);

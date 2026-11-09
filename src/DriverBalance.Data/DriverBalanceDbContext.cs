@@ -34,6 +34,7 @@ public sealed class DriverBalanceDbContext(DbContextOptions<DriverBalanceDbConte
         b.Entity<ExpenseRow>().Property(x => x.Category).HasConversion<string>();
         b.Entity<ExpenseRow>().Property(x => x.Source).HasConversion<string>();
         b.Entity<TyreSetRow>().Property(x => x.Season).HasConversion<string>();
+        b.Entity<VehicleRow>().Property(x => x.FinancingFrequency).HasConversion<string>();
         b.Entity<TyreSetRow>().HasIndex(x => x.VehicleId);
         b.Entity<ExpenseDocumentRow>().HasIndex(x => x.ExpenseId);
         b.Entity<ExpenseDocumentRow>().HasOne<ExpenseRow>().WithMany().HasForeignKey(x => x.ExpenseId).OnDelete(DeleteBehavior.Cascade);

@@ -1,15 +1,18 @@
 using System.Text.Json;
+using DriverBalance.Core;
 using DriverBalance.Data;
 
 namespace DriverBalance.Web;
 
 public sealed record VehicleDto(long Id, string Name, string HomeCurrency, string TimeZone, long? InitialTyreSetId, bool IsDefault,
     DateOnly? HistoryStart, int? HistoryStartOdometer,
-    DateOnly? PurchaseDate, decimal? EstimatedResaleValue, DateOnly? ResaleEstimateDate, CarDetails Details, string? FuelType, bool HasDpf)
+    DateOnly? PurchaseDate, decimal? EstimatedResaleValue, DateOnly? ResaleEstimateDate, CarDetails Details, string? FuelType, bool HasDpf,
+    DateOnly? FinancingStart, decimal? FinancingAmount, FinancingFrequency? FinancingFrequency, int? FinancingPayments, decimal? FinancingBalloon)
 {
     public static VehicleDto From(VehicleRow r) => new(r.Id, r.Name, r.HomeCurrency, r.TimeZone, r.InitialTyreSetId, r.IsDefault, r.HistoryStart, r.HistoryStartOdometer,
         r.PurchaseDate, r.EstimatedResaleValue, r.ResaleEstimateDate, CarDetails.FromJson(r.DetailsJson),
-        FuelTypes.Normalise(r.FuelType), FuelTypes.HasDpf(r.FuelType));
+        FuelTypes.Normalise(r.FuelType), FuelTypes.HasDpf(r.FuelType),
+        r.FinancingStart, r.FinancingAmount, r.FinancingFrequency, r.FinancingPayments, r.FinancingBalloon);
 }
 
 /// <summary>Allowed fuel types; the DPF only exists on diesels (or when the fuel type is not set).</summary>
@@ -56,4 +59,7 @@ public sealed record VehicleInput(string? Name, string? HomeCurrency, string? Ti
     DateOnly? HistoryStart = null, int? HistoryStartOdometer = null,
     DateOnly? PurchaseDate = null, decimal? EstimatedResaleValue = null, DateOnly? ResaleEstimateDate = null,
     /* Null keeps the stored details. */ CarDetails? Details = null,
-    /* Diesel, DieselMhev, Petrol, PetrolMhev, PetrolPhev, Electric; null or empty clears it. */ string? FuelType = null);
+    /* Diesel, DieselMhev, Petrol, PetrolMhev, PetrolPhev, Electric; null or empty clears it. */ string? FuelType = null,
+    /* Financing: all of start, amount and payments, or none (which clears it). Frequency defaults to Monthly; balloon to none. */
+    DateOnly? FinancingStart = null, decimal? FinancingAmount = null, FinancingFrequency? FinancingFrequency = null,
+    int? FinancingPayments = null, decimal? FinancingBalloon = null);

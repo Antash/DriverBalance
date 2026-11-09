@@ -101,8 +101,25 @@ public static class VehicleEndpoints
         if (input.ResaleEstimateDate is { } rd && rd > today) errors.Add("Resale estimate date must not be in the future.");
         if (!string.IsNullOrWhiteSpace(input.FuelType) && FuelTypes.Normalise(input.FuelType) is null)
             errors.Add($"Fuel type must be one of {string.Join(", ", FuelTypes.Allowed)}.");
+        ValidateFinancing(input, errors);
         input.Details?.Normalise(errors, today.Year);
         return errors;
+    }
+
+    public const int MaxFinancingPayments = 600;
+
+    private static bool HasFinancing(VehicleInput i) => i.FinancingStart is not null || i.FinancingAmount is not null || i.FinancingPayments is not null;
+
+    private static void ValidateFinancing(VehicleInput i, List<string> errors)
+    {
+        if (!HasFinancing(i)) return;
+        if (i.FinancingStart is null) errors.Add("Financing start date is required.");
+        if (i.FinancingAmount is null) errors.Add("Financing amount per payment is required.");
+        else if (i.FinancingAmount <= 0) errors.Add("Financing amount per payment must be greater than 0.");
+        if (i.FinancingPayments is null) errors.Add("Financing number of payments is required.");
+        else if (i.FinancingPayments is < 1 or > MaxFinancingPayments) errors.Add($"Financing number of payments must be between 1 and {MaxFinancingPayments}.");
+        if (i.FinancingBalloon is < 0) errors.Add("Financing final payment must not be negative.");
+        if (i.FinancingFrequency is { } f && !Enum.IsDefined(f)) errors.Add("Financing frequency must be Monthly, Quarterly or Yearly.");
     }
 
     /// <summary>Name is required (validated); currency and time zone keep their current or default value when omitted.</summary>
@@ -118,6 +135,12 @@ public static class VehicleEndpoints
         row.PurchaseDate = input.PurchaseDate;
         row.EstimatedResaleValue = input.EstimatedResaleValue;
         row.ResaleEstimateDate = input.EstimatedResaleValue is null ? null : input.ResaleEstimateDate;
+        var financed = HasFinancing(input);
+        row.FinancingStart = input.FinancingStart;
+        row.FinancingAmount = input.FinancingAmount;
+        row.FinancingPayments = input.FinancingPayments;
+        row.FinancingFrequency = financed ? input.FinancingFrequency ?? FinancingFrequency.Monthly : null;
+        row.FinancingBalloon = financed ? input.FinancingBalloon : null;
         if (input.Details is { } details) row.DetailsJson = details.Normalise([], DateTime.Today.Year + 1).ToJson();
     }
 

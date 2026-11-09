@@ -33,6 +33,12 @@ public sealed class VehicleRow : IUserOwned
     public DateOnly? ResaleEstimateDate { get; set; }
     /// <summary>Model, engine, trim, year, colours and equipment as JSON (see CarDetails in the web project).</summary>
     public string? DetailsJson { get; set; }
+    /// <summary>Optional financing contract (home currency); all null = none. See Financing in Core.</summary>
+    public DateOnly? FinancingStart { get; set; }
+    public decimal? FinancingAmount { get; set; }
+    public FinancingFrequency? FinancingFrequency { get; set; }
+    public int? FinancingPayments { get; set; }
+    public decimal? FinancingBalloon { get; set; }
 }
 
 public sealed class TripRow : IUserOwned
