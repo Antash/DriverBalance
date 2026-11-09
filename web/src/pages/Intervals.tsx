@@ -10,6 +10,7 @@ import { MultiCompareTable } from '../components/MultiCompareTable'
 import { StatsTable } from '../components/StatsTable'
 import { addDays } from '../lib/dates'
 import { allIntervalsWindow, intervalWindow, pickDefaultIntervals } from '../lib/intervals'
+import { isPreviousOwnerInterval } from '../lib/ownership'
 import { useAnalytics, useParams } from '../state/ParamsContext'
 import { useVehicle } from '../state/useVehicle'
 
@@ -19,6 +20,7 @@ const describe = (p: PeriodWithStats['period']) => `${p.label} (${p.from} → ${
 type View = 'two' | 'all'
 
 function Compare({ currency }: { currency: string }) {
+  const purchaseDate = useVehicle().purchaseDate
   const { data, isLoading, isError } = useAnalytics<PeriodWithStats[]>('intervals', { type: 'OilChange' })
   const intervals = data
   const [cur, prev] = useMemo(() => pickDefaultIntervals(intervals ?? []), [intervals])
@@ -55,7 +57,7 @@ function Compare({ currency }: { currency: string }) {
       {all ? (
         <section className="card">
           <h2>Every oil change interval</h2>
-          <MultiCompareTable intervals={intervals} currency={currency} />
+          <MultiCompareTable intervals={intervals} currency={currency} purchaseDate={purchaseDate} />
         </section>
       ) : (<>
       {intervals.length > 1 && (
@@ -76,7 +78,8 @@ function Compare({ currency }: { currency: string }) {
       <section className="card">
         <h2>{ib && ib !== ia ? 'Comparison' : describe(ia.period)}</h2>
         {ib && ib !== ia
-          ? <CompareTable a={ia.stats} b={ib.stats} currency={currency} labelA={ia.period.label} labelB={ib.period.label} />
+          ? <CompareTable a={ia.stats} b={ib.stats} currency={currency} labelA={ia.period.label} labelB={ib.period.label}
+              prevA={isPreviousOwnerInterval(ia.period.to, purchaseDate)} prevB={isPreviousOwnerInterval(ib.period.to, purchaseDate)} />
           : <StatsTable stats={ia.stats} currency={currency} />}
       </section>
       </>)}

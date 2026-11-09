@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
-import type { TokenCreated, TokenInfo, Vehicle, VehicleInput } from '../api/types'
+import type { TokenCreated, TokenInfo, TripPage, Vehicle, VehicleInput } from '../api/types'
 import { ParamsPanel } from '../components/ParamsPanel'
 import { errorLines } from '../lib/format'
 import { useTyreSets, useVehicle } from '../state/useVehicle'
@@ -13,12 +13,25 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
     name: vehicle.name, homeCurrency: vehicle.homeCurrency, timeZone: vehicle.timeZone,
     initialTyreSetId: vehicle.initialTyreSetId, isDefault: vehicle.isDefault,
     historyStart: vehicle.historyStart, historyStartOdometer: vehicle.historyStartOdometer,
+    purchaseDate: vehicle.purchaseDate, estimatedResaleValue: vehicle.estimatedResaleValue,
+    resaleEstimateDate: vehicle.resaleEstimateDate,
+  })
+  // The first recorded trip, for the "Use first trip" shortcut: the list is newest first, so ask for the last page of size 1.
+  const { data: firstTrip } = useQuery({
+    queryKey: ['analytics', vehicle.id, 'first-trip'],
+    queryFn: async () => {
+      const head = await api.get<TripPage>(`/vehicles/${vehicle.id}/trips?page=1&pageSize=1`)
+      if (head.total < 1) return null
+      const last = head.total === 1 ? head : await api.get<TripPage>(`/vehicles/${vehicle.id}/trips?page=${head.total}&pageSize=1`)
+      return last.groups[0]?.start?.slice(0, 10) ?? null
+    },
   })
   const save = useMutation({
     mutationFn: () => api.put<Vehicle>(`/vehicles/${vehicle.id}`, f),
     onSuccess: () => Promise.all([
       qc.invalidateQueries({ queryKey: ['vehicles'] }),
       qc.invalidateQueries({ queryKey: ['analytics', vehicle.id] }),
+      qc.invalidateQueries({ queryKey: ['expenses', vehicle.id] }),
     ]),
   })
   return (
@@ -43,6 +56,20 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
             onChange={(e) => setF({ ...f, historyStartOdometer: e.target.value === '' ? 0 : Math.max(0, Math.trunc(Number(e.target.value))) })} />
         </label>
         <p className="muted">When the car was new (or when you bought it). Stats count from here.</p>
+        <label>Bought on
+          <input type="date" value={f.purchaseDate ?? ''} onChange={(e) => setF({ ...f, purchaseDate: e.target.value || null })} />
+        </label>
+        {!f.purchaseDate && firstTrip && (
+          <div><button className="btn small" type="button" onClick={() => setF({ ...f, purchaseDate: firstTrip })}>Use first trip ({firstTrip})</button></div>
+        )}
+        <p className="muted">Your first day with the car; earlier records belong to the previous owner.</p>
+        <label>Estimated resale value ({f.homeCurrency})
+          <input type="number" min={0} step="any" value={f.estimatedResaleValue ?? ''}
+            onChange={(e) => setF({ ...f, estimatedResaleValue: e.target.value === '' ? null : Math.max(0, Number(e.target.value)) })} />
+        </label>
+        <label>Estimated on
+          <input type="date" value={f.resaleEstimateDate ?? ''} onChange={(e) => setF({ ...f, resaleEstimateDate: e.target.value || null })} />
+        </label>
         <label className="check"><input type="checkbox" checked={f.isDefault} onChange={(e) => setF({ ...f, isDefault: e.target.checked })} /> Default vehicle</label>
         {save.isError && <ul className="errors">{errorLines(save.error).map((m) => <li key={m}>{m}</li>)}</ul>}
         <div className="row">

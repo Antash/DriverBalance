@@ -12,6 +12,7 @@ import { errorLines, fmtKm, fmtMoney, fmtNum, invalidateVehicleData } from '../l
 import { maintenanceHistory, type WorkItem } from '../lib/maintenance'
 import { derivedTyreName, partLine, seasonLabel, tyreDisplayName, tyreRows } from '../lib/tyreSummary'
 import { useParams } from '../state/ParamsContext'
+import { isPreviousOwner } from '../lib/ownership'
 import { useTyreSets, useVehicle } from '../state/useVehicle'
 
 const cost = (e: Expense) => fmtMoney(e.amount, e.currency)
@@ -131,7 +132,7 @@ export default function MaintenancePage() {
                   return (
                     <tr key={s.id} className="clickable" tabIndex={0} onClick={open}
                       onKeyDown={(e) => { if (e.key === 'Enter') open() }}>
-                      <td>{s.date}<Clip n={s.expense.documents.length} /></td>
+                      <td>{s.date}{isPreviousOwner(s.date, vehicle.purchaseDate) && <span className="muted"> previous owner</span>}<Clip n={s.expense.documents.length} /></td>
                       <td className="num">{s.odometer != null ? `${fmtNum(s.odometer, 0)} km` : '—'}</td>
                       <td>{s.work.map((w, i) => {
                         const part = partLine(w)

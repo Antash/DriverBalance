@@ -2,10 +2,11 @@ import type { PeriodWithStats } from '../api/types'
 import { compareMany } from '../lib/compare'
 import { addDays } from '../lib/dates'
 import { fmtNum } from '../lib/format'
+import { isPreviousOwnerInterval } from '../lib/ownership'
 import { GROUPS, formatMetric } from '../lib/metricFormat'
 import { GroupRows } from './StatsTable'
 
-function Heading({ p, inProgress }: { p: PeriodWithStats; inProgress: boolean }) {
+function Heading({ p, inProgress, purchaseDate }: { p: PeriodWithStats; inProgress: boolean; purchaseDate: string | null }) {
   const { period, stats } = p
   const km = stats.usage.odometerKm ?? stats.usage.tripKm
   return (
@@ -13,6 +14,7 @@ function Heading({ p, inProgress }: { p: PeriodWithStats; inProgress: boolean })
       <div>{period.from} → {addDays(period.to, -1)}</div>
       {period.startOdometer != null && <div className="th-sub">from {fmtNum(period.startOdometer, 0)} km</div>}
       <div className="th-sub">{stats.usage.days} days · {fmtNum(km, 0)} km</div>
+      {isPreviousOwnerInterval(period.to, purchaseDate) && <div className="th-sub muted">previous owner</div>}
       {inProgress && <div className="th-sub in-progress">in progress</div>}
     </th>
   )
@@ -22,7 +24,7 @@ function Heading({ p, inProgress }: { p: PeriodWithStats; inProgress: boolean })
  * Every interval as its own column, oldest on the left. `intervals` arrive newest first and the first one is the
  * current, still-running interval. On metrics with a good direction the best cell is green and the worst red.
  */
-export function MultiCompareTable({ intervals, currency }: { intervals: PeriodWithStats[]; currency: string }) {
+export function MultiCompareTable({ intervals, currency, purchaseDate = null }: { intervals: PeriodWithStats[]; currency: string; purchaseDate?: string | null }) {
   const ordered = [...intervals].reverse()
   const currentIndex = ordered.length - 1
   const rows = compareMany(ordered.map((p) => p.stats))
@@ -34,7 +36,7 @@ export function MultiCompareTable({ intervals, currency }: { intervals: PeriodWi
         <thead>
           <tr>
             <th scope="col">Metric</th>
-            {ordered.map((p, i) => <Heading key={p.period.from} p={p} inProgress={i === currentIndex} />)}
+            {ordered.map((p, i) => <Heading key={p.period.from} p={p} inProgress={i === currentIndex} purchaseDate={purchaseDate} />)}
           </tr>
         </thead>
         <tbody>

@@ -35,7 +35,7 @@ export interface LatestOdometer {
 
 export type ExpenseCategory =
   | 'Fuel' | 'Parking' | 'TollsVignette' | 'Wash' | 'Maintenance' | 'Repair' | 'Tyres'
-  | 'Accessories' | 'Insurance' | 'RoadTax' | 'Fines' | 'Financing' | 'Other'
+  | 'Accessories' | 'Insurance' | 'RoadTax' | 'Fines' | 'Financing' | 'Other' | 'Purchase'
 
 export type TyreSeason = 'Summer' | 'Winter' | 'AllSeason'
 
@@ -65,6 +65,9 @@ export interface Vehicle {
   isDefault: boolean
   historyStart: DateOnly | null
   historyStartOdometer: number | null
+  purchaseDate: DateOnly | null
+  estimatedResaleValue: number | null
+  resaleEstimateDate: DateOnly | null
 }
 
 export interface Period {
@@ -209,6 +212,9 @@ export interface VehicleInput {
   isDefault: boolean
   historyStart: DateOnly | null
   historyStartOdometer: number | null
+  purchaseDate: DateOnly | null
+  estimatedResaleValue: number | null
+  resaleEstimateDate: DateOnly | null
 }
 
 export interface MonthlyCost {
@@ -348,4 +354,18 @@ export interface TimelineChart {
   odometer: { date: DateOnly; km: number }[]
   events: TimelineEvent[]
   tyreBands: TyreMountSpan[]
+}
+
+export interface Ownership {
+  purchaseDate: DateOnly | null
+  purchaseCosts: { date: DateOnly; amount: number; note: string | null }[]
+  purchaseTotal: number | null
+  runningCosts: number | null
+  kmDriven: number | null
+  months: number | null
+  estimatedResaleValue: number | null
+  resaleEstimateDate: DateOnly | null
+  netCost: number | null
+  netCostPerKm: number | null
+  netCostPerMonth: number | null
 }

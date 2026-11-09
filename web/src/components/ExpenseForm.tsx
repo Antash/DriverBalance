@@ -11,12 +11,12 @@ import { errorLines, fmtMoney, invalidateVehicleData } from '../lib/format'
 
 export const CATEGORIES: ExpenseCategory[] = [
   'Fuel', 'Parking', 'TollsVignette', 'Wash', 'Maintenance', 'Repair', 'Tyres', 'Accessories', 'Insurance',
-  'RoadTax', 'Fines', 'Financing', 'Other',
+  'RoadTax', 'Fines', 'Financing', 'Other', 'Purchase',
 ]
 
 export { MAINTENANCE_TYPES }
 
-export const label = (s: string) => s.replace(/([a-z])([A-Z])/g, '$1 $2')
+export const label = (s: string) => s === 'Purchase' ? 'Purchase (car, warranty, transfer)' : s.replace(/([a-z])([A-Z])/g, '$1 $2')
 
 export function TyreSetSelect({ sets, value, onChange }: { sets: TyreSet[]; value: string; onChange(v: string): void }) {
   return (

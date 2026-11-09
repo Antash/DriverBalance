@@ -1,12 +1,15 @@
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '../api/client'
 import { DpfHealthStrip } from '../charts/DpfHealthStrip'
 import { VehicleTimeline } from '../charts/VehicleTimeline'
 import { ChartCard } from '../components/ChartCard'
 import { ExpenseForm, label } from '../components/ExpenseForm'
 import { Modal } from '../components/Modal'
-import type { OverviewData, PeriodStats } from '../api/types'
+import type { OverviewData, Ownership, PeriodStats } from '../api/types'
 import { addDays, addYears, iso } from '../lib/dates'
 import { fmtLPer100, fmtMoney, fmtNum, fmtPct } from '../lib/format'
+import { ownershipRows } from '../lib/ownership'
 import { useAnalytics } from '../state/ParamsContext'
 import { useTyreSets, useVehicle } from '../state/useVehicle'
 
@@ -30,6 +33,45 @@ function Kpis({ title, stats, currency }: { title: string; stats: PeriodStats; c
         <Tile name="DPF index" value={fmtPct(stats.scores.dpfIndex)} />
         <Tile name="Fuel" value={fmtLPer100(stats.fuel.tripLPer100)} />
       </div>
+    </section>
+  )
+}
+
+function OwnershipCard({ currency }: { currency: string }) {
+  const vehicle = useVehicle()
+  const { data, isError } = useQuery({
+    queryKey: ['analytics', vehicle.id, 'ownership'],
+    queryFn: () => api.get<Ownership>(`/vehicles/${vehicle.id}/ownership`),
+  })
+  const rows = data ? ownershipRows(data, currency) : null
+  return (
+    <section className="card">
+      <h2>Cost of ownership</h2>
+      {isError && <p className="field-error">Could not load the cost of ownership.</p>}
+      {data && !rows && <p className="muted">Set the purchase date in Settings to see the cost of ownership.</p>}
+      {data && rows && (
+        <>
+          <table className="data">
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.label}>
+                  <td>{r.strong ? <strong>{r.label}</strong> : r.label}</td>
+                  <td className="num">
+                    {r.strong ? <strong>{r.value}</strong> : r.value}
+                    {r.note && <span className="muted"> ({r.note})</span>}
+                    {r.label === 'Purchase costs' && data.purchaseCosts.length > 0 && (
+                      <div className="th-sub muted">
+                        {data.purchaseCosts.map((c, i) => <div key={i}>{c.date} · {fmtMoney(c.amount, currency)}{c.note ? ` · ${c.note}` : ''}</div>)}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="muted">Resale value is your estimate; net figures are estimates.</p>
+        </>
+      )}
     </section>
   )
 }
@@ -58,6 +100,8 @@ export default function OverviewPage() {
             <Kpis title="This month" stats={data.thisMonth} currency={cur} />
             <Kpis title="This year" stats={data.thisYear} currency={cur} />
           </div>
+
+          <OwnershipCard currency={cur} />
 
           <DpfHealthStrip health={data.dpfHealth} />
 

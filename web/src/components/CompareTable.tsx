@@ -16,8 +16,8 @@ function Change({ row }: { row: MetricRow }) {
 }
 
 /** Baseline period A vs newer period B. Change is (B - A) / A; "better" follows each metric's good direction. */
-export function CompareTable({ a, b, currency, labelA, labelB }: {
-  a: PeriodStats; b: PeriodStats; currency: string; labelA: string; labelB: string
+export function CompareTable({ a, b, currency, labelA, labelB, prevA = false, prevB = false }: {
+  a: PeriodStats; b: PeriodStats; currency: string; labelA: string; labelB: string; prevA?: boolean; prevB?: boolean
 }) {
   const rows = compareStats(a, b)
   return (
@@ -27,7 +27,7 @@ export function CompareTable({ a, b, currency, labelA, labelB }: {
       )}
       <table className="data">
         <thead>
-          <tr><th>Metric</th><th className="num">{labelA}</th><th className="num">{labelB}</th><th className="num">Change</th></tr>
+          <tr><th>Metric</th><th className="num">{labelA}{prevA && <div className="th-sub muted">previous owner</div>}</th><th className="num">{labelB}{prevB && <div className="th-sub muted">previous owner</div>}</th><th className="num">Change</th></tr>
         </thead>
         <tbody>
           {GROUPS.map((g) => (
