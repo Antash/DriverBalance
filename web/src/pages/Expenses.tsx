@@ -30,11 +30,11 @@ function categoryShares(by: Partial<Record<ExpenseCategory, number>>, t: ReturnT
 }
 
 /** Blocks sized by spending, labelled with the category and its percentage only (amounts are in the summary). */
-function treemapOption(shares: CategoryShare[]): EChartsOption {
+function treemapOption(shares: CategoryShare[], currency: string): EChartsOption {
   const t = chartTheme()
   return {
     legend: { show: false },
-    tooltip: { trigger: 'item', formatter: (p: unknown) => { const d = (p as { data: { name: string; pct: number } }).data; return `${d.name}: ${d.pct.toFixed(1)} %` } },
+    tooltip: { trigger: 'item', formatter: (p: unknown) => { const d = (p as { data: { name: string; value: number; pct: number } }).data; return `${d.name}: ${fmtMoney(d.value, currency)} (${d.pct.toFixed(1)} %)` } },
     series: [{
       type: 'treemap', roam: false, nodeClick: false, breadcrumb: { show: false },
       left: 0, top: 0, right: 0, bottom: 0, width: '100%', height: '100%',
@@ -100,7 +100,7 @@ export default function ExpensesPage() {
   const cur = vehicle.homeCurrency
   const foreignShown = rows.some((e) => e.currency !== cur)
   const shares = useMemo(() => (totals.data ? categoryShares(totals.data, chartTheme()) : null), [totals.data])
-  const treemapOpt = useMemo(() => (shares && shares.length > 0 ? treemapOption(shares) : null), [shares])
+  const treemapOpt = useMemo(() => (shares && shares.length > 0 ? treemapOption(shares, cur) : null), [shares, cur])
   const totalSpent = shares?.reduce((sum, x) => sum + x.amount, 0) ?? null
   const cumulativeOpt = useMemo(() => (cumulative.data ? cumulativeOption(cumulative.data, cur) : null), [cumulative.data, cur])
 
