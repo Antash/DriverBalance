@@ -1,12 +1,24 @@
 # DriverBalance — working notes (read first)
 
-Last updated: 2026-11-08. Branch `feat/web-app` (over `master` c1c16dc), **not merged**.
-Tests: Core 97, Web 76, web (vitest) 107, all green; `dotnet build` 0 warnings.
+Last updated: 2026-11-09. Branch `feat/web-app` (over `master` c1c16dc), **not merged**.
+Tests: Core 97, Web 93, web (vitest) 142, all green; `dotnet build` 0 warnings.
 
 ## Where things are
 - Spec (binding): `docs/superpowers/specs/2026-11-08-driverbalance-web-design.md` (see "Rulings")
 - Plan (15 tasks, all done): `docs/superpowers/plans/2026-11-08-driverbalance-web.md`
 - MCP connector: `docs/mcp.md`. Autostart: `scripts/register-autostart.ps1`. Run/publish: `README.md`.
+
+## 2026-11-09 session (owner review of v1)
+- UI fixes: weekday labels Mon..Sun, KPI overlap, calendar legend overlap.
+- **Oil intervals** page (was Intervals): engine oil only; "Compare two" or "All side by side" (best green / worst red).
+- **Maintenance** page: all service visits incl. oil; timeline (lane per work, custom works by name), services table with
+  part details and days/km since last time, add / edit (click row) / delete, tyre summary with set editor.
+  Spec: `docs/superpowers/specs/2026-11-09-maintenance-records-design.md`; plan: `docs/superpowers/plans/2026-11-09-maintenance-records.md`.
+- Work items per visit (21-item grouped checklist + custom works), each with part None/Original/Other brand (+brand, model) and details;
+  stored in `Expenses.WorkJson`, flags still drive analytics. Tyre swap: pick a stored set, add an owned set, or "New tyres"
+  (creates the set, retires the previously fitted one). Tyres tab removed.
+- Real DB migrated on start (WorkJson, TyreSets Brand/Model/Size); pre-migration backup: `%LOCALAPPDATA%\DriverBalance\driverbalance.pre-work-items.db`.
+- Owner's two old tyre swaps have no tyre set yet — they can edit them to attach sets.
 
 ## State
 - Published app: `%LOCALAPPDATA%\DriverBalance\app\DriverBalance.Web.exe` (serves on http://localhost:5180).
@@ -30,7 +42,8 @@ Tests: Core 97, Web 76, web (vitest) 107, all green; `dotnet build` 0 warnings.
 - **UX:**
   - Modals and drawers lack Escape-to-close and focus handling.
   - Changing the vehicle's home currency doesn't refresh money caches until a reload.
-  - The Tyres page doesn't show retire errors.
+  - Changing an expense to a different tyre set can leave the old set orphaned (delete handles it; edit doesn't).
+  - Services rows open on Enter only (no Space / role=button); no component tests for the work editor or page wiring.
 - **API hardening before any public use:**
   - Malformed multipart returns 500.
   - Enum values aren't checked with IsDefined.
