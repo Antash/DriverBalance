@@ -137,7 +137,7 @@ export default function MaintenancePage() {
               </thead>
               <tbody>
                 {services.map((s) => {
-                  const open = () => setEditing(s.expense)
+                  const open = () => { remove.reset(); setEditing(s.expense) }
                   const legacy = s.expense.work.length === 0 ? s.expense.maintenanceDescription : null
                   return (
                     <tr key={s.id} className="clickable" tabIndex={0} onClick={open}
@@ -167,10 +167,12 @@ export default function MaintenancePage() {
         </section>
       )}
 
-      {rows.length > 0 && (
-        <section className="card">
+      <section className="card">
           <h2>Tyres</h2>
-          <div className="table-wrap">
+          {rows.length === 0 && !tyreSummary?.unassignedSpans.length && (
+            <p className="muted">No tyre sets yet. Tick Tyre swap in a maintenance record to record which tyres were fitted.</p>
+          )}
+          {rows.length > 0 && <div className="table-wrap">
             <table className="data">
               <thead>
                 <tr><th>Tyres</th><th>Size</th><th>Season</th><th>Status</th><th className="num">Km</th><th>Fitted since</th></tr>
@@ -189,14 +191,13 @@ export default function MaintenancePage() {
                 ))}
               </tbody>
             </table>
-          </div>
-          {tyreSummary?.unassignedSpans.map((sp) => (
-            <p key={`${sp.from}-${sp.to}`} className="muted">
+          </div>}
+          {tyreSummary?.unassignedSpans.map((sp, i) => (
+            <p key={`${sp.from}-${sp.to}-${i}`} className="muted">
               Unrecorded tyres: {sp.from} → {sp.to ?? 'now'}{sp.km != null ? `, ${fmtNum(sp.km, 0)} km` : ''}
             </p>
           ))}
         </section>
-      )}
 
       {adding && (
         <Modal title="Add maintenance" onClose={() => setAdding(false)}>
@@ -207,7 +208,7 @@ export default function MaintenancePage() {
       {editing && (
         <Modal title="Edit maintenance" onClose={() => setEditing(null)}>
           <ExpenseForm key={editing.id} vehicle={vehicle} tyreSets={tyreSets} initial={editing} lockCategory="Maintenance"
-            onDone={() => setEditing(null)}
+            onDone={() => setEditing(null)} deleting={remove.isPending}
             onDelete={() => { if (window.confirm(`Delete this maintenance record from ${editing.date}?`)) remove.mutate(editing) }} />
           {remove.isError && <ul className="errors">{errorLines(remove.error).map((m) => <li key={m}>{m}</li>)}</ul>}
         </Modal>

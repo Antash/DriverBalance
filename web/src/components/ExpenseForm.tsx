@@ -27,9 +27,9 @@ export function TyreSetSelect({ sets, value, onChange }: { sets: TyreSet[]; valu
   )
 }
 
-export function ExpenseForm({ vehicle, tyreSets, initial, onDone, lockCategory, onDelete, defaultOdometer }: {
+export function ExpenseForm({ vehicle, tyreSets, initial, onDone, lockCategory, onDelete, deleting, defaultOdometer }: {
   vehicle: Vehicle; tyreSets: TyreSet[]; initial?: Expense; onDone(): void
-  lockCategory?: ExpenseCategory; onDelete?: () => void; defaultOdometer?: number
+  lockCategory?: ExpenseCategory; onDelete?: () => void; deleting?: boolean; defaultOdometer?: number
 }) {
   const qc = useQueryClient()
   const [submitted, setSubmitted] = useState(false)
@@ -120,7 +120,7 @@ export function ExpenseForm({ vehicle, tyreSets, initial, onDone, lockCategory, 
       <div className="wide row">
         <button className="btn primary" type="submit" disabled={save.isPending}>{initial ? 'Save' : 'Add expense'}</button>
         <button className="btn" type="button" onClick={onDone}>Cancel</button>
-        {initial && onDelete && <button className="btn danger" type="button" onClick={onDelete}>Delete</button>}
+        {initial && onDelete && <button className="btn danger" type="button" disabled={deleting} onClick={onDelete}>Delete</button>}
       </div>
     </form>
   )

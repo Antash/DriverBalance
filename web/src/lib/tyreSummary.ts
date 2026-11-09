@@ -10,7 +10,7 @@ export const seasonLabel = (s: TyreSeason) => (s === 'AllSeason' ? 'All-season' 
 export function tyreRows(summaries: TyreSetSummary[]): TyreRow[] {
   return summaries
     .map((s): TyreRow => ({
-      set: s.set, name: s.set.name, size: s.set.size, season: s.set.season, km: s.totalKm,
+      set: s.set, name: [s.set.brand, s.set.model].filter((x) => x && x.trim()).join(' ') || s.set.name, size: s.set.size, season: s.set.season, km: s.totalKm,
       status: s.mounted ? 'Fitted' : s.set.retired ? 'Retired' : 'Stored',
       fittedSince: s.mounted ? (s.spans.find((sp) => sp.to == null)?.from ?? null) : null,
     }))

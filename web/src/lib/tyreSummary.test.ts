@@ -35,3 +35,15 @@ describe('labels', () => {
     expect(partLine({ part: 'Aftermarket', brand: 'Brembo', model: null })).toBe('Brembo')
   })
 })
+
+describe('display name', () => {
+  it('uses brand and model when present, else the name, and sorts by it', () => {
+    const rows = tyreRows([
+      sum(1, 'Summer tyres', { brand: 'Michelin', model: 'Pilot' }),
+      sum(2, 'Winter tyres', { brand: 'Continental' }),
+      sum(3, 'Alpha set'),
+      sum(4, 'Zed', { model: 'X1' }),
+    ])
+    expect(rows.map((r) => r.name)).toEqual(['Alpha set', 'Continental', 'Michelin Pilot', 'X1'])
+  })
+})
