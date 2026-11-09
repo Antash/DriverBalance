@@ -22,11 +22,31 @@ public class MoneyChartsTests
         var totals = MoneyCharts.Totals(c, p);
         Assert.Equal(300m, totals[ExpenseCategory.Fuel]);
 
-        var cum = MoneyCharts.Cumulative(c);
-        Assert.Equal(new[] { 100m, 300m, 350m }, cum.Select(x => x.CumulativeCost));
-        Assert.Equal(0, cum[0].CumulativeKm);
-        Assert.Null(cum[0].CostPerKm);
-        Assert.Equal(500, cum[1].CumulativeKm);
-        Assert.Equal(0.6m, cum[1].CostPerKm);
+    }
+
+    [Fact]
+    public void Cumulative_IsWeeklyWithinThePeriod_SpreadingCoveredCosts()
+    {
+        var c = Ctx(
+            new Expense { Date = new DateOnly(2025, 12, 31), Category = ExpenseCategory.Wash, Amount = 50m, Odometer = 10000 },
+            new Expense { Date = new DateOnly(2026, 1, 1), Category = ExpenseCategory.Insurance, Amount = 3650m,
+                CoversFrom = new DateOnly(2026, 1, 1), CoversTo = new DateOnly(2026, 12, 31) },
+            new Expense { Date = new DateOnly(2026, 1, 29), Category = ExpenseCategory.Fuel, Amount = 100m, Odometer = 11000 });
+        var p = new Period(new DateOnly(2026, 1, 1), new DateOnly(2026, 3, 1), "x");
+
+        var cum = MoneyCharts.Cumulative(c, p);
+
+        // One point per week from the period start, plus the last day; the wash before the period is not counted.
+        Assert.Equal(new DateOnly(2026, 1, 7), cum[0].Date);
+        Assert.Equal(70m, cum[0].CumulativeCost);
+        Assert.Equal(new DateOnly(2026, 2, 28), cum[^1].Date);
+        var feb4 = cum.Single(x => x.Date == new DateOnly(2026, 2, 4));
+        Assert.Equal(450m, feb4.CumulativeCost);
+        Assert.Equal(1000, feb4.CumulativeKm);
+        Assert.Equal(0.45m, feb4.CostPerKm);
+        Assert.Equal(690m, cum[^1].CumulativeCost);
+        Assert.Equal(0.69m, cum[^1].CostPerKm);
+        // Before enough km are driven the ratio is meaningless: no cost per km.
+        Assert.Null(cum.Single(x => x.Date == new DateOnly(2026, 1, 28)).CostPerKm);
     }
 }

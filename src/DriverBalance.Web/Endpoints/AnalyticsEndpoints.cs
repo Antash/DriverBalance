@@ -83,7 +83,7 @@ public static class AnalyticsEndpoints
             "dpf-health" => DpfHealth.Compute(c),
             "money-monthly" => MoneyCharts.Monthly(c, p),
             "money-totals" => MoneyCharts.Totals(c, p),
-            "money-cumulative" => MoneyCharts.Cumulative(c),
+            "money-cumulative" => MoneyCharts.Cumulative(c, p),
             _ => await TimelineWithImports(s, p, db, ct),
         };
         return Results.Ok(chart);

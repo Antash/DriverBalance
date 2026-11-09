@@ -46,9 +46,10 @@ public class OwnershipTests
     public void Cumulative_IgnoresPurchaseExpenses()
     {
         var c = Ctx(Purchase);
-        var points = MoneyCharts.Cumulative(c);
-        Assert.Single(points);
-        Assert.Equal(1200m, points[0].CumulativeCost);
+        var p = new Period(new DateOnly(2025, 1, 1), new DateOnly(2026, 1, 1), "");
+        var points = MoneyCharts.Cumulative(c, p);
+        Assert.Equal(Money.For(p, c.Data.Expenses, "CZK", null).Total, points[^1].CumulativeCost);
+        Assert.DoesNotContain(points, x => x.CumulativeCost >= 1000000m);
     }
 
     [Fact]

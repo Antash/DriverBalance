@@ -29,24 +29,28 @@ public static class MoneyCharts
     public static IReadOnlyDictionary<ExpenseCategory, decimal> Totals(AnalysisContext c, Period p) =>
         Money.For(p, c.Data.Expenses, c.Data.HomeCurrency, null).ByCategory;
 
-    /// <summary>Running total by expense date (no amortization); expenses without a home amount are left out.</summary>
-    public static IReadOnlyList<CumulativeCostPoint> Cumulative(AnalysisContext c)
+    /// <summary>Below this many km driven in the period, cost per km is too noisy to show.</summary>
+    public const double MinKmForCostPerKm = 200;
+
+    /// <summary>
+    /// Running cost and cost per km within the period, one point per week from its start plus its last day. Costs use the
+    /// same spreading as every other money figure (covered periods amortised, purchase costs excluded), so the line is smooth.
+    /// </summary>
+    public static IReadOnlyList<CumulativeCostPoint> Cumulative(AnalysisContext c, Period p)
     {
         var result = new List<CumulativeCostPoint>();
-        int? firstKm = c.Timeline.Readings.Count > 0 ? c.Timeline.Readings[0].Km : null;
-        decimal running = 0m;
-        var byDate = c.Data.Expenses
-            .Where(e => e.Category != ExpenseCategory.Purchase)
-            .Select(e => (e.Date, Amount: Money.HomeAmountOf(e, c.Data.HomeCurrency)))
-            .Where(x => x.Amount is not null)
-            .GroupBy(x => x.Date)
-            .OrderBy(g => g.Key);
-        foreach (var g in byDate)
+        var last = (p.To <= c.Data.Today.AddDays(1) ? p.To : c.Data.Today.AddDays(1)).AddDays(-1);
+        if (last < p.From) return result;
+        var days = new List<DateOnly>();
+        for (var d = p.From.AddDays(6); d < last; d = d.AddDays(7)) days.Add(d);
+        days.Add(last);
+        foreach (var d in days)
         {
-            running += g.Sum(x => x.Amount!.Value);
-            int? odo = c.Timeline.AtEndOfDay(g.Key);
-            double? km = odo is { } o && firstKm is { } f ? o - f : null;
-            result.Add(new CumulativeCostPoint(g.Key, Money.Round(running), km, km is > 0 ? Money.Round(running / (decimal)km.Value) : null));
+            var upTo = new Period(p.From, d.AddDays(1), "");
+            var cost = Money.For(upTo, c.Data.Expenses, c.Data.HomeCurrency, null).Total;
+            var km = c.Timeline.KmIn(upTo);
+            decimal? perKm = km is >= MinKmForCostPerKm ? Money.Round(cost / (decimal)km.Value) : null;
+            result.Add(new CumulativeCostPoint(d, cost, km, perKm));
         }
         return result;
     }
