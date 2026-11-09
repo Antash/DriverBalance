@@ -201,7 +201,15 @@ public sealed class CarTools(DriverBalanceDbContext db, VehicleDataLoader loader
                 var t = ParseDate(to, "to");
                 if (f is not null && t is not null && t < f) throw new ApiValidationException("'from' must not be after 'to'.");
                 // `to` is inclusive for callers; the analysis periods are end-exclusive.
-                period = s.Range(f, t?.AddDays(1), f is not null && t is not null ? $"{f:yyyy-MM-dd}..{t:yyyy-MM-dd}" : "All time");
+                if (t == DateOnly.MaxValue) throw new ApiValidationException("to must be before 9999-12-31.");
+                var label = (f, t) switch
+                {
+                    ({ } a, { } b) => $"{a:yyyy-MM-dd}..{b:yyyy-MM-dd}",
+                    ({ } a, null) => $"from {a:yyyy-MM-dd}",
+                    (null, { } b) => $"until {b:yyyy-MM-dd}",
+                    _ => "All time",
+                };
+                period = s.Range(f, t?.AddDays(1), label);
                 break;
             }
             case "calendar":

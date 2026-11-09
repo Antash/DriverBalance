@@ -298,6 +298,33 @@ public sealed class McpTests(ApiFactory f) : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task Mcp_GetStats_Range_OnlyTo_SingleDay_AndMaxDate()
+    {
+        var c = f.ClientFor(1);
+        var vid = await Api.NewVehicleAsync(c);
+        foreach (var (d, a) in new[] { ("2026-10-31", 20), ("2026-12-31", 30), ("2027-01-01", 40) })
+            await Api.PostAsync(c, $"/api/vehicles/{vid}/expenses", new { date = d, category = "Parking", amount = a, currency = "CZK" });
+        await using var mcp = await McpHelpers.ConnectAsync(f, (await McpHelpers.CreateTokenAsync(c)).Token);
+
+        var onlyTo = McpHelpers.JsonOf(await McpHelpers.CallAsync(mcp, "get_stats", new { vehicleId = vid, kind = "range", to = "2026-12-31" }));
+        Assert.Equal("until 2026-12-31", (string)onlyTo["stats"]!["period"]!["label"]!);
+        Assert.Equal("2027-01-01", (string)onlyTo["stats"]!["period"]!["to"]!);
+        Assert.Equal(50m, (decimal)onlyTo["stats"]!["money"]!["total"]!);
+
+        var onlyFrom = McpHelpers.JsonOf(await McpHelpers.CallAsync(mcp, "get_stats", new { vehicleId = vid, kind = "range", from = "2026-10-01" }));
+        Assert.Equal("from 2026-10-01", (string)onlyFrom["stats"]!["period"]!["label"]!);
+
+        var one = McpHelpers.JsonOf(await McpHelpers.CallAsync(mcp, "get_stats", new { vehicleId = vid, kind = "range", from = "2026-10-31", to = "2026-10-31" }));
+        Assert.Equal("2026-11-01", (string)one["stats"]!["period"]!["to"]!);
+        Assert.Equal(20m, (decimal)one["stats"]!["money"]!["total"]!);
+        Assert.Contains("31/10/2026 – 31/10/2026", (string)one["summary"]!);
+
+        var max = await McpHelpers.CallAsync(mcp, "get_stats", new { vehicleId = vid, kind = "range", to = "9999-12-31" });
+        Assert.True(max.IsError);
+        Assert.Contains("9999-12-31", McpHelpers.TextOf(max));
+    }
+
+    [Fact]
     public async Task Mcp_GetStats_RangeToBeforeFrom_IsError()
     {
         var c = f.ClientFor(1);
