@@ -352,6 +352,9 @@ namespace DriverBalance.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("DetailsJson")
+                        .HasColumnType("TEXT");
+
                     b.Property<decimal?>("EstimatedResaleValue")
                         .HasColumnType("TEXT");
 

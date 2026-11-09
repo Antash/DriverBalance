@@ -7,7 +7,7 @@ export function useVehicle(): Vehicle {
   const { vehicleId } = useParams()
   const { data } = useQuery({ queryKey: ['vehicles'], queryFn: () => api.get<Vehicle[]>('/vehicles') })
   return data?.find((v) => v.id === vehicleId)
-    ?? { id: vehicleId, name: '', homeCurrency: 'CZK', timeZone: 'Europe/Prague', initialTyreSetId: null, isDefault: false, historyStart: null, historyStartOdometer: null, purchaseDate: null, estimatedResaleValue: null, resaleEstimateDate: null }
+    ?? { id: vehicleId, name: '', homeCurrency: 'CZK', timeZone: 'Europe/Prague', initialTyreSetId: null, isDefault: false, historyStart: null, historyStartOdometer: null, purchaseDate: null, estimatedResaleValue: null, resaleEstimateDate: null, details: { model: null, engine: null, trim: null, modelYear: null, exteriorColour: null, interior: null, equipment: [] } }
 }
 
 export function useTyreSets() {

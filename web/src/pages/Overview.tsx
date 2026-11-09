@@ -76,6 +76,22 @@ function OwnershipCard({ currency }: { currency: string }) {
   )
 }
 
+/** What the car is, from Settings → Car details; hidden until something is filled in. */
+function CarCard() {
+  const v = useVehicle()
+  const d = v.details
+  if (!d || (!d.model && !d.engine && !d.trim && !d.modelYear && d.equipment.length === 0)) return null
+  const title = [d.model ?? v.name, d.engine, d.trim].filter(Boolean).join(' ')
+  const sub = [d.modelYear ? `MY${d.modelYear}` : null, d.exteriorColour, d.interior].filter(Boolean).join(' · ')
+  return (
+    <section className="card car-card">
+      <h2>{title}</h2>
+      {sub && <p className="muted">{sub}</p>}
+      {d.equipment.length > 0 && <ul className="tags">{d.equipment.map((e) => <li key={e}>{e}</li>)}</ul>}
+    </section>
+  )
+}
+
 const SEVERITY_ICON: Record<string, string> = { alarm: '⚠', warn: '▲', info: 'ℹ' }
 
 export default function OverviewPage() {
@@ -92,6 +108,7 @@ export default function OverviewPage() {
         <h1>Overview</h1>
         <button className="btn primary" onClick={() => setAdding(true)}>Add expense</button>
       </div>
+      <CarCard />
       {isError && <p className="field-error">Could not load the overview.</p>}
       {isLoading && !data && <p className="muted">Loading…</p>}
       {data && (

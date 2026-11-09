@@ -10,37 +10,30 @@ import { CATEGORIES, ExpenseForm, label } from '../components/ExpenseForm'
 import { Modal } from '../components/Modal'
 import { iso } from '../lib/dates'
 import { expensePeriods } from '../lib/expensePeriods'
-import { CATEGORY_COLOR_INDEX, errorLines, fmtMoney, invalidateVehicleData } from '../lib/format'
+import { errorLines, fmtMoney, fmtNum, invalidateVehicleData } from '../lib/format'
 import { useParams, useAnalytics } from '../state/ParamsContext'
 import { useTyreSets, useVehicle } from '../state/useVehicle'
 
-/** Fixed colour per category (the first seven); all remaining categories fold into one neutral "Other". */
-function colorFor(cat: string, t: ReturnType<typeof chartTheme>) {
-  const i = CATEGORY_COLOR_INDEX[cat]
-  return i === undefined ? t.muted : t.series[i]
-}
-const groupOf = (c: string) => (CATEGORY_COLOR_INDEX[c] === undefined ? 'Other' : c)
-const GROUP_ORDER = ['Fuel', 'Maintenance', 'Tyres', 'Insurance', 'Repair', 'Parking', 'TollsVignette', 'Other']
+/** Category name for tables and charts: the purchase category without its long hint. */
+const shortLabel = (c: ExpenseCategory) => (c === 'Purchase' ? 'Purchase' : label(c))
 
-function foldTotals(by: Partial<Record<ExpenseCategory, number>>) {
-  const out: Record<string, number> = {}
-  for (const [c, v] of Object.entries(by)) out[groupOf(c)] = (out[groupOf(c)] ?? 0) + (v ?? 0)
-  return out
-}
-
+/** Every category its own block, largest first; the palette repeats lighter after its eight colours. */
 function treemapOption(by: Partial<Record<ExpenseCategory, number>>, currency: string): EChartsOption {
   const t = chartTheme()
-  const folded = foldTotals(by)
-  const data = GROUP_ORDER.filter((g) => (folded[g] ?? 0) > 0)
-    .map((g) => ({ name: label(g), value: folded[g], itemStyle: { color: colorFor(g, t), borderColor: t.surface, borderWidth: 2 } }))
+  const entries = Object.entries(by).filter(([, v]) => (v ?? 0) > 0).sort((x, y) => (y[1] ?? 0) - (x[1] ?? 0)) as [ExpenseCategory, number][]
+  const data = entries.map(([c, v], i) => ({
+    name: shortLabel(c), value: v,
+    itemStyle: { color: t.series[i % t.series.length], opacity: i < t.series.length ? 1 : 0.6, borderColor: t.surface, borderWidth: 2 },
+  }))
   return {
     legend: { show: false },
     tooltip: { trigger: 'item', valueFormatter: (v) => fmtMoney(Number(v), currency) } as EChartsOption['tooltip'],
     series: [{
       type: 'treemap', roam: false, nodeClick: false, breadcrumb: { show: false }, width: '100%', height: '100%',
-      label: { show: true, formatter: '{b}', color: '#0b0b0b' }, data,
+      label: { show: true, color: '#0b0b0b', formatter: (p: { name: string; value: number }) => `${p.name}\n${fmtMoney(p.value, currency)}` },
+      data,
     }],
-  }
+  } as EChartsOption
 }
 
 function cumulativeOption(points: CumulativeCostPoint[], currency: string): EChartsOption {
@@ -86,6 +79,7 @@ export default function ExpensesPage() {
 
   const rows = useMemo(() => (expenses ?? []).filter((e) => cats.length === 0 || cats.includes(e.category)), [expenses, cats])
   const cur = vehicle.homeCurrency
+  const foreignShown = rows.some((e) => e.currency !== cur)
   const treemapOpt = useMemo(() => (totals.data ? treemapOption(totals.data, cur) : null), [totals.data, cur])
   const cumulativeOpt = useMemo(() => (cumulative.data ? cumulativeOption(cumulative.data, cur) : null), [cumulative.data, cur])
 
@@ -126,7 +120,7 @@ export default function ExpensesPage() {
         {del.isError && <ul className="errors">{errorLines(del.error).map((m) => <li key={m}>{m}</li>)}</ul>}
         <table className="data">
           <thead>
-            <tr><th>Date</th><th>Category</th><th className="num">Amount</th><th className="num">Home amount</th><th className="num">Odometer</th><th>Note</th><th /></tr>
+            <tr><th>Date</th><th>Category</th><th className="num">Amount</th>{foreignShown && <th className="num">In {cur}</th>}<th className="num">Odometer</th><th>Note</th><th /></tr>
           </thead>
           <tbody>
             {rows.map((e) => {
@@ -134,22 +128,24 @@ export default function ExpensesPage() {
               return (
                 <tr key={e.id}>
                   <td>{e.date}<Clip n={e.documents.length} /></td>
-                  <td>{label(e.category)}</td>
+                  <td>{shortLabel(e.category)}</td>
                   <td className="num">{fmtMoney(e.amount, e.currency)}</td>
-                  <td className="num">
-                    {e.currency === cur ? '-' : fmtMoney(e.homeAmount, cur)}
-                    {needsConversion && <> <span className="badge">needs conversion</span></>}
-                  </td>
-                  <td className="num">{e.odometer ?? '-'}</td>
-                  <td>{e.note ?? ''}</td>
-                  <td>
-                    <button className="btn small" onClick={() => setEditing(e)}>Edit</button>{' '}
-                    <button className="btn small danger" onClick={() => { if (window.confirm(`Delete this ${label(e.category)} expense from ${e.date}${e.documents.length > 0 ? ` and its ${e.documents.length} document(s)` : ''}?`)) del.mutate(e.id) }}>Delete</button>
+                  {foreignShown && (
+                    <td className="num">
+                      {e.currency === cur ? '' : fmtMoney(e.homeAmount, cur)}
+                      {needsConversion && <> <span className="badge">needs conversion</span></>}
+                    </td>
+                  )}
+                  <td className="num">{e.odometer == null ? '' : `${fmtNum(e.odometer, 0)} km`}</td>
+                  <td className="wrap">{e.note ?? ''}</td>
+                  <td className="actions">
+                    <button className="btn small" aria-label={`Edit ${shortLabel(e.category)} from ${e.date}`} title="Edit" onClick={() => setEditing(e)}>✎</button>{' '}
+                    <button className="btn small danger" aria-label={`Delete ${shortLabel(e.category)} from ${e.date}`} title="Delete" onClick={() => { if (window.confirm(`Delete this ${label(e.category)} expense from ${e.date}${e.documents.length > 0 ? ` and its ${e.documents.length} document(s)` : ''}?`)) del.mutate(e.id) }}>✕</button>
                   </td>
                 </tr>
               )
             })}
-            {expenses && rows.length === 0 && <tr><td colSpan={7} className="muted">No expenses in this period.</td></tr>}
+            {expenses && rows.length === 0 && <tr><td colSpan={foreignShown ? 7 : 6} className="muted">No expenses in this period.</td></tr>}
           </tbody>
         </table>
         </div>

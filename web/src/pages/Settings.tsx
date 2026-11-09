@@ -15,7 +15,11 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
     historyStart: vehicle.historyStart, historyStartOdometer: vehicle.historyStartOdometer,
     purchaseDate: vehicle.purchaseDate, estimatedResaleValue: vehicle.estimatedResaleValue,
     resaleEstimateDate: vehicle.resaleEstimateDate,
+    details: vehicle.details,
   })
+  const d = f.details ?? { model: null, engine: null, trim: null, modelYear: null, exteriorColour: null, interior: null, equipment: [] }
+  const setD = (p: Partial<typeof d>) => setF({ ...f, details: { ...d, ...p } })
+  const [equipmentText, setEquipmentText] = useState(d.equipment.join('\n'))
   // The first recorded trip, for the "Use first trip" shortcut: the list is newest first, so ask for the last page of size 1.
   const { data: firstTrip } = useQuery({
     queryKey: ['analytics', vehicle.id, 'first-trip'],
@@ -70,6 +74,23 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
         <label>Estimated on
           <input type="date" value={f.resaleEstimateDate ?? ''} onChange={(e) => setF({ ...f, resaleEstimateDate: e.target.value || null })} />
         </label>
+        <fieldset className="group"><legend>Car details</legend>
+          <div className="stack">
+            <label>Model<input value={d.model ?? ''} placeholder="e.g. Volvo V90" onChange={(e) => setD({ model: e.target.value || null })} /></label>
+            <label>Engine<input value={d.engine ?? ''} placeholder="e.g. D5 AWD" onChange={(e) => setD({ engine: e.target.value || null })} /></label>
+            <label>Trim<input value={d.trim ?? ''} onChange={(e) => setD({ trim: e.target.value || null })} /></label>
+            <label>Model year<input inputMode="numeric" value={d.modelYear ?? ''}
+              onChange={(e) => setD({ modelYear: e.target.value.trim() === '' ? null : Math.trunc(Number(e.target.value)) || null })} /></label>
+            <label>Exterior colour<input value={d.exteriorColour ?? ''} onChange={(e) => setD({ exteriorColour: e.target.value || null })} /></label>
+            <label>Interior<input value={d.interior ?? ''} onChange={(e) => setD({ interior: e.target.value || null })} /></label>
+            <label>Equipment (one per line)
+              <textarea rows={6} value={equipmentText} onChange={(e) => {
+                setEquipmentText(e.target.value)
+                setD({ equipment: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) })
+              }} />
+            </label>
+          </div>
+        </fieldset>
         <label className="check"><input type="checkbox" checked={f.isDefault} onChange={(e) => setF({ ...f, isDefault: e.target.checked })} /> Default vehicle</label>
         {save.isError && <ul className="errors">{errorLines(save.error).map((m) => <li key={m}>{m}</li>)}</ul>}
         <div className="row">

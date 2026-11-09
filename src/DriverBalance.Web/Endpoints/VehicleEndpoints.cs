@@ -99,6 +99,7 @@ public static class VehicleEndpoints
         if (input.EstimatedResaleValue is < 0) errors.Add("Estimated resale value must not be negative.");
         if (input.PurchaseDate is { } pd && pd > today) errors.Add("Purchase date must not be in the future.");
         if (input.ResaleEstimateDate is { } rd && rd > today) errors.Add("Resale estimate date must not be in the future.");
+        input.Details?.Normalise(errors, today.Year);
         return errors;
     }
 
@@ -114,6 +115,7 @@ public static class VehicleEndpoints
         row.PurchaseDate = input.PurchaseDate;
         row.EstimatedResaleValue = input.EstimatedResaleValue;
         row.ResaleEstimateDate = input.EstimatedResaleValue is null ? null : input.ResaleEstimateDate;
+        if (input.Details is { } details) row.DetailsJson = details.Normalise([], DateTime.Today.Year + 1).ToJson();
     }
 
     public static bool IsCurrency(string s) => s.Length == 3 && s.All(char.IsAsciiLetter);

@@ -31,6 +31,8 @@ public sealed class VehicleRow : IUserOwned
     public DateOnly? PurchaseDate { get; set; }
     public decimal? EstimatedResaleValue { get; set; }
     public DateOnly? ResaleEstimateDate { get; set; }
+    /// <summary>Model, engine, trim, year, colours and equipment as JSON (see CarDetails in the web project).</summary>
+    public string? DetailsJson { get; set; }
 }
 
 public sealed class TripRow : IUserOwned

@@ -68,6 +68,18 @@ export interface Vehicle {
   purchaseDate: DateOnly | null
   estimatedResaleValue: number | null
   resaleEstimateDate: DateOnly | null
+  details: CarDetails
+}
+
+/** What the car is (all optional). */
+export interface CarDetails {
+  model: string | null
+  engine: string | null
+  trim: string | null
+  modelYear: number | null
+  exteriorColour: string | null
+  interior: string | null
+  equipment: string[]
 }
 
 export interface Period {
@@ -215,6 +227,8 @@ export interface VehicleInput {
   purchaseDate: DateOnly | null
   estimatedResaleValue: number | null
   resaleEstimateDate: DateOnly | null
+  /** Omitted or null keeps the stored details. */
+  details?: CarDetails | null
 }
 
 export interface MonthlyCost {
