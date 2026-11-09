@@ -1,18 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Period } from '../api/types'
-import { allIntervalsWindow, intervalWindow, pickDefaultIntervals, weeklyLPer100 } from './intervals'
-
-describe('pickDefaultIntervals', () => {
-  it('returns [current, previous] from a newest-first list', () => {
-    expect(pickDefaultIntervals(['cur', 'prev', 'first'])).toEqual(['cur', 'prev'])
-  })
-  it('returns [current, null] with a single interval', () => {
-    expect(pickDefaultIntervals(['only'])).toEqual(['only', null])
-  })
-  it('returns [null, null] with none', () => {
-    expect(pickDefaultIntervals([])).toEqual([null, null])
-  })
-})
+import { allIntervalsWindow, intervalWindow, weeklyLPer100 } from './intervals'
 
 describe('intervalWindow', () => {
   const prev: Period = { from: '2025-02-02', to: '2026-03-14', label: 'Previous' }

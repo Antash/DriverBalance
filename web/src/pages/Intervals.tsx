@@ -9,7 +9,8 @@ import { CompareTable } from '../components/CompareTable'
 import { MultiCompareTable } from '../components/MultiCompareTable'
 import { StatsTable } from '../components/StatsTable'
 import { addDays } from '../lib/dates'
-import { allIntervalsWindow, intervalWindow, pickDefaultIntervals } from '../lib/intervals'
+import { averageStats } from '../lib/compare'
+import { allIntervalsWindow, intervalWindow } from '../lib/intervals'
 import { isPreviousOwnerInterval } from '../lib/ownership'
 import { useAnalytics, useParams } from '../state/ParamsContext'
 import { useVehicle } from '../state/useVehicle'
@@ -17,72 +18,67 @@ import { useVehicle } from '../state/useVehicle'
 /** Inclusive-to display of a half-open interval. */
 const describe = (p: PeriodWithStats['period']) => `${p.label} (${p.from} → ${addDays(p.to, -1)})`
 
-type View = 'two' | 'all'
+type View = 'all' | 'avg' | 'last'
+const VIEWS: { key: View; label: string }[] = [
+  { key: 'all', label: 'All' }, { key: 'avg', label: 'Current vs average' }, { key: 'last', label: 'Current vs last' },
+]
 
 function Compare({ currency }: { currency: string }) {
   const purchaseDate = useVehicle().purchaseDate
-  const { data, isLoading, isError } = useAnalytics<PeriodWithStats[]>('intervals', { type: 'OilChange' })
-  const intervals = data
-  const [cur, prev] = useMemo(() => pickDefaultIntervals(intervals ?? []), [intervals])
-  // Indices into the newest-first list; A is the earlier interval, B the later one.
-  const [pick, setPick] = useState<{ a: number; b: number | null } | null>(null)
-  const a = pick?.a ?? (prev ? 1 : 0)
-  const b = pick ? pick.b : prev ? 0 : null
-  const ia = intervals?.[a], ib = b == null ? undefined : intervals?.[b]
-  const canShowAll = (intervals?.length ?? 0) > 1
-  const [view, setView] = useState<View>('two')
-  const all = canShowAll && view === 'all'
-  const pair = ia ? intervalWindow(ia.period, ib?.period ?? null) : null
-  const win = !pair ? null
-    : all ? allIntervalsWindow(intervals!.map((p) => p.period))!
-    : { from: pair.from, to: pair.to, serviceDates: pair.serviceDate ? [pair.serviceDate] : [] }
+  const { data: intervals, isLoading, isError } = useAnalytics<PeriodWithStats[]>('intervals', { type: 'OilChange' })
+  const [view, setView] = useState<View>('all')
+  // Newest first: [current, last completed, ...]. The average covers completed intervals with trip data only.
+  const current = intervals?.[0]
+  const last = intervals?.[1]
+  const completedWithTrips = useMemo(() => (intervals ?? []).slice(1).filter((p) => p.stats.usage.tripCount > 0), [intervals])
+  const average = useMemo(() => (completedWithTrips.length > 0 ? averageStats(completedWithTrips.map((p) => p.stats)) : null), [completedWithTrips])
 
   if (isError) return <p className="field-error">Could not load intervals.</p>
   if (isLoading && !intervals) return <p className="muted">Loading…</p>
-  if (!intervals || !cur || !ia || !win) return <p className="muted empty">No intervals for this type.</p>
+  if (!intervals || !current) return <p className="muted empty">No intervals for this type.</p>
+
+  const win = view === 'last' && last
+    ? (({ from, to, serviceDate }) => ({ from, to, serviceDates: serviceDate ? [serviceDate] : [] }))(intervalWindow(last.period, current.period))
+    : allIntervalsWindow(intervals.map((p) => p.period))!
 
   return (
     <>
-      {canShowAll && (
+      {intervals.length > 1 && (
         <div className="toolbar">
           <div className="segmented" role="group" aria-label="View">
-            {(['two', 'all'] as const).map((v) => (
-              <button key={v} className={`btn small${view === v ? ' active' : ''}`} aria-pressed={view === v}
-                onClick={() => setView(v)}>{v === 'two' ? 'Compare two' : 'All side by side'}</button>
+            {VIEWS.map((v) => (
+              <button key={v.key} className={`btn small${view === v.key ? ' active' : ''}`} aria-pressed={view === v.key}
+                onClick={() => setView(v.key)}>{v.label}</button>
             ))}
           </div>
         </div>
       )}
 
-      {all ? (
+      {intervals.length === 1 ? (
+        <section className="card"><h2>{describe(current.period)}</h2><StatsTable stats={current.stats} currency={currency} /></section>
+      ) : view === 'all' ? (
         <section className="card">
           <h2>Every oil change interval</h2>
           <MultiCompareTable intervals={intervals} currency={currency} purchaseDate={purchaseDate} />
         </section>
-      ) : (<>
-      {intervals.length > 1 && (
-        <div className="toolbar">
-          <label className="inline">Compare
-            <select aria-label="Interval A" value={a} onChange={(e) => setPick({ a: Number(e.target.value), b })}>
-              {intervals.map((p, i) => <option key={i} value={i}>{describe(p.period)}</option>)}
-            </select>
-          </label>
-          <label className="inline">with
-            <select aria-label="Interval B" value={b ?? ''} onChange={(e) => setPick({ a, b: Number(e.target.value) })}>
-              {intervals.map((p, i) => <option key={i} value={i}>{describe(p.period)}</option>)}
-            </select>
-          </label>
-        </div>
+      ) : view === 'avg' ? (
+        <section className="card">
+          <h2>Current interval vs the average</h2>
+          {average ? (
+            <>
+              <p className="muted hint">Average of {completedWithTrips.length} completed interval{completedWithTrips.length === 1 ? '' : 's'} with trip data.</p>
+              <CompareTable a={average} b={current.stats} currency={currency}
+                labelA={`Average (${completedWithTrips.length})`} labelB={current.period.label} />
+            </>
+          ) : <p className="muted empty">No completed interval has trip data yet.</p>}
+        </section>
+      ) : (
+        <section className="card">
+          <h2>Current interval vs the last one</h2>
+          {last && <CompareTable a={last.stats} b={current.stats} currency={currency} labelA={last.period.label} labelB={current.period.label}
+            prevA={isPreviousOwnerInterval(last.period.to, purchaseDate)} prevB={isPreviousOwnerInterval(current.period.to, purchaseDate)} />}
+        </section>
       )}
-
-      <section className="card">
-        <h2>{ib && ib !== ia ? 'Comparison' : describe(ia.period)}</h2>
-        {ib && ib !== ia
-          ? <CompareTable a={ia.stats} b={ib.stats} currency={currency} labelA={ia.period.label} labelB={ib.period.label}
-              prevA={isPreviousOwnerInterval(ia.period.to, purchaseDate)} prevB={isPreviousOwnerInterval(ib.period.to, purchaseDate)} />
-          : <StatsTable stats={ia.stats} currency={currency} />}
-      </section>
-      </>)}
 
       <IntervalTrend from={win.from} to={win.to} serviceDates={win.serviceDates} />
       <SmallMultiples intervals={intervals} currency={currency} />

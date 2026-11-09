@@ -139,3 +139,44 @@ export function compareMany(list: PeriodStats[]): MultiMetricRow[] {
   }
   return rows
 }
+
+/** Hours as a .NET TimeSpan string ("d.hh:mm:ss" when a day or more), as the API sends driving time. */
+function toTimeSpan(hours: number): string {
+  const totalSeconds = Math.round(hours * 3600)
+  const d = Math.floor(totalSeconds / 86400), h = Math.floor((totalSeconds % 86400) / 3600)
+  const m = Math.floor((totalSeconds % 3600) / 60), s = totalSeconds % 60
+  const hms = [h, m, s].map((x) => String(x).padStart(2, '0')).join(':')
+  return d > 0 ? `${d}.${hms}` : hms
+}
+
+/** Mean of the numbers present; null when none are. */
+const mean = (xs: unknown[]): number | null => {
+  const nums = xs.filter((x): x is number => typeof x === 'number')
+  return nums.length > 0 ? nums.reduce((a, b) => a + b, 0) / nums.length : null
+}
+
+function averageNode(nodes: unknown[]): unknown {
+  const present = nodes.filter((n) => n != null)
+  if (present.length === 0) return null
+  if (present.every((n) => typeof n === 'number')) return mean(present)
+  if (typeof present[0] === 'object' && !Array.isArray(present[0])) {
+    const keys = new Set(present.flatMap((n) => Object.keys(n as object)))
+    return Object.fromEntries([...keys].map((k) => [k, averageNode(present.map((n) => (n as Record<string, unknown>)[k]))]))
+  }
+  return present[0]
+}
+
+/**
+ * An "average period" from several periods, for comparing the current interval with the typical one: every figure is
+ * the mean of the periods that have it; driving time is averaged in hours; a category missing from a period counts as 0.
+ */
+export function averageStats(list: PeriodStats[]): PeriodStats {
+  const avg = averageNode(list) as PeriodStats
+  const hours = mean(list.map((s) => timeSpanHours(s.usage.drivingTime)))
+  const categories = new Set(list.flatMap((s) => Object.keys(s.money.byCategory))) as Set<ExpenseCategory>
+  return {
+    ...avg,
+    usage: { ...avg.usage, drivingTime: hours == null ? avg.usage.drivingTime : toTimeSpan(hours) },
+    money: { ...avg.money, byCategory: Object.fromEntries([...categories].map((c) => [c, mean(list.map((s) => s.money.byCategory[c] ?? 0))])) },
+  }
+}

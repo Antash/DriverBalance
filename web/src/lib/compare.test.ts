@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PeriodStats } from '../api/types'
-import { compareMany, compareStats, comparisonRequest, type MetricKey } from './compare'
+import { averageStats, compareMany, compareStats, comparisonRequest, type MetricKey } from './compare'
 
 interface Over {
   dpf?: number | null; coldPer100?: number | null; kmPerDay?: number | null; city?: number; mixed?: number; highway?: number
@@ -177,5 +177,18 @@ describe('compareMany with a period that has no trips', () => {
     const rows = compareMany([noTrips(), stats({ costPerKm: 1 }), stats({ costPerKm: 2 })])
     expect(many(rows, 'costPerKm').best).toEqual([1])
     expect(many(rows, 'costPerKm').worst).toEqual([2])
+  })
+})
+
+describe('averageStats', () => {
+  it('averages every figure over the given periods, ignoring unknown values', () => {
+    const a = stats({ kmPerDay: 10, dpf: 0.5, driving: '05:00:00', byCategory: { Fuel: 100 } })
+    const b = stats({ kmPerDay: 20, dpf: null, driving: '1.01:00:00', byCategory: { Wash: 40 } })
+    const m = averageStats([a, b])
+    expect(m.usage.kmPerDay).toBe(15)
+    expect(m.scores.dpfIndex).toBe(0.5)
+    expect(m.usage.drivingTime).toBe('15:00:00')
+    // A category missing from a period means nothing was spent there.
+    expect(m.money.byCategory).toEqual({ Fuel: 50, Wash: 20 })
   })
 })

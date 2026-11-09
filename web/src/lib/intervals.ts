@@ -1,11 +1,6 @@
 import type { FuelTrendChart, Period } from '../api/types'
 import { addDays } from './dates'
 
-/** Intervals arrive newest first: [current, previous, ..., "before first"]. */
-export function pickDefaultIntervals<T>(intervals: T[]): [T | null, T | null] {
-  return [intervals[0] ?? null, intervals[1] ?? null]
-}
-
 /** Date range covering both intervals (to exclusive) and the service date between them. */
 export function intervalWindow(a: Period, b: Period | null): { from: string; to: string; serviceDate: string | null } {
   if (!b || b.from === a.from) return { from: a.from, to: a.to, serviceDate: null }

@@ -32,9 +32,10 @@ describe('statistics url state', () => {
 
 describe('trips url state', () => {
   it('round-trips and defaults to the overview', () => {
-    const s: TripsUrlState = { tab: 'style', level: 'Trip', range: 'custom', year: 2024, from: '2024-02-01', to: '2024-03-31', heatYear: 2023 }
+    const s: TripsUrlState = { tab: 'style', level: 'Trip', period: '2025', heatYear: 2023 }
     expect(parseTripsState(tripsStateToParams(s))).toEqual(s)
+    expect(parseTripsState(tripsStateToParams({ ...s, period: 'last12' })).period).toBe('last12')
     expect(tripsStateToParams(defaultTripsState).toString()).toBe('')
-    expect(parseTripsState(new URLSearchParams('tab=zzz&range=x'))).toEqual(defaultTripsState)
+    expect(parseTripsState(new URLSearchParams('tab=zzz&period=x'))).toEqual(defaultTripsState)
   })
 })
