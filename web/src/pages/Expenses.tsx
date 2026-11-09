@@ -17,21 +17,35 @@ import { useTyreSets, useVehicle } from '../state/useVehicle'
 /** Category name for tables and charts: the purchase category without its long hint. */
 const shortLabel = (c: ExpenseCategory) => (c === 'Purchase' ? 'Purchase' : label(c))
 
-/** Every category its own block, largest first; the palette repeats lighter after its eight colours. */
-function treemapOption(by: Partial<Record<ExpenseCategory, number>>, currency: string): EChartsOption {
-  const t = chartTheme()
+type CategoryShare = { category: ExpenseCategory; amount: number; share: number; color: string; opacity: number }
+
+/** Categories with spending, largest first, with their share of the total and a colour (the palette repeats lighter). */
+function categoryShares(by: Partial<Record<ExpenseCategory, number>>, t: ReturnType<typeof chartTheme>): CategoryShare[] {
   const entries = Object.entries(by).filter(([, v]) => (v ?? 0) > 0).sort((x, y) => (y[1] ?? 0) - (x[1] ?? 0)) as [ExpenseCategory, number][]
-  const data = entries.map(([c, v], i) => ({
-    name: shortLabel(c), value: v,
-    itemStyle: { color: t.series[i % t.series.length], opacity: i < t.series.length ? 1 : 0.6, borderColor: t.surface, borderWidth: 2 },
+  const total = entries.reduce((sum, [, v]) => sum + v, 0)
+  return entries.map(([category, amount], i) => ({
+    category, amount, share: total > 0 ? amount / total : 0,
+    color: t.series[i % t.series.length], opacity: i < t.series.length ? 1 : 0.6,
   }))
+}
+
+/** Blocks sized by spending, labelled with the category and its percentage only (amounts are in the summary). */
+function treemapOption(shares: CategoryShare[]): EChartsOption {
+  const t = chartTheme()
   return {
     legend: { show: false },
-    tooltip: { trigger: 'item', valueFormatter: (v) => fmtMoney(Number(v), currency) } as EChartsOption['tooltip'],
+    tooltip: { trigger: 'item', formatter: (p: unknown) => { const d = (p as { data: { name: string; pct: number } }).data; return `${d.name}: ${d.pct.toFixed(1)} %` } },
     series: [{
-      type: 'treemap', roam: false, nodeClick: false, breadcrumb: { show: false }, width: '100%', height: '100%',
-      label: { show: true, color: '#0b0b0b', formatter: (p: { name: string; value: number }) => `${p.name}\n${fmtMoney(p.value, currency)}` },
-      data,
+      type: 'treemap', roam: false, nodeClick: false, breadcrumb: { show: false },
+      left: 0, top: 0, right: 0, bottom: 0, width: '100%', height: '100%',
+      label: {
+        show: true, position: 'inside', align: 'center', verticalAlign: 'middle', overflow: 'truncate', color: '#0b0b0b', fontSize: 12,
+        formatter: (p: { data: { name: string; pct: number } }) => `${p.data.name}\n${p.data.pct.toFixed(0)} %`,
+      },
+      data: shares.map((x) => ({
+        name: shortLabel(x.category), value: x.amount, pct: x.share * 100,
+        itemStyle: { color: x.color, opacity: x.opacity, borderColor: t.surface, borderWidth: 2 },
+      })),
     }],
   } as EChartsOption
 }
@@ -42,9 +56,9 @@ function cumulativeOption(points: CumulativeCostPoint[], currency: string): ECha
   return {
     legend: { show: false },
     tooltip: { trigger: 'axis', valueFormatter: (v) => `${fmtMoney(Number(v), currency)} / km` } as EChartsOption['tooltip'],
-    grid: { left: 8, right: 16, top: 24, bottom: 8, containLabel: true },
+    grid: { left: 8, right: 16, top: 36, bottom: 8, containLabel: true },
     xAxis: { type: 'time', ...axisStyle() },
-    yAxis: { type: 'value', name: `${currency} / km`, nameTextStyle: { color: t.muted }, ...axisStyle() },
+    yAxis: { type: 'value', name: `${currency} / km`, nameGap: 14, nameTextStyle: { color: t.muted, align: 'left' }, ...axisStyle() },
     series: [{
       name: 'Cost per km', type: 'line', smooth: true, showSymbol: false, symbolSize: 8, lineStyle: { width: 2 },
       itemStyle: { color: t.series[0], borderColor: t.surface, borderWidth: 2 }, data: pts.map((p) => [p.date, p.costPerKm]),
@@ -58,7 +72,12 @@ export default function ExpensesPage() {
   const qc = useQueryClient()
   const { data: tyreSets = [] } = useTyreSets()
   const [today] = useState(() => iso(new Date()))
-  const periods = useMemo(() => expensePeriods(vehicle.purchaseDate ?? null, today), [vehicle.purchaseDate, today])
+  const { data: allExpenses } = useQuery({
+    queryKey: ['expenses', vehicleId, 'all'],
+    queryFn: () => api.get<Expense[]>(`/vehicles/${vehicleId}/expenses`),
+  })
+  const firstRecord = useMemo(() => (allExpenses ?? []).reduce<string | null>((m, e) => (m == null || e.date < m ? e.date : m), null), [allExpenses])
+  const periods = useMemo(() => expensePeriods(vehicle.purchaseDate ?? null, today, firstRecord), [vehicle.purchaseDate, today, firstRecord])
   const [periodKey, setPeriodKey] = useState<string>('total')
   const period = periods.find((p) => p.key === periodKey) ?? periods[0]
   const [cats, setCats] = useState<ExpenseCategory[]>([])
@@ -80,7 +99,9 @@ export default function ExpensesPage() {
   const rows = useMemo(() => (expenses ?? []).filter((e) => cats.length === 0 || cats.includes(e.category)), [expenses, cats])
   const cur = vehicle.homeCurrency
   const foreignShown = rows.some((e) => e.currency !== cur)
-  const treemapOpt = useMemo(() => (totals.data ? treemapOption(totals.data, cur) : null), [totals.data, cur])
+  const shares = useMemo(() => (totals.data ? categoryShares(totals.data, chartTheme()) : null), [totals.data])
+  const treemapOpt = useMemo(() => (shares && shares.length > 0 ? treemapOption(shares) : null), [shares])
+  const totalSpent = shares?.reduce((sum, x) => sum + x.amount, 0) ?? null
   const cumulativeOpt = useMemo(() => (cumulative.data ? cumulativeOption(cumulative.data, cur) : null), [cumulative.data, cur])
 
   return (
@@ -97,8 +118,32 @@ export default function ExpensesPage() {
         <button className="btn primary" onClick={() => setEditing('new')}>Add expense</button>
       </div>
 
-      <div className="chart-grid">
-        <section className="card"><h2>Cost by category</h2>{treemapOpt ? <Chart option={treemapOpt} /> : <p className="muted">Loading…</p>}</section>
+      <section className="card">
+        <h2>Cost by category</h2>
+        {!shares ? <p className="muted">Loading…</p> : shares.length === 0 ? <p className="muted empty">No expenses in this period.</p> : (
+          <div className="breakdown">
+            <div className="breakdown-chart">{treemapOpt && <Chart option={treemapOpt} height={300} />}</div>
+            <div className="breakdown-summary">
+              <div className="kpi-name">Total spent</div>
+              <div className="kpi-value">{fmtMoney(totalSpent, cur)}</div>
+              <table className="data compact">
+                <tbody>
+                  {shares.map((x) => (
+                    <tr key={x.category}>
+                      <td><span className="swatch" style={{ background: x.color, opacity: x.opacity }} />{shortLabel(x.category)}</td>
+                      <td className="num">{fmtMoney(x.amount, cur)}</td>
+                      <td className="num muted">{(x.share * 100).toFixed(1)} %</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="muted hint">Purchase costs are not included; see Cost of ownership on Overview.</p>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <div>
         <section className="card">
           <h2>Cost per km</h2>
           <p className="muted hint">Running cost so far divided by km driven so far in the period; yearly costs are spread over their period.</p>

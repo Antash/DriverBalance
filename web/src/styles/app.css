@@ -148,3 +148,8 @@ table.data thead th { vertical-align: bottom; }
 .car-card p { margin: 0; }
 table.data td.wrap { white-space: normal; }
 table.data td.actions { white-space: nowrap; text-align: right; width: 1%; }
+.breakdown { display: grid; grid-template-columns: minmax(0, 3fr) minmax(240px, 2fr); gap: 16px; align-items: start; }
+@media (max-width: 760px) { .breakdown { grid-template-columns: 1fr; } }
+.breakdown-summary .kpi-value { margin-bottom: 8px; }
+table.data.compact td { padding: 4px 6px; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 8px; vertical-align: baseline; }

@@ -2,18 +2,20 @@ import { describe, expect, it } from 'vitest'
 import { expensePeriods } from './expensePeriods'
 
 describe('expensePeriods', () => {
-  it('offers Total (from purchase), Year to date and each past calendar year, newest first', () => {
-    expect(expensePeriods('2025-04-14', '2026-11-09')).toEqual([
+  it('offers Total (from purchase), the last 12 months and every recorded calendar year, newest first', () => {
+    expect(expensePeriods('2025-04-14', '2026-11-09', '2025-02-06')).toEqual([
       { key: 'total', label: 'Total', from: '2025-04-14', to: '2026-11-10' },
-      { key: 'ytd', label: 'Year to date', from: '2026-01-01', to: '2026-11-10' },
+      { key: 'last12', label: 'Last 12 months', from: '2025-11-10', to: '2026-11-10' },
+      { key: '2026', label: '2026', from: '2026-01-01', to: '2027-01-01' },
       { key: '2025', label: '2025', from: '2025-01-01', to: '2026-01-01' },
     ])
   })
-  it('lists several past years and falls back to the first data when there is no purchase date', () => {
-    expect(expensePeriods(null, '2026-03-01', '2023-06-10').map((p) => p.key)).toEqual(['total', 'ytd', '2025', '2024', '2023'])
-    expect(expensePeriods(null, '2026-03-01', '2023-06-10')[0].from).toBe('2023-06-10')
+  it('falls back to the first record when there is no purchase date', () => {
+    const p = expensePeriods(null, '2026-03-01', '2023-06-10')
+    expect(p.map((x) => x.key)).toEqual(['total', 'last12', '2026', '2025', '2024', '2023'])
+    expect(p[0].from).toBe('2023-06-10')
   })
-  it('without any start date offers only the current year', () => {
-    expect(expensePeriods(null, '2026-03-01').map((p) => p.key)).toEqual(['ytd'])
+  it('without any records offers only the last 12 months', () => {
+    expect(expensePeriods(null, '2026-03-01', null).map((p) => p.key)).toEqual(['last12'])
   })
 })
