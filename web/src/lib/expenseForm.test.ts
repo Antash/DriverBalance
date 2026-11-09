@@ -89,7 +89,7 @@ describe('buildExpensePayload', () => {
 })
 
 describe('parseDecimal', () => {
-  it.each([['1 500', 1500], ['12,50', 12.5], [' 99 ', 99], ['1 500,5', 1500.5], ['7', 7]])('accepts %j', (input, out) =>
+  it.each([['1 500', 1500], ['12,50', 12.5], [' 99 ', 99], ['1\u00A0500,5', 1500.5], ['7', 7]])('accepts %j', (input, out) =>
     expect(parseDecimal(input)).toBe(out))
   it.each(['abc', '12,5,0', '', '  ', '1.2.3', '-', '1e3'])('rejects %j', (input) => expect(parseDecimal(input)).toBeNull())
 })
