@@ -10,6 +10,7 @@ if (string.IsNullOrEmpty(builder.Configuration["urls"]))
 
 builder.Services.ConfigureHttpJsonOptions(o => ApiJson.Configure(o.SerializerOptions));
 
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(o => o.MultipartBodyLengthLimit = DocumentEndpoints.RequestLimit);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddDbContext<DriverBalanceDbContext>((sp, o) =>

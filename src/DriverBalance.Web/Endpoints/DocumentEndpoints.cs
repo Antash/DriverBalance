@@ -9,12 +9,12 @@ namespace DriverBalance.Web;
 public static class DocumentEndpoints
 {
     // Ten files of 20 MB plus multipart overhead; the per-file limit is checked by hand so it yields a 400, not Kestrel's 413.
-    private const long RequestLimit = DocumentStore.MaxFiles * DocumentStore.MaxBytes + 4 * 1024 * 1024;
+    public const long RequestLimit = DocumentStore.MaxFiles * DocumentStore.MaxBytes + 4 * 1024 * 1024;
 
     public static void Map(RouteGroupBuilder api)
     {
         api.MapPost("/vehicles/{vid:long}/expenses/{id:long}/documents", Upload)
-            .WithMetadata(new RequestSizeLimitAttribute(RequestLimit), new RequestFormLimitsAttribute { MultipartBodyLengthLimit = RequestLimit });
+            .WithMetadata(new RequestSizeLimitAttribute(RequestLimit));
         api.MapGet("/vehicles/{vid:long}/documents/{docId:long}", Download);
         api.MapDelete("/vehicles/{vid:long}/documents/{docId:long}", Delete);
     }

@@ -95,22 +95,6 @@ public static class ExpenseEndpoints
     private static async Task<IResult> Delete(long vid, long id, VehicleDataLoader loader, DriverBalanceDbContext db, DocumentStore documents, CancellationToken ct)
     {
         await loader.GetVehicleAsync(vid, ct);
-        var row = await db.Expenses.FirstOrDefaultAsync(x => x.Id == id && x.VehicleId == vid, ct);
-        if (row is null) return Results.NotFound();
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-        db.ExpenseDocuments.RemoveRange(await db.ExpenseDocuments.Where(d => d.ExpenseId == id).ToListAsync(ct));
-        var setId = row.TyreSetId;
-        db.Expenses.Remove(row);
-        await db.SaveChangesAsync(ct);
-        if (setId is { } sid
-            && !await db.Expenses.AnyAsync(x => x.VehicleId == vid && x.TyreSetId == sid, ct)
-            && !await db.Vehicles.AnyAsync(v => v.Id == vid && v.InitialTyreSetId == sid, ct))
-        {
-            var orphan = await db.TyreSets.FirstOrDefaultAsync(t => t.Id == sid && t.VehicleId == vid, ct);
-            if (orphan is not null) { db.TyreSets.Remove(orphan); await db.SaveChangesAsync(ct); }
-        }
-        await tx.CommitAsync(ct);
-        documents.DeleteExpenseFolder(vid, id);
-        return Results.NoContent();
+        return await ExpenseDeletion.DeleteAsync(vid, id, db, documents, ct) ? Results.NoContent() : Results.NotFound();
     }
 }

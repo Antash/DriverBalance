@@ -15,7 +15,7 @@ namespace DriverBalance.Web;
 /// query and write goes through the same user-filtered DbContext as the REST API.
 /// </summary>
 [McpServerToolType]
-public sealed class CarTools(DriverBalanceDbContext db, VehicleDataLoader loader, AnalysisSessionFactory sessions, ImportService import)
+public sealed class CarTools(DriverBalanceDbContext db, VehicleDataLoader loader, AnalysisSessionFactory sessions, ImportService import, DocumentStore documents)
 {
     private const string VehicleIdDoc = "Vehicle id. Optional: defaults to the user's default vehicle, else the first vehicle.";
     private const string DateDoc = "Date as yyyy-MM-dd. Optional: defaults to today in the vehicle's time zone.";
@@ -152,11 +152,10 @@ public sealed class CarTools(DriverBalanceDbContext db, VehicleDataLoader loader
         CancellationToken ct = default) => Run(async () =>
     {
         var v = await ResolveVehicleAsync(vehicleId, ct);
-        var row = await db.Expenses.FirstOrDefaultAsync(e => e.Id == id && e.VehicleId == v.Id, ct)
+        var row = await db.Expenses.AsNoTracking().FirstOrDefaultAsync(e => e.Id == id && e.VehicleId == v.Id, ct)
             ?? throw new ApiValidationException($"Expense {id} not found on vehicle {v.Id}.");
         var deleted = row.ToDomain();
-        db.Expenses.Remove(row);
-        await db.SaveChangesAsync(ct);
+        await ExpenseDeletion.DeleteAsync(v.Id, id, db, documents, ct);
         return Ok(deleted, string.Create(CultureInfo.InvariantCulture,
             $"Deleted {deleted.Category} {deleted.Amount} {deleted.Currency} dated {deleted.Date:yyyy-MM-dd} (id {id})."));
     });

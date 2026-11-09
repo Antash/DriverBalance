@@ -216,4 +216,26 @@ public sealed class DocumentApiTests(ApiFactory f) : IClassFixture<ApiFactory>
         var other = f.ClientFor(7);
         Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/vehicles/{vid}/documents/{docId}")).StatusCode);
     }
+
+    [Fact]
+    public async Task McpDeleteExpense_RemovesDocumentFolder()
+    {
+        var (c, vid, eid) = await SetupAsync();
+        await c.PostAsync($"/api/vehicles/{vid}/expenses/{eid}/documents", Form(("a.pdf", "application/pdf", Pdf)));
+        Assert.True(Directory.Exists(ExpenseDir(vid, eid)));
+        await using var mcp = await McpHelpers.ConnectAsync(f, (await McpHelpers.CreateTokenAsync(c)).Token);
+        var r = await McpHelpers.CallAsync(mcp, "delete_expense", new { vehicleId = vid, id = eid });
+        Assert.NotEqual(true, r.IsError);
+        Assert.False(Directory.Exists(ExpenseDir(vid, eid)));
+    }
+
+    [Fact]
+    public async Task SevenFilesOf20MB_TotalOver128MB_Is201()
+    {
+        var (c, vid, eid) = await SetupAsync();
+        var data = new byte[20 * 1024 * 1024];
+        var files = Enumerable.Range(0, 7).Select(i => ($"f{i}.pdf", "application/pdf", data)).ToArray();
+        var r = await c.PostAsync($"/api/vehicles/{vid}/expenses/{eid}/documents", Form(files));
+        Assert.Equal(HttpStatusCode.Created, r.StatusCode);
+    }
 }
