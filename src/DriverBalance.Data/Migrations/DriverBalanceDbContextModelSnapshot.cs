@@ -50,6 +50,48 @@ namespace DriverBalance.Data.Migrations
                     b.ToTable("ApiTokens");
                 });
 
+            modelBuilder.Entity("DriverBalance.Data.ExpenseDocumentRow", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("ExpenseId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("StoredName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("VehicleId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpenseId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ExpenseDocuments");
+                });
+
             modelBuilder.Entity("DriverBalance.Data.ExpenseRow", b =>
                 {
                     b.Property<long>("Id")
@@ -353,6 +395,21 @@ namespace DriverBalance.Data.Migrations
 
             modelBuilder.Entity("DriverBalance.Data.ApiTokenRow", b =>
                 {
+                    b.HasOne("DriverBalance.Data.UserRow", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("DriverBalance.Data.ExpenseDocumentRow", b =>
+                {
+                    b.HasOne("DriverBalance.Data.ExpenseRow", null)
+                        .WithMany()
+                        .HasForeignKey("ExpenseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("DriverBalance.Data.UserRow", null)
                         .WithMany()
                         .HasForeignKey("UserId")

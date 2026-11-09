@@ -73,6 +73,21 @@ public sealed class ExpenseRow : IUserOwned
     public DateTime CreatedAt { get; set; }
 }
 
+public sealed class ExpenseDocumentRow : IUserOwned
+{
+    public long Id { get; set; }
+    public long UserId { get; set; }
+    public long VehicleId { get; set; }
+    public long ExpenseId { get; set; }
+    /// <summary>Original name as uploaded (path parts stripped), shown to the user.</summary>
+    public string FileName { get; set; } = "";
+    /// <summary>Sanitised name used on disk after the id prefix.</summary>
+    public string StoredName { get; set; } = "";
+    public string ContentType { get; set; } = "";
+    public long SizeBytes { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
 public sealed class TyreSetRow : IUserOwned
 {
     public long Id { get; set; }

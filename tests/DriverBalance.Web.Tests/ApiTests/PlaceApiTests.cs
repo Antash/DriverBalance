@@ -74,6 +74,6 @@ public sealed class PlaceApiTests(ApiFactory f) : IClassFixture<ApiFactory>
         await Api.PostAsync(c, url, Body("city garage", date: "2026-01-10"));
         await Api.PostAsync(c, url, Body(null, date: "2026-02-01"));
         var places = JsonSerializer.Deserialize<string[]>(await c.GetStringAsync($"{url}/places"));
-        Assert.Equal(["city garage", "Pneu Servis"], places);
+        Assert.Equal(["city garage", "Pneu Servis"], places!);
     }
 }

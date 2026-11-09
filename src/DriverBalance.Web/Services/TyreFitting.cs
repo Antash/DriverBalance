@@ -51,6 +51,7 @@ public static class TyreFitting
         {
             if (body.ValueKind != JsonValueKind.Object) throw new ApiValidationException("A JSON object body is required.");
             var expense = body.Deserialize<Expense>(ApiJson.Options) ?? throw new ApiValidationException("A JSON object body is required.");
+            expense = expense with { Documents = Array.Empty<ExpenseDocumentInfo>() };
             TyreFittingRequest? tyres = null;
             foreach (var p in body.EnumerateObject())
                 if (string.Equals(p.Name, "tyres", StringComparison.OrdinalIgnoreCase))

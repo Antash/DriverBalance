@@ -2,6 +2,8 @@ namespace DriverBalance.Core;
 
 public enum ExpenseCategory { Fuel, Parking, TollsVignette, Wash, Maintenance, Repair, Tyres, Accessories, Insurance, RoadTax, Fines, Financing, Other }
 
+public sealed record ExpenseDocumentInfo(long Id, string FileName, string ContentType, long SizeBytes);
+
 public enum ExpenseSource { Web, Mcp, Migration }
 
 public sealed record Expense
@@ -25,4 +27,6 @@ public sealed record Expense
     public IReadOnlyList<MaintenanceWork> Work { get; init; } = Array.Empty<MaintenanceWork>();
     public long? TyreSetId { get; init; }
     public ExpenseSource Source { get; init; }
+    /// <summary>Response-only: attached documents. Ignored on requests.</summary>
+    public IReadOnlyList<ExpenseDocumentInfo> Documents { get; init; } = Array.Empty<ExpenseDocumentInfo>();
 }

@@ -47,8 +47,11 @@ public class ApiFactory : WebApplicationFactory<Program>
         File.WriteAllText(Path.Combine(_dir, "wwwroot", "index.html"), "<html>spa-index</html>");
     }
 
+    public string DocumentsDir => Path.Combine(_dir, "documents");
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.UseSetting("DriverBalance:DocumentsPath", DocumentsDir);
         builder.UseSetting("DriverBalance:DatabasePath", Path.Combine(_dir, "test.db"));
         builder.UseWebRoot(Path.Combine(_dir, "wwwroot"));
         builder.ConfigureServices(s =>

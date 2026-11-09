@@ -35,7 +35,8 @@ public static class ExpenseEndpoints
         if (to is { } t) query = query.Where(x => x.Date < t);
         if (cat is { } c) query = query.Where(x => x.Category == c);
         var rows = await query.OrderByDescending(x => x.Date).ThenByDescending(x => x.Id).ToListAsync(ct);
-        return Results.Ok(rows.Select(r => r.ToDomain()).ToList());
+        var docs = await DocumentEndpoints.LoadAsync(db, vid, rows.Select(r => r.Id).ToList(), ct);
+        return Results.Ok(rows.Select(r => r.ToDomain() with { Documents = docs.GetValueOrDefault(r.Id) ?? [] }).ToList());
     }
 
     /// <summary>Distinct places (case-insensitive, latest spelling), most recent first, at most 50.</summary>
@@ -87,15 +88,17 @@ public static class ExpenseEndpoints
         if (set is not null) row.TyreSetId = await TyreFitting.CreateAndRetireAsync(vid, set, tyres!.IsNew, e.Date, id, db, ct);
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
-        return Results.Ok(row.ToDomain());
+        var docs = await DocumentEndpoints.LoadAsync(db, vid, [row.Id], ct);
+        return Results.Ok(row.ToDomain() with { Documents = docs.GetValueOrDefault(row.Id) ?? [] });
     }
 
-    private static async Task<IResult> Delete(long vid, long id, VehicleDataLoader loader, DriverBalanceDbContext db, CancellationToken ct)
+    private static async Task<IResult> Delete(long vid, long id, VehicleDataLoader loader, DriverBalanceDbContext db, DocumentStore documents, CancellationToken ct)
     {
         await loader.GetVehicleAsync(vid, ct);
         var row = await db.Expenses.FirstOrDefaultAsync(x => x.Id == id && x.VehicleId == vid, ct);
         if (row is null) return Results.NotFound();
         await using var tx = await db.Database.BeginTransactionAsync(ct);
+        db.ExpenseDocuments.RemoveRange(await db.ExpenseDocuments.Where(d => d.ExpenseId == id).ToListAsync(ct));
         var setId = row.TyreSetId;
         db.Expenses.Remove(row);
         await db.SaveChangesAsync(ct);
@@ -107,6 +110,7 @@ public static class ExpenseEndpoints
             if (orphan is not null) { db.TyreSets.Remove(orphan); await db.SaveChangesAsync(ct); }
         }
         await tx.CommitAsync(ct);
+        documents.DeleteExpenseFolder(vid, id);
         return Results.NoContent();
     }
 }

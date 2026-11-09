@@ -16,6 +16,7 @@ builder.Services.AddDbContext<DriverBalanceDbContext>((sp, o) =>
     o.UseSqlite($"Data Source={DbSetup.ResolvePath(sp.GetRequiredService<IConfiguration>())}"));
 
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<DocumentStore>();
 builder.Services.AddScoped<ImportService>();
 builder.Services.AddScoped<LegacyMigrationService>();
 builder.Services.AddScoped<VehicleDataLoader>();
@@ -48,6 +49,7 @@ AnalyticsEndpoints.Map(api);
 TripEndpoints.Map(api);
 ExpenseEndpoints.Map(api);
 TyreEndpoints.Map(api);
+DocumentEndpoints.Map(api);
 TokenEndpoints.Map(api);
 ExportEndpoints.Map(api);
 
