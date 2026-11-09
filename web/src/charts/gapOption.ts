@@ -16,7 +16,7 @@ export function gapOption(d: GapHistogram): () => EChartsOption {
     return {
       legend: { show: false },
       tooltip: { trigger: 'axis', valueFormatter: (v) => `${v} gaps` } as EChartsOption['tooltip'],
-      grid: { left: 8, right: 16, top: 24, bottom: 8, containLabel: true },
+      grid: { left: 8, right: 16, top: 40, bottom: 30, containLabel: true },
       xAxis: [
         { type: 'category', data: d.bins.map(label), name: 'Gap between trips (min)', nameLocation: 'middle', nameGap: 28, nameTextStyle: { color: t.muted }, ...axisStyle() },
         { type: 'value', min: -0.5, max: n - 0.5, show: false },

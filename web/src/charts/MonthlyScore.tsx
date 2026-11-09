@@ -51,19 +51,28 @@ function dpfOption(d: MonthlyScoreChart): () => EChartsOption {
   }
 }
 
-/** Monthly km by driving score, and (as a second chart, never a second axis) the weekly DPF index with its moving average. */
+/** Monthly km by driving score. */
 export function MonthlyScore(range: RangeProps) {
   const { data, isLoading, isError } = useAnalytics<MonthlyScoreChart>('charts/monthly-score', rangeBody(range))
-  const { hasDpf } = useVehicle()
   const bars = useMemo(() => (data ? barsOption(data) : undefined), [data])
-  const dpf = useMemo(() => (data ? dpfOption(data) : undefined), [data])
   return (
-    <ChartCard title={hasDpf ? 'Monthly score and DPF' : 'Monthly score'} loading={isLoading && !data} error={isError} empty={!!data && data.months.length === 0}
-      hint={hasDpf ? 'Km per month by group score, then the share of good-score km per week (higher is kinder to the DPF).' : 'Km per month by group score.'}>
-      {bars && (dpf || !hasDpf) && <>
-        <Chart option={bars} height={260} />
-        {hasDpf && dpf && <Chart option={dpf} height={220} />}
-      </>}
+    <ChartCard title="Monthly score" loading={isLoading && !data} error={isError} empty={!!data && data.months.length === 0}
+      hint="Km per month by drive-group score.">
+      {bars && <Chart option={bars} height={260} />}
+    </ChartCard>
+  )
+}
+
+/** Weekly DPF index with its moving average (same data as Monthly score, so one request). Diesels only. */
+export function DpfIndexChart(range: RangeProps) {
+  const { data, isLoading, isError } = useAnalytics<MonthlyScoreChart>('charts/monthly-score', rangeBody(range))
+  const { hasDpf } = useVehicle()
+  const dpf = useMemo(() => (data ? dpfOption(data) : undefined), [data])
+  if (!hasDpf) return null
+  return (
+    <ChartCard title="DPF index" loading={isLoading && !data} error={isError} empty={!!data && data.weeks.length === 0}
+      hint="Share of good-score km per week; higher is kinder to the DPF.">
+      {dpf && <Chart option={dpf} height={260} />}
     </ChartCard>
   )
 }

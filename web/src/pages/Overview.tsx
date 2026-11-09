@@ -7,21 +7,13 @@ import { VehicleTimeline } from '../charts/VehicleTimeline'
 import { ChartCard } from '../components/ChartCard'
 import { ExpenseForm } from '../components/ExpenseForm'
 import { Modal } from '../components/Modal'
+import { Tile } from '../components/Tile'
 import type { OverviewData, Ownership, PeriodStats } from '../api/types'
 import { addDays, addYears, iso } from '../lib/dates'
 import { fmtLPer100, fmtMoney, fmtNum, fmtPct, fmtDate } from '../lib/format'
 import { ownershipRows } from '../lib/ownership'
 import { useAnalytics } from '../state/ParamsContext'
 import { useTyreSets, useVehicle } from '../state/useVehicle'
-
-function Tile({ name, value }: { name: string; value: string }) {
-  return (
-    <div className="kpi">
-      <div className="kpi-name">{name}</div>
-      <div className="kpi-value">{value}</div>
-    </div>
-  )
-}
 
 function Kpis({ title, stats, currency, hasDpf }: { title: string; stats: PeriodStats; currency: string; hasDpf: boolean }) {
   return (

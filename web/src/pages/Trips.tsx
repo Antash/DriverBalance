@@ -4,10 +4,11 @@ import type { PeriodWithStats } from '../api/types'
 import { FuelTrend } from '../charts/FuelTrend'
 import { GapHistogram } from '../charts/GapHistogram'
 import { Heatmap } from '../charts/Heatmap'
-import { MonthlyScore } from '../charts/MonthlyScore'
+import { DpfIndexChart, MonthlyScore } from '../charts/MonthlyScore'
 import { PenaltyCurve } from '../charts/PenaltyCurve'
 import { ScoreMap } from '../charts/ScoreMap'
 import { Seasonality } from '../charts/Seasonality'
+import { TripInsights } from '../charts/TripInsights'
 import { WhenYouDrive } from '../charts/WhenYouDrive'
 import { TripDrawer } from '../components/TripDrawer'
 import { TripList } from '../components/TripList'
@@ -72,12 +73,15 @@ export default function TripsPage() {
         <div className="tab-body" key={`${range.from}-${range.to}`}>
           {state.tab === 'overview' && (
             <>
+              <TripInsights {...range} kind="overview" />
               <MonthlyScore {...range} />
+              <DpfIndexChart {...range} />
               <Heatmap year={heatYear} years={years} onYear={(y) => update({ heatYear: y })} />
             </>
           )}
           {state.tab === 'fuel' && (
             <>
+              <TripInsights {...range} kind="fuel" />
               <FuelTrend {...range} level={state.level} onTrip={setTripId} />
               <div className="chart-grid">
                 <PenaltyCurve {...range} />

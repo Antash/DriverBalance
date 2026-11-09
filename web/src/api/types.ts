@@ -271,7 +271,11 @@ export interface UsageStats {
   kmPerDayUsed: number | null
   /** Total driving time in hours. */
   drivingHours: number
+  /** Longest run of trips with stops of at most 4 h (midnight and cold starts don't split it); null without trips. */
+  longestJourney: Journey | null
 }
+
+export interface Journey { start: string; end: string; km: number; tripCount: number; drivingTime: string }
 
 export interface ScoreBucket { km: number; duration: string; groups: number }
 

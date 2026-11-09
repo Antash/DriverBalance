@@ -108,6 +108,7 @@ table.data tr.sub td { background: var(--page); font-size: 13px; }
 .kpi { flex: 1 1 120px; min-width: max-content; }
 .kpi-name { font-size: 13px; color: var(--text-2); }
 .kpi-value { font-size: 24px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.kpi-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
 .kpi-unit { font-size: 14px; font-weight: 400; color: var(--text-2); }
 .dpf-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; }
 .callout { margin: 12px 0 0; padding: 8px 12px; border-radius: 6px; background: var(--warn-bg); border: 1px solid var(--border); }

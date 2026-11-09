@@ -18,7 +18,7 @@ function stats(over: Over = {}): PeriodStats {
       days: pick(over.days, 31), elapsedDays: pick(over.days, 31), kmPerDay: pick(over.kmPerDay, 10),
       drivingTime: pick(over.driving, '05:00:00'), averageSpeedKmh: pick(over.speed, 30), coldStarts: 5, coldStartsPer100Km: pick(over.coldPer100, 5),
       shortGroups: 1, shortShareByCount: pick(over.shortCount, 0.2), shortShareByKm: pick(over.shortKm, 0.1),
-      daysUsed: 10, kmPerDayUsed: 10, drivingHours: 5,
+      daysUsed: 10, kmPerDayUsed: 10, drivingHours: 5, longestJourney: null,
     },
     scores: { buckets: {}, dpfIndex: over.dpf === undefined ? 0.5 : over.dpf },
     mix: { cityKm: over.city ?? 10, mixedKm: over.mixed ?? 10, highwayKm: over.highway ?? 30 },

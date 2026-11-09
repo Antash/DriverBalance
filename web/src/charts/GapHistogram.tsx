@@ -13,7 +13,7 @@ export function GapHistogram(range: RangeProps) {
   const empty = !!data && data.bins.every((b) => b.count === 0)
   return (
     <ChartCard title="Gaps between trips" loading={isLoading && !data} error={isError} empty={empty}
-      hint="Gaps shorter than the cold-start gap (dashed line) count as the same drive; longer ones start a cold engine.">
+      hint="Gaps under the cold-start gap (dashed line) join one drive; longer ones mean a cold start.">
       {opt && <Chart option={opt} height={300} />}
     </ChartCard>
   )
