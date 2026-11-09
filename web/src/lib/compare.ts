@@ -180,3 +180,13 @@ export function averageStats(list: PeriodStats[]): PeriodStats {
     money: { ...avg.money, byCategory: Object.fromEntries([...categories].map((c) => [c, mean(list.map((s) => s.money.byCategory[c] ?? 0))])) },
   }
 }
+
+/** Rows for a car: the DPF index is dropped when the car has no DPF (petrol, hybrid, electric). */
+export function visibleMetrics<T extends { key: MetricKey }>(rows: T[], hasDpf: boolean): T[] {
+  return hasDpf ? rows : rows.filter((r) => r.key !== 'dpfIndex')
+}
+
+/** The Engine wear group is named after the DPF only on cars that have one. */
+export function groupTitle(group: MetricGroup, hasDpf: boolean): string {
+  return !hasDpf && group === 'Engine wear & DPF' ? 'Engine wear' : group
+}

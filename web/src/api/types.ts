@@ -71,7 +71,12 @@ export interface Vehicle {
   estimatedResaleValue: number | null
   resaleEstimateDate: DateOnly | null
   details: CarDetails
+  fuelType: FuelType | null
+  /** Diesel or fuel type not set: DPF health and index are shown. */
+  hasDpf: boolean
 }
+
+export type FuelType = 'Diesel' | 'Petrol' | 'PetrolHybrid' | 'Electric'
 
 /** What the car is (all optional). */
 export interface CarDetails {
@@ -224,6 +229,7 @@ export interface VehicleInput {
   resaleEstimateDate: DateOnly | null
   /** Omitted or null keeps the stored details. */
   details?: CarDetails | null
+  fuelType: FuelType | null
 }
 
 export interface MonthlyCost {
@@ -345,7 +351,8 @@ export interface DpfHealthSummary {
 export interface OverviewData {
   thisMonth: PeriodStats
   thisYear: PeriodStats
-  dpfHealth: DpfHealthSummary
+  /** Null when the car has no DPF. */
+  dpfHealth: DpfHealthSummary | null
   recentExpenses: Expense[]
   reminders: Reminder[]
 }

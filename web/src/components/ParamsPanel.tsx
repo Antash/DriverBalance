@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ApiError } from '../api/client'
 import type { AnalysisParameters } from '../api/types'
 import { useParams } from '../state/ParamsContext'
+import { useVehicle } from '../state/useVehicle'
 
 type Field = { key: keyof AnalysisParameters; label: string; step?: string; int?: boolean }
 
@@ -32,10 +33,14 @@ const GROUPS: { title: string; fields: Field[] }[] = [
   ] },
 ]
 
+/** Parameters that only matter for cars with a DPF. */
+const DPF_FIELDS = ['dpfMovingAverageWeeks', 'longDriveHintDays']
+
 const LABELS: Record<string, string> = Object.fromEntries(GROUPS.flatMap((g) => g.fields.map((f) => [f.key, f.label])))
 
 export function ParamsPanel({ onClose }: { onClose(): void }) {
   const { draft, dirty, errors: problems, valid, setDraft, save, reset } = useParams()
+  const { hasDpf } = useVehicle()
   const [text, setText] = useState<Record<string, string>>({})
   const [errors, setErrors] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
@@ -79,7 +84,7 @@ export function ParamsPanel({ onClose }: { onClose(): void }) {
           <button className="btn" onClick={onClose} aria-label="Close">✕</button>
         </div>
         <div className="drawer-body">
-          {GROUPS.map((g) => (
+          {GROUPS.map((g) => ({ ...g, fields: g.fields.filter((f) => hasDpf || !DPF_FIELDS.includes(f.key)) })).filter((g) => g.fields.length > 0).map((g) => (
             <fieldset className="group" key={g.title}>
               <legend>{g.title}</legend>
               {g.fields.map((f) => (

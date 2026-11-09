@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PeriodStats } from '../api/types'
-import { averageStats, compareMany, compareStats, comparisonRequest, type MetricKey } from './compare'
+import { averageStats, compareMany, compareStats, comparisonRequest, groupTitle, visibleMetrics, type MetricKey } from './compare'
 
 interface Over {
   dpf?: number | null; coldPer100?: number | null; kmPerDay?: number | null; city?: number; mixed?: number; highway?: number
@@ -190,5 +190,20 @@ describe('averageStats', () => {
     expect(m.usage.drivingTime).toBe('15:00:00')
     // A category missing from a period means nothing was spent there.
     expect(m.money.byCategory).toEqual({ Fuel: 50, Wash: 20 })
+  })
+})
+
+describe('DPF visibility', () => {
+  const rows = [{ key: 'tripKm' as MetricKey }, { key: 'dpfIndex' as MetricKey }, { key: 'coldStarts' as MetricKey }]
+  it('drops the DPF index when the car has no DPF', () => {
+    expect(visibleMetrics(rows, false).map((r) => r.key)).toEqual(['tripKm', 'coldStarts'])
+  })
+  it('keeps every row when the car has a DPF', () => {
+    expect(visibleMetrics(rows, true)).toHaveLength(3)
+  })
+  it('drops the DPF from the group title', () => {
+    expect(groupTitle('Engine wear & DPF', false)).toBe('Engine wear')
+    expect(groupTitle('Engine wear & DPF', true)).toBe('Engine wear & DPF')
+    expect(groupTitle('Fuel', false)).toBe('Fuel')
   })
 })

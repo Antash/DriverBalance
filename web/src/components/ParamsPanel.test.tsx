@@ -17,7 +17,8 @@ beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn(async (_u: string, init?: RequestInit) => {
     const body = init?.body ? JSON.parse(init.body as string) : undefined
     if (init?.method === 'PUT') puts.push(body)
-    return new Response(JSON.stringify(init?.method === 'PUT' ? body : defaults), { status: 200, headers: { 'Content-Type': 'application/json' } })
+    const payload = init?.method === 'PUT' ? body : String(_u).endsWith('/vehicles') ? [] : defaults
+    return new Response(JSON.stringify(payload), { status: 200, headers: { 'Content-Type': 'application/json' } })
   }))
 })
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })

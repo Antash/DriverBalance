@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
-import type { TokenCreated, TokenInfo, TripPage, Vehicle, VehicleInput } from '../api/types'
+import type { FuelType, TokenCreated, TokenInfo, TripPage, Vehicle, VehicleInput } from '../api/types'
 import { DateInput } from '../components/DateInput'
 import { ParamsPanel } from '../components/ParamsPanel'
 import { errorLines, fmtDate, fmtInstant } from '../lib/format'
 import { useTyreSets, useVehicle } from '../state/useVehicle'
+
+const FUEL_TYPES: [FuelType | '', string][] = [['Diesel', 'Diesel'], ['Petrol', 'Petrol'], ['PetrolHybrid', 'Petrol hybrid'], ['Electric', 'Electric'], ['', 'Not set']]
 
 function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
   const qc = useQueryClient()
@@ -17,6 +19,7 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
     purchaseDate: vehicle.purchaseDate, estimatedResaleValue: vehicle.estimatedResaleValue,
     resaleEstimateDate: vehicle.resaleEstimateDate,
     details: vehicle.details,
+    fuelType: vehicle.fuelType,
   })
   const d = f.details ?? { model: null, engine: null, trim: null, modelYear: null, exteriorColour: null, interior: null, equipment: [] }
   const setD = (p: Partial<typeof d>) => setF({ ...f, details: { ...d, ...p } })
@@ -77,6 +80,12 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
         </label>
         <fieldset className="group"><legend>Car details</legend>
           <div className="stack">
+            <label>Fuel type
+              <select value={f.fuelType ?? ''} onChange={(e) => setF({ ...f, fuelType: (e.target.value || null) as FuelType | null })}>
+                {FUEL_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+              <span className="hint muted">DPF health and index are shown for diesel cars only.</span>
+            </label>
             <label>Model<input value={d.model ?? ''} placeholder="e.g. Volvo V90" onChange={(e) => setD({ model: e.target.value || null })} /></label>
             <label>Engine<input value={d.engine ?? ''} placeholder="e.g. D5 AWD" onChange={(e) => setD({ engine: e.target.value || null })} /></label>
             <label>Trim<input value={d.trim ?? ''} onChange={(e) => setD({ trim: e.target.value || null })} /></label>

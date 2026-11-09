@@ -1,5 +1,6 @@
 import type { PeriodWithStats } from '../api/types'
-import { compareMany } from '../lib/compare'
+import { useVehicle } from '../state/useVehicle'
+import { compareMany, groupTitle, visibleMetrics } from '../lib/compare'
 import { addDays } from '../lib/dates'
 import { fmtNum, fmtDate } from '../lib/format'
 import { isPreviousOwnerInterval } from '../lib/ownership'
@@ -27,7 +28,8 @@ function Heading({ p, inProgress, purchaseDate }: { p: PeriodWithStats; inProgre
 export function MultiCompareTable({ intervals, currency, purchaseDate = null }: { intervals: PeriodWithStats[]; currency: string; purchaseDate?: string | null }) {
   const ordered = [...intervals].reverse()
   const currentIndex = ordered.length - 1
-  const rows = compareMany(ordered.map((p) => p.stats))
+  const { hasDpf } = useVehicle()
+  const rows = visibleMetrics(compareMany(ordered.map((p) => p.stats)), hasDpf)
   const span = ordered.length + 1
   return (
     <div className="table-wrap">
@@ -41,7 +43,7 @@ export function MultiCompareTable({ intervals, currency, purchaseDate = null }: 
         </thead>
         <tbody>
           {GROUPS.map((g) => (
-            <GroupRows key={g} group={g} span={span}>
+            <GroupRows key={g} group={groupTitle(g, hasDpf)} span={span}>
               {rows.filter((r) => r.group === g).map((r) => (
                 <tr key={r.key}>
                   <td>{r.label}</td>

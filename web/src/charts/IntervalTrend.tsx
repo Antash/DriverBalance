@@ -7,6 +7,7 @@ import { ChartCard } from '../components/ChartCard'
 import { fmtNum, fmtPct, fmtDate } from '../lib/format'
 import { weeklyLPer100 } from '../lib/intervals'
 import { useAnalytics } from '../state/ParamsContext'
+import { useVehicle } from '../state/useVehicle'
 import { timeAxisTooltip } from './dateTooltip'
 
 function lineOption(opts: {
@@ -43,19 +44,21 @@ function lineOption(opts: {
 export function IntervalTrend({ from, to, serviceDates }: { from: string; to: string; serviceDates: string[] }) {
   const fuel = useAnalytics<FuelTrendChart>('charts/fuel-trend', { from, to, options: { level: 'Group' } })
   const score = useAnalytics<MonthlyScoreChart>('charts/monthly-score', { from, to })
+  const { hasDpf } = useVehicle()
   const weekly = useMemo(() => (fuel.data ? weeklyLPer100(fuel.data.points) : null), [fuel.data])
   const fuelOpt = useMemo(() => weekly && lineOption({
     name: 'Weekly L/100 km', data: weekly.map((w) => [w.weekStart, w.lPer100]), color: 0, unit: 'L/100 km',
     fmt: (v) => fmtNum(v, 1), serviceDates,
   }), [weekly, serviceDates])
-  const dpfOpt = useMemo(() => score.data && lineOption({
+  const dpfOpt = useMemo(() => hasDpf && score.data && lineOption({
     name: 'Weekly DPF index', data: score.data.weeks.map((w) => [w.weekStart, w.dpf]), color: 1, unit: 'DPF index', min: 0, max: 1,
     fmt: (v) => fmtPct(v), serviceDates,
-  }), [score.data, serviceDates])
+  }), [hasDpf, score.data, serviceDates])
   const empty = !!weekly && weekly.length === 0 && !!score.data && score.data.weeks.length === 0
   return (
-    <ChartCard title="Consumption and DPF over the intervals" loading={(fuel.isLoading && !fuel.data) || (score.isLoading && !score.data)}
-      error={fuel.isError || score.isError} empty={empty}
+    <ChartCard title={hasDpf ? 'Consumption and DPF over the intervals' : 'Consumption over the intervals'}
+      loading={(fuel.isLoading && !fuel.data) || (hasDpf && score.isLoading && !score.data)}
+      error={fuel.isError || (hasDpf && score.isError)} empty={hasDpf ? empty : !!weekly && weekly.length === 0}
       hint={serviceDates.length === 1 ? `Weekly values; the dashed line marks the service on ${fmtDate(serviceDates[0])}.`
         : serviceDates.length > 1 ? 'Weekly values; the dashed lines mark the services.' : 'Weekly values.'}>
       {fuelOpt && <Chart option={fuelOpt} height={220} />}

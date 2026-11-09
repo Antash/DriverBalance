@@ -1,5 +1,6 @@
 import type { PeriodStats } from '../api/types'
-import { compareStats, type MetricRow } from '../lib/compare'
+import { useVehicle } from '../state/useVehicle'
+import { compareStats, groupTitle, visibleMetrics, type MetricRow } from '../lib/compare'
 import { GROUPS, formatMetric } from '../lib/metricFormat'
 import { GroupRows } from './StatsTable'
 
@@ -19,7 +20,8 @@ function Change({ row }: { row: MetricRow }) {
 export function CompareTable({ a, b, currency, labelA, labelB, prevA = false, prevB = false }: {
   a: PeriodStats; b: PeriodStats; currency: string; labelA: string; labelB: string; prevA?: boolean; prevB?: boolean
 }) {
-  const rows = compareStats(a, b)
+  const { hasDpf } = useVehicle()
+  const rows = visibleMetrics(compareStats(a, b), hasDpf)
   return (
     <div className="table-wrap">
       {a.usage.days !== b.usage.days && (
@@ -31,7 +33,7 @@ export function CompareTable({ a, b, currency, labelA, labelB, prevA = false, pr
         </thead>
         <tbody>
           {GROUPS.map((g) => (
-            <GroupRows key={g} group={g} span={4}>
+            <GroupRows key={g} group={groupTitle(g, hasDpf)} span={4}>
               {rows.filter((r) => r.group === g).map((r) => (
                 <tr key={r.key}>
                   <td>{r.label}</td>

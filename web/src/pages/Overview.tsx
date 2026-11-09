@@ -22,7 +22,7 @@ function Tile({ name, value }: { name: string; value: string }) {
   )
 }
 
-function Kpis({ title, stats, currency }: { title: string; stats: PeriodStats; currency: string }) {
+function Kpis({ title, stats, currency, hasDpf }: { title: string; stats: PeriodStats; currency: string; hasDpf: boolean }) {
   return (
     <section className="card">
       <h2>{title}</h2>
@@ -30,7 +30,7 @@ function Kpis({ title, stats, currency }: { title: string; stats: PeriodStats; c
         <Tile name="Distance" value={`${fmtNum(stats.usage.tripKm, 0)} km`} />
         <Tile name="Cost" value={fmtMoney(stats.money.total, currency)} />
         <Tile name="Cost per km" value={fmtMoney(stats.money.costPerKm, currency)} />
-        <Tile name="DPF index" value={fmtPct(stats.scores.dpfIndex)} />
+        {hasDpf && <Tile name="DPF index" value={fmtPct(stats.scores.dpfIndex)} />}
         <Tile name="Fuel" value={fmtLPer100(stats.fuel.tripLPer100)} />
       </div>
     </section>
@@ -114,13 +114,13 @@ export default function OverviewPage() {
       {data && (
         <>
           <div className="chart-grid">
-            <Kpis title="This month" stats={data.thisMonth} currency={cur} />
-            <Kpis title="This year" stats={data.thisYear} currency={cur} />
+            <Kpis title="This month" stats={data.thisMonth} currency={cur} hasDpf={vehicle.hasDpf} />
+            <Kpis title="This year" stats={data.thisYear} currency={cur} hasDpf={vehicle.hasDpf} />
           </div>
 
           <OwnershipCard currency={cur} />
 
-          <DpfHealthStrip health={data.dpfHealth} />
+          {vehicle.hasDpf && data.dpfHealth && <DpfHealthStrip health={data.dpfHealth} />}
 
           <ChartCard title="Reminders" empty={data.reminders.length === 0} emptyText="Nothing needs attention.">
             <ul className="plain">
