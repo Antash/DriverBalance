@@ -41,9 +41,9 @@ public static class VehicleEndpoints
     private static async Task<IResult> Get(long vid, VehicleDataLoader loader, CancellationToken ct) =>
         Results.Ok(VehicleDto.From(await loader.GetVehicleAsync(vid, ct)));
 
-    private static async Task<IResult> Create(VehicleInput input, DriverBalanceDbContext db, CancellationToken ct)
+    private static async Task<IResult> Create(VehicleInput input, VehicleDataLoader loader, DriverBalanceDbContext db, CancellationToken ct)
     {
-        var errors = Validate(input);
+        var errors = Validate(input, loader.TodayFor(new VehicleRow { TimeZone = input.TimeZone ?? new VehicleRow().TimeZone }));
         if (input.InitialTyreSetId is not null) errors.Add("Initial tyre set can only be set once the vehicle has tyre sets.");
         if (errors.Count > 0) throw new ApiValidationException(errors);
 
@@ -60,7 +60,7 @@ public static class VehicleEndpoints
     private static async Task<IResult> Update(long vid, VehicleInput input, VehicleDataLoader loader, DriverBalanceDbContext db, CancellationToken ct)
     {
         var row = await loader.GetVehicleAsync(vid, ct);
-        var errors = Validate(input);
+        var errors = Validate(input, loader.TodayFor(new VehicleRow { TimeZone = input.TimeZone ?? row.TimeZone }));
         if (input.InitialTyreSetId is { } setId && !await db.TyreSets.AnyAsync(t => t.Id == setId && t.VehicleId == vid, ct))
             errors.Add("Initial tyre set does not exist on this vehicle.");
         if (errors.Count > 0) throw new ApiValidationException(errors);
@@ -76,12 +76,14 @@ public static class VehicleEndpoints
         return Results.Ok(VehicleDto.From(row));
     }
 
-    private static List<string> Validate(VehicleInput input)
+    private static List<string> Validate(VehicleInput input, DateOnly today)
     {
         var errors = new List<string>();
         if (string.IsNullOrWhiteSpace(input.Name)) errors.Add("Name is required.");
         if (input.HomeCurrency is { } cur && !IsCurrency(cur)) errors.Add("Home currency must be a 3-letter code.");
         if (input.TimeZone is { } tz && !VehicleDataLoader.TimeZoneExists(tz)) errors.Add($"Unknown time zone '{tz}'.");
+        if (input.HistoryStartOdometer is < 0) errors.Add("History start odometer must not be negative.");
+        if (input.HistoryStart is { } hs && hs > today) errors.Add("History start must not be in the future.");
         return errors;
     }
 
@@ -91,6 +93,9 @@ public static class VehicleEndpoints
         row.Name = input.Name!.Trim();
         if (input.HomeCurrency is { } cur) row.HomeCurrency = cur.ToUpperInvariant();
         if (input.TimeZone is { } tz) row.TimeZone = tz;
+        // A date without an odometer means a new car (0 km); no date clears both.
+        row.HistoryStart = input.HistoryStart;
+        row.HistoryStartOdometer = input.HistoryStart is null ? null : input.HistoryStartOdometer ?? 0;
     }
 
     public static bool IsCurrency(string s) => s.Length == 3 && s.All(char.IsAsciiLetter);

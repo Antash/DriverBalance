@@ -8,8 +8,21 @@ public sealed record AnalysisSession(VehicleRow Vehicle, VehicleData Data, Analy
 {
     public DateOnly Today => Data.Today;
 
-    /// <summary>Earliest first-trip or first-expense date, if the vehicle has any data.</summary>
+    /// <summary>Earliest of the car-history start, first trip and first expense, if any exist.</summary>
     public DateOnly? DataStart
+    {
+        get
+        {
+            var start = DataStartWithoutHistory;
+            return Data.HistoryStart is { } h && (start is null || h < start) ? h : start;
+        }
+    }
+
+    /// <summary>The odometer at <see cref="DataStart"/> when that is the car-history start; otherwise unknown.</summary>
+    public int? DataStartOdometer =>
+        Data.HistoryStart is { } h && h == DataStart ? Data.HistoryStartOdometer ?? 0 : null;
+
+    private DateOnly? DataStartWithoutHistory
     {
         get
         {

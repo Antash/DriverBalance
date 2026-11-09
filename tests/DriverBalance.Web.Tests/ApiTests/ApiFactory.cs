@@ -123,7 +123,7 @@ public static class Api
     public static async Task<T> ReadAsync<T>(HttpResponseMessage r) =>
         (await r.Content.ReadFromJsonAsync<T>(ApiJson.Options))!;
 
-    public sealed record VehicleBody(long Id, string Name, string HomeCurrency, string TimeZone, long? InitialTyreSetId, bool IsDefault);
+    public sealed record VehicleBody(long Id, string Name, string HomeCurrency, string TimeZone, long? InitialTyreSetId, bool IsDefault, DateOnly? HistoryStart = null, int? HistoryStartOdometer = null);
     public sealed record ImportBody(long BatchId, int Imported, int Skipped, DateOnly? FirstTrip, DateOnly? LastTrip, string[] Warnings);
     public sealed record ErrorsBody(string[] Errors);
 }

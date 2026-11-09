@@ -26,6 +26,8 @@ public sealed class VehicleRow : IUserOwned
     public string ParametersJson { get; set; } = "{}";
     public long? InitialTyreSetId { get; set; }
     public bool IsDefault { get; set; }
+    public DateOnly? HistoryStart { get; set; }
+    public int? HistoryStartOdometer { get; set; }
 }
 
 public sealed class TripRow : IUserOwned

@@ -6,4 +6,6 @@ public sealed record VehicleData(
     IReadOnlyList<TyreSet> TyreSets,
     string HomeCurrency,
     DateOnly Today,
-    long? InitialTyreSetId = null);
+    long? InitialTyreSetId = null,
+    DateOnly? HistoryStart = null,
+    int? HistoryStartOdometer = null);

@@ -26,6 +26,13 @@ public sealed class AnalysisContext
             if (e.Odometer is > 0)
                 readings.Add(new OdometerReading(e.Date.AddDays(1).ToDateTime(TimeOnly.MinValue).AddTicks(-1), e.Odometer.Value, OdometerSource.Expense));
         }
+        // The car-history start counts only when it precedes every other reading; a 0 km reading after real ones would corrupt the timeline.
+        if (data.HistoryStart is { } hs)
+        {
+            var at = hs.ToDateTime(TimeOnly.MinValue);
+            if (readings.All(r => r.At > at))
+                readings.Add(new OdometerReading(at, data.HistoryStartOdometer ?? 0, OdometerSource.HistoryStart));
+        }
         return OdometerTimeline.Build(readings);
     }
 

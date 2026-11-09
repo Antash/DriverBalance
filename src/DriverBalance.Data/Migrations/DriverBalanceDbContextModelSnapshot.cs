@@ -356,6 +356,12 @@ namespace DriverBalance.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<DateOnly?>("HistoryStart")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("HistoryStartOdometer")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("HomeCurrency")
                         .IsRequired()
                         .HasColumnType("TEXT");

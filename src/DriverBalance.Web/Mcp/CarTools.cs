@@ -186,7 +186,7 @@ public sealed class CarTools(DriverBalanceDbContext db, VehicleDataLoader loader
             {
                 if (string.IsNullOrWhiteSpace(maintenanceType)) throw new ApiValidationException("maintenanceType is required for kind \"interval\".");
                 var type = ParseMaintenanceType(maintenanceType);
-                var intervals = Intervals.Build(type, s.Data.Expenses, s.DataStart, s.Today);
+                var intervals = Intervals.Build(type, s.Data.Expenses, s.DataStart, s.Today, s.DataStartOdometer);
                 if (intervalIndex < 0 || intervalIndex >= intervals.Count)
                     throw new ApiValidationException($"intervalIndex {intervalIndex} is out of range; {type} has {intervals.Count} interval(s) (0 to {intervals.Count - 1}).");
                 period = intervals[intervalIndex];

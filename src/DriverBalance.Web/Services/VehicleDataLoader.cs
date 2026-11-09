@@ -29,7 +29,8 @@ public sealed class VehicleDataLoader(DriverBalanceDbContext db, TimeProvider cl
         var tyres = (await db.TyreSets.AsNoTracking().Where(t => t.VehicleId == vid).OrderBy(t => t.Id).ToListAsync(ct))
             .Select(t => t.ToDomain()).ToList();
 
-        var data = new VehicleData(trips, expenses, tyres, row.HomeCurrency, TodayFor(row), row.InitialTyreSetId);
+        var data = new VehicleData(trips, expenses, tyres, row.HomeCurrency, TodayFor(row), row.InitialTyreSetId,
+            row.HistoryStart, row.HistoryStartOdometer);
         return (row, data, Mapping.ParseParameters(row.ParametersJson));
     }
 }

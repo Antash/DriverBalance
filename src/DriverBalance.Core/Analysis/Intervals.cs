@@ -2,8 +2,9 @@ namespace DriverBalance.Core;
 
 public static class Intervals
 {
-    /// <summary>Service intervals for one maintenance type, newest first: Current, ..., "Before first &lt;type&gt;".</summary>
-    public static IReadOnlyList<Period> Build(MaintenanceType type, IEnumerable<Expense> expenses, DateOnly? dataStart, DateOnly today)
+    /// <summary>Service intervals (<paramref name="dataStartOdometer"/> is the odometer at <paramref name="dataStart"/> when known, e.g. 0 for a car-history start) for one maintenance type, newest first: Current, ..., "Before first &lt;type&gt;".</summary>
+    public static IReadOnlyList<Period> Build(MaintenanceType type, IEnumerable<Expense> expenses, DateOnly? dataStart, DateOnly today,
+        int? dataStartOdometer = null)
     {
         var events = expenses
             .Where(e => e.Category == ExpenseCategory.Maintenance && e.Maintenance.HasFlag(type))
@@ -16,7 +17,7 @@ public static class Intervals
         var end = today.AddDays(1);
         if (events.Count == 0)
         {
-            result.Add(new Period(dataStart ?? today, end, $"Before first {type}"));
+            result.Add(new Period(dataStart ?? today, end, $"Before first {type}", dataStart is null ? null : dataStartOdometer));
             return result;
         }
 
@@ -31,7 +32,7 @@ public static class Intervals
         var from = dataStart is { } ds && ds < firstEvent.Date ? ds : firstEvent.Date;
         // Data starting on or after the first service leaves no "before" period to show.
         if (from < firstEvent.Date)
-            result.Add(new Period(from, firstEvent.Date, $"Before first {type}", null, firstEvent.Odo));
+            result.Add(new Period(from, firstEvent.Date, $"Before first {type}", from == dataStart ? dataStartOdometer : null, firstEvent.Odo));
         return result;
     }
 }

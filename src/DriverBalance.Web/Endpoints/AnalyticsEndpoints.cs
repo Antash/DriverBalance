@@ -52,7 +52,7 @@ public static class AnalyticsEndpoints
     private static async Task<IResult> IntervalStats(long vid, IntervalsRequest req, AnalysisSessionFactory sessions, CancellationToken ct)
     {
         var s = await sessions.OpenAsync(vid, req.Parameters, ct);
-        var periods = Intervals.Build(req.Type, s.Data.Expenses, s.DataStart, s.Today);
+        var periods = Intervals.Build(req.Type, s.Data.Expenses, s.DataStart, s.Today, s.DataStartOdometer);
         return Results.Ok(WithStats(s, periods));
     }
 
