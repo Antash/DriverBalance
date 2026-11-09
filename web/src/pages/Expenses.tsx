@@ -5,6 +5,7 @@ import { api } from '../api/client'
 import type { CumulativeCostPoint, Expense, ExpenseCategory, MonthlyCost } from '../api/types'
 import { chartTheme, axisStyle, timeZoom, ZOOM_GRID_BOTTOM } from '../components/chartTheme'
 import { Chart } from '../components/Chart'
+import { Clip } from '../components/Clip'
 import { CATEGORIES, ExpenseForm, label } from '../components/ExpenseForm'
 import { Modal } from '../components/Modal'
 import { PeriodPicker, type PeriodValue } from '../components/PeriodPicker'
@@ -139,7 +140,7 @@ export default function ExpensesPage() {
               const needsConversion = e.currency !== cur && e.homeAmount == null
               return (
                 <tr key={e.id}>
-                  <td>{e.date}</td>
+                  <td>{e.date}<Clip n={e.documents.length} /></td>
                   <td>{label(e.category)}</td>
                   <td className="num">{fmtMoney(e.amount, e.currency)}</td>
                   <td className="num">

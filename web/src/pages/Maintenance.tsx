@@ -4,6 +4,7 @@ import { api } from '../api/client'
 import { VehicleTimeline } from '../charts/VehicleTimeline'
 import type { Expense, LatestOdometer, TyreSeason, TyreSet, TyreSummaryResponse } from '../api/types'
 import { ChartCard } from '../components/ChartCard'
+import { Clip } from '../components/Clip'
 import { ExpenseForm } from '../components/ExpenseForm'
 import { Modal } from '../components/Modal'
 import { addDays, iso } from '../lib/dates'
@@ -122,7 +123,7 @@ export default function MaintenancePage() {
           <div className="table-wrap">
             <table className="data">
               <thead>
-                <tr><th>Date</th><th className="num">Odometer</th><th>Work done</th><th>Since last time</th><th className="num">Cost</th><th>Note</th></tr>
+                <tr><th>Date</th><th className="num">Odometer</th><th>Work done</th><th>Since last time</th><th className="num">Cost</th><th>Where</th><th>Note</th></tr>
               </thead>
               <tbody>
                 {services.map((s) => {
@@ -131,7 +132,7 @@ export default function MaintenancePage() {
                   return (
                     <tr key={s.id} className="clickable" tabIndex={0} onClick={open}
                       onKeyDown={(e) => { if (e.key === 'Enter') open() }}>
-                      <td>{s.date}</td>
+                      <td>{s.date}<Clip n={s.expense.documents.length} /></td>
                       <td className="num">{s.odometer != null ? `${fmtNum(s.odometer, 0)} km` : '—'}</td>
                       <td>{s.work.map((w, i) => {
                         const part = partLine(w)
@@ -148,6 +149,7 @@ export default function MaintenancePage() {
                       })}</td>
                       <td>{s.work.map((w, i) => <div key={`${w.key}-${i}`}><Since w={w} /></div>)}</td>
                       <td className="num">{cost(s.expense)}</td>
+                      <td>{s.expense.place ?? ''}</td>
                       <td>{s.expense.note ?? ''}{legacy && <span className="muted">{s.expense.note ? ' · ' : ''}{legacy}</span>}</td>
                     </tr>
                   )

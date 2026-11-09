@@ -12,10 +12,14 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
   const [f, setF] = useState<VehicleInput>({
     name: vehicle.name, homeCurrency: vehicle.homeCurrency, timeZone: vehicle.timeZone,
     initialTyreSetId: vehicle.initialTyreSetId, isDefault: vehicle.isDefault,
+    historyStart: vehicle.historyStart, historyStartOdometer: vehicle.historyStartOdometer,
   })
   const save = useMutation({
     mutationFn: () => api.put<Vehicle>(`/vehicles/${vehicle.id}`, f),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['vehicles'] }),
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: ['vehicles'] }),
+      qc.invalidateQueries({ queryKey: ['analytics', vehicle.id] }),
+    ]),
   })
   return (
     <section className="card">
@@ -30,6 +34,15 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
             {sets.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
         </label>
+        <label>Car history start
+          <input type="date" value={f.historyStart ?? ''}
+            onChange={(e) => setF({ ...f, historyStart: e.target.value || null, historyStartOdometer: e.target.value ? (f.historyStartOdometer ?? 0) : null })} />
+        </label>
+        <label>Odometer at that date (km)
+          <input type="number" min={0} step={1} disabled={!f.historyStart} value={f.historyStartOdometer ?? ''}
+            onChange={(e) => setF({ ...f, historyStartOdometer: e.target.value === '' ? 0 : Math.max(0, Math.trunc(Number(e.target.value))) })} />
+        </label>
+        <p className="muted">When the car was new (or when you bought it). Stats count from here.</p>
         <label className="check"><input type="checkbox" checked={f.isDefault} onChange={(e) => setF({ ...f, isDefault: e.target.checked })} /> Default vehicle</label>
         {save.isError && <ul className="errors">{errorLines(save.error).map((m) => <li key={m}>{m}</li>)}</ul>}
         <div className="row">

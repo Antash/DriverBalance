@@ -39,6 +39,12 @@ export function daysAgo(date: string, today = new Date()): number {
   return Math.round((t.getTime() - d.getTime()) / 86_400_000)
 }
 
+export function fmtBytes(n: number): string {
+  if (n < 1024) return `${n} B`
+  if (n < 1024 * 1024) return `${fmtNum(n / 1024, 1)} KB`
+  return `${fmtNum(n / (1024 * 1024), 1)} MB`
+}
+
 /** Expenses, tyres and every chart for one vehicle may change after a mutation. */
 export function invalidateVehicleData(qc: QueryClient, vehicleId: number) {
   return Promise.all([

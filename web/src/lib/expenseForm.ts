@@ -34,13 +34,14 @@ export interface ExpenseFormState {
   litres: string
   fullTank: boolean
   station: string
+  place: string
   work: WorkDraft[]
   maintenanceDescription: string
   tyreSetId: string
   tyres: TyreDraft
 }
 
-export type ExpensePayload = Omit<Expense, 'id' | 'source'> & { tyres: TyresPayload | null }
+export type ExpensePayload = Omit<Expense, 'id' | 'source' | 'documents'> & { tyres: TyresPayload | null }
 
 export const newWorkId = (() => { let n = 0; return () => `w${++n}` })()
 export const emptyTyres = (): TyreDraft => ({ mode: 'existing', brand: '', model: '', size: '', season: 'Summer' })
@@ -119,6 +120,7 @@ export function buildExpensePayload(f: ExpenseFormState, homeCurrency: string): 
     litres: fuel ? num(f.litres) : null,
     fullTank: fuel ? f.fullTank : null,
     station: fuel ? emptyToNull(f.station) : null,
+    place: fuel ? null : emptyToNull(f.place),
     maintenance: types,
     work: work.map(toWork),
     maintenanceDescription: maint ? emptyToNull(f.maintenanceDescription) : null,
@@ -135,7 +137,7 @@ export function toFormState(e: Expense): ExpenseFormState {
     homeAmount: e.homeAmount == null ? '' : String(e.homeAmount),
     odometer: e.odometer == null ? '' : String(e.odometer), note: e.note ?? '',
     coversFrom: e.coversFrom ?? '', coversTo: e.coversTo ?? '',
-    litres: e.litres == null ? '' : String(e.litres), fullTank: e.fullTank ?? false, station: e.station ?? '',
+    litres: e.litres == null ? '' : String(e.litres), fullTank: e.fullTank ?? false, station: e.station ?? '', place: e.place ?? '',
     work: e.work.length > 0
       ? e.work.map((w) => w.type === 'TyreSwap'
         ? { id: newWorkId(), type: w.type, name: '', part: 'None' as const, brand: '', model: '', details: w.details ?? '' }
@@ -150,6 +152,6 @@ export function emptyFormState(currency: string, today = new Date()): ExpenseFor
   const d = iso(today)
   return {
     date: d, category: 'Fuel', amount: '', currency, homeAmount: '', odometer: '', note: '', coversFrom: '', coversTo: '',
-    litres: '', fullTank: true, station: '', work: [], maintenanceDescription: '', tyreSetId: '', tyres: emptyTyres(),
+    litres: '', fullTank: true, station: '', place: '', work: [], maintenanceDescription: '', tyreSetId: '', tyres: emptyTyres(),
   }
 }

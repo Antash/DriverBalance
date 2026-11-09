@@ -4,7 +4,7 @@ import { buildExpensePayload, emptyFormState, parseDecimal, pricePerLitre, toFor
 
 const base: ExpenseFormState = {
   date: '2026-03-01', category: 'Other', amount: '120', currency: 'CZK', homeAmount: '', odometer: '', note: '',
-  coversFrom: '', coversTo: '', litres: '', fullTank: false, station: '',
+  coversFrom: '', coversTo: '', litres: '', fullTank: false, station: '', place: '',
   work: [], maintenanceDescription: '', tyreSetId: '',
   tyres: { mode: 'existing', brand: '', model: '', size: '', season: 'Summer' },
 }
@@ -74,7 +74,7 @@ describe('buildExpensePayload', () => {
 
   it('other categories drop fuel and maintenance fields', () => {
     const p = buildExpensePayload({ ...base, category: 'Parking', litres: '5', station: 'x', work: [item()], tyreSetId: '2', tyres: newTyres }, 'CZK')
-    expect(p).toMatchObject({ litres: null, fullTank: null, station: null, maintenance: [], work: [], maintenanceDescription: null, tyreSetId: null, tyres: null })
+    expect(p).toMatchObject({ litres: null, fullTank: null, station: null, place: null, maintenance: [], work: [], maintenanceDescription: null, tyreSetId: null, tyres: null })
   })
 
   it('Tyres sends the set; empty optionals become null; currency is upper-cased', () => {
@@ -144,7 +144,7 @@ describe('homeAmount', () => {
 
 describe('toFormState', () => {
   const common: Expense = { id: 1, date: '2026-02-03', amount: 1234.5, currency: 'CZK', homeAmount: null, odometer: 45678, note: 'n',
-    coversFrom: null, coversTo: null, litres: null, fullTank: null, station: null, maintenance: [], maintenanceDescription: null,
+    coversFrom: null, coversTo: null, litres: null, fullTank: null, station: null, place: null, documents: [], maintenance: [], maintenanceDescription: null,
     tyreSetId: null, source: 'Web', category: 'Other', work: [] }
 
   it('toFormState_legacyFlagsBecomeWorkItems', () => {
@@ -163,7 +163,7 @@ describe('toFormState', () => {
 describe('stored TyreSwap with a stray part', () => {
   it('is normalised so validation cannot fail invisibly', () => {
     const e: Expense = { id: 1, date: '2026-02-03', amount: 1, currency: 'CZK', homeAmount: null, odometer: null, note: null,
-      coversFrom: null, coversTo: null, litres: null, fullTank: null, station: null, maintenance: ['TyreSwap'],
+      coversFrom: null, coversTo: null, litres: null, fullTank: null, station: null, place: null, documents: [], maintenance: ['TyreSwap'],
       maintenanceDescription: null, tyreSetId: 3, source: 'Web', category: 'Maintenance',
       work: [{ type: 'TyreSwap', name: null, part: 'Aftermarket', brand: null, model: 'x', details: null }] }
     const f = toFormState(e)
@@ -177,9 +177,9 @@ describe('stored TyreSwap with a stray part', () => {
 
 describe('toFormState -> buildExpensePayload round trip', () => {
   const common: Expense = { id: 1, date: '2026-02-03', amount: 1234.5, currency: 'CZK', homeAmount: null, odometer: 45678, note: 'n',
-    coversFrom: null, coversTo: null, litres: null, fullTank: null, station: null, maintenance: [], maintenanceDescription: null,
+    coversFrom: null, coversTo: null, litres: null, fullTank: null, station: null, place: null, documents: [], maintenance: [], maintenanceDescription: null,
     tyreSetId: null, source: 'Web', category: 'Other', work: [] }
-  const strip = ({ id: _id, source: _s, ...rest }: Expense) => ({ ...rest, tyres: null })
+  const strip = ({ id: _id, source: _s, documents: _d, ...rest }: Expense) => ({ ...rest, tyres: null })
   it.each([
     ['Fuel', { ...common, category: 'Fuel', litres: 40.2, fullTank: true, station: 'Shell' }],
     ['Maintenance with tyre set', { ...common, category: 'Maintenance', maintenance: ['TyreSwap', 'OilChange'], maintenanceDescription: 'd', tyreSetId: 3,
@@ -191,4 +191,19 @@ describe('toFormState -> buildExpensePayload round trip', () => {
     ['Insurance with covers', { ...common, category: 'Insurance', coversFrom: '2026-01-01', coversTo: '2026-12-31' }],
     ['foreign currency', { ...common, category: 'Parking', currency: 'EUR', homeAmount: 250.5 }],
   ] as [string, Expense][])('%s', (_n, e) => expect(buildExpensePayload(toFormState(e), 'CZK')).toEqual(strip(e)))
+})
+
+describe('place', () => {
+  it('is trimmed in the payload and blank becomes null', () => {
+    expect(buildExpensePayload({ ...base, place: '  Garage Novak ' }, 'CZK').place).toBe('Garage Novak')
+    expect(buildExpensePayload({ ...base, place: '   ' }, 'CZK').place).toBeNull()
+  })
+  it('is null for Fuel', () => expect(buildExpensePayload({ ...base, category: 'Fuel', place: 'Garage' }, 'CZK').place).toBeNull())
+  it('toFormState maps place', () => {
+    const e: Expense = { id: 1, date: '2026-02-03', amount: 1, currency: 'CZK', homeAmount: null, odometer: null, note: null,
+      coversFrom: null, coversTo: null, litres: null, fullTank: null, station: null, place: 'Garage', documents: [], maintenance: [],
+      maintenanceDescription: null, tyreSetId: null, source: 'Web', category: 'Other', work: [] }
+    expect(toFormState(e).place).toBe('Garage')
+    expect(toFormState({ ...e, place: null }).place).toBe('')
+  })
 })

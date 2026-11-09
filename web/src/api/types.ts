@@ -57,6 +57,8 @@ export interface Vehicle {
   timeZone: string
   initialTyreSetId: number | null
   isDefault: boolean
+  historyStart: DateOnly | null
+  historyStartOdometer: number | null
 }
 
 export interface Period {
@@ -87,6 +89,13 @@ export interface ApiErrorBody {
 
 export type ExpenseSource = 'Web' | 'Mcp' | 'Migration'
 
+export interface ExpenseDocument {
+  id: number
+  fileName: string
+  contentType: string
+  sizeBytes: number
+}
+
 export interface Expense {
   id: number
   date: DateOnly
@@ -101,6 +110,8 @@ export interface Expense {
   litres: number | null
   fullTank: boolean | null
   station: string | null
+  place: string | null
+  documents: ExpenseDocument[]
   maintenance: MaintenanceType[]
   work: MaintenanceWork[]
   maintenanceDescription: string | null
@@ -190,6 +201,8 @@ export interface VehicleInput {
   timeZone: string
   initialTyreSetId: number | null
   isDefault: boolean
+  historyStart: DateOnly | null
+  historyStartOdometer: number | null
 }
 
 export interface MonthlyCost {
