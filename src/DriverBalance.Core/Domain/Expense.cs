@@ -1,6 +1,6 @@
 namespace DriverBalance.Core;
 
-public enum ExpenseCategory { Fuel, Parking, TollsVignette, Wash, Maintenance, Repair, Tyres, Accessories, Insurance, RoadTax, Fines, Financing, Other }
+public enum ExpenseCategory { Fuel, Parking, TollsVignette, Wash, Maintenance, Repair, Tyres, Accessories, Insurance, RoadTax, Fines, Financing, Other, Purchase }
 
 public sealed record ExpenseDocumentInfo(long Id, string FileName, string ContentType, long SizeBytes);
 

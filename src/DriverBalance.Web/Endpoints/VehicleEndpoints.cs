@@ -13,6 +13,7 @@ public static class VehicleEndpoints
         v.MapPost("", Create);
         v.MapGet("/{vid:long}", Get);
         v.MapPut("/{vid:long}", Update);
+        v.MapGet("/{vid:long}/ownership", GetOwnership);
 
         v.MapGet("/{vid:long}/parameters", GetParameters);
         v.MapPut("/{vid:long}/parameters", PutParameters);
@@ -34,6 +35,9 @@ public static class VehicleEndpoints
     }
 
     private sealed record OdometerReading(int Odometer, DateOnly Date);
+
+    private static async Task<IResult> GetOwnership(long vid, AnalysisSessionFactory sessions, CancellationToken ct) =>
+        Results.Ok(Ownership.Compute((await sessions.OpenAsync(vid, null, ct)).Context));
 
     private static async Task<IResult> List(DriverBalanceDbContext db, CancellationToken ct) =>
         Results.Ok((await db.Vehicles.AsNoTracking().OrderBy(v => v.Id).ToListAsync(ct)).Select(VehicleDto.From).ToList());
@@ -92,6 +96,9 @@ public static class VehicleEndpoints
         if (input.TimeZone is { } tz && !VehicleDataLoader.TimeZoneExists(tz)) errors.Add($"Unknown time zone '{tz}'.");
         if (input.HistoryStartOdometer is < 0) errors.Add("History start odometer must not be negative.");
         if (input.HistoryStart is { } hs && hs > today) errors.Add("History start must not be in the future.");
+        if (input.EstimatedResaleValue is < 0) errors.Add("Estimated resale value must not be negative.");
+        if (input.PurchaseDate is { } pd && pd > today) errors.Add("Purchase date must not be in the future.");
+        if (input.ResaleEstimateDate is { } rd && rd > today) errors.Add("Resale estimate date must not be in the future.");
         return errors;
     }
 
@@ -104,6 +111,9 @@ public static class VehicleEndpoints
         // A date without an odometer means a new car (0 km); no date clears both.
         row.HistoryStart = input.HistoryStart;
         row.HistoryStartOdometer = input.HistoryStart is null ? null : input.HistoryStartOdometer ?? 0;
+        row.PurchaseDate = input.PurchaseDate;
+        row.EstimatedResaleValue = input.EstimatedResaleValue;
+        row.ResaleEstimateDate = input.EstimatedResaleValue is null ? null : input.ResaleEstimateDate;
     }
 
     public static bool IsCurrency(string s) => s.Length == 3 && s.All(char.IsAsciiLetter);

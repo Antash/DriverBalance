@@ -28,7 +28,7 @@ public sealed class CarTools(DriverBalanceDbContext db, VehicleDataLoader loader
         "If the currency is not the vehicle's home currency and neither homeAmount nor rate is given, the expense is still saved " +
         "and needsConversion is true (it is excluded from totals until a home amount is set).")]
     public Task<CallToolResult> AddExpense(
-        [Description("Category, one of: Fuel, Parking, TollsVignette, Wash, Maintenance, Repair, Tyres, Accessories, Insurance, RoadTax, Fines, Financing, Other.")] string category,
+        [Description("Category, one of: Fuel, Parking, TollsVignette, Wash, Maintenance, Repair, Tyres, Accessories, Insurance, RoadTax, Fines, Financing, Other, Purchase (the car itself, warranty, transfer: kept out of period stats, counted in cost of ownership).")] string category,
         [Description("Amount paid, greater than 0, in `currency`.")] decimal amount,
         [Description("3-letter currency code. Optional: \"home\" (the default) means the vehicle's home currency.")] string currency = "home",
         [Description(DateDoc)] string? date = null,

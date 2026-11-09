@@ -30,7 +30,7 @@ public sealed class VehicleDataLoader(DriverBalanceDbContext db, TimeProvider cl
             .Select(t => t.ToDomain()).ToList();
 
         var data = new VehicleData(trips, expenses, tyres, row.HomeCurrency, TodayFor(row), row.InitialTyreSetId,
-            row.HistoryStart, row.HistoryStartOdometer);
+            row.HistoryStart, row.HistoryStartOdometer, row.PurchaseDate, row.EstimatedResaleValue, row.ResaleEstimateDate);
         return (row, data, Mapping.ParseParameters(row.ParametersJson));
     }
 }

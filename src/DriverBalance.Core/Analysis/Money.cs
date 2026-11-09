@@ -27,6 +27,7 @@ public static class Money
         int needsConversion = 0;
         foreach (var e in expenses)
         {
+            if (e.Category == ExpenseCategory.Purchase) continue; // buying the car is not a running cost
             var (part, whole) = Share(e, p);
             if (part == 0) continue;
             if (HomeAmountOf(e, homeCurrency) is not { } amount) { needsConversion++; continue; }

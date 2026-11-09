@@ -28,6 +28,9 @@ public sealed class VehicleRow : IUserOwned
     public bool IsDefault { get; set; }
     public DateOnly? HistoryStart { get; set; }
     public int? HistoryStartOdometer { get; set; }
+    public DateOnly? PurchaseDate { get; set; }
+    public decimal? EstimatedResaleValue { get; set; }
+    public DateOnly? ResaleEstimateDate { get; set; }
 }
 
 public sealed class TripRow : IUserOwned

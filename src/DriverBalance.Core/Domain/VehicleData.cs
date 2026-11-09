@@ -8,4 +8,7 @@ public sealed record VehicleData(
     DateOnly Today,
     long? InitialTyreSetId = null,
     DateOnly? HistoryStart = null,
-    int? HistoryStartOdometer = null);
+    int? HistoryStartOdometer = null,
+    DateOnly? PurchaseDate = null,
+    decimal? EstimatedResaleValue = null,
+    DateOnly? ResaleEstimateDate = null);

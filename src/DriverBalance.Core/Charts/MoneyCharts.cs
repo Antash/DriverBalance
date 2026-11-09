@@ -36,6 +36,7 @@ public static class MoneyCharts
         int? firstKm = c.Timeline.Readings.Count > 0 ? c.Timeline.Readings[0].Km : null;
         decimal running = 0m;
         var byDate = c.Data.Expenses
+            .Where(e => e.Category != ExpenseCategory.Purchase)
             .Select(e => (e.Date, Amount: Money.HomeAmountOf(e, c.Data.HomeCurrency)))
             .Where(x => x.Amount is not null)
             .GroupBy(x => x.Date)

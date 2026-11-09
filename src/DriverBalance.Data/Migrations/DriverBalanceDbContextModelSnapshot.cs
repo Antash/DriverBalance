@@ -352,6 +352,9 @@ namespace DriverBalance.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<decimal?>("EstimatedResaleValue")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("FuelType")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -378,6 +381,12 @@ namespace DriverBalance.Data.Migrations
 
                     b.Property<string>("ParametersJson")
                         .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("PurchaseDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("ResaleEstimateDate")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("TimeZone")
