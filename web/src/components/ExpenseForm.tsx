@@ -45,6 +45,7 @@ export function ExpenseForm({ vehicle, tyreSets, initial, onDone, lockCategory, 
     }
   })
   const [savedId, setSavedId] = useState<number | null>(initial?.id ?? null)
+  const [savedTyreSetId, setSavedTyreSetId] = useState<number | null>(null)
   const [docs, setDocs] = useState<ExpenseDocument[]>(initial?.documents ?? [])
   const [pending, setPending] = useState<File[]>([])
   const [uploadErrors, setUploadErrors] = useState<string[]>([])
@@ -63,6 +64,11 @@ export function ExpenseForm({ vehicle, tyreSets, initial, onDone, lockCategory, 
         : await api.post<Expense>(`/vehicles/${vehicle.id}/expenses`, body)
       // The expense is saved: from here on a retry must update it, not create a duplicate.
       setSavedId(saved.id)
+      if (saved.tyreSetId != null) {
+        // The server may have created the tyre set from this form: a retry must reference it, not create it again.
+        setSavedTyreSetId(saved.tyreSetId)
+        setF((s) => ({ ...s, tyreSetId: String(saved.tyreSetId), tyres: { ...s.tyres, mode: 'existing' } }))
+      }
       let uploadOk = true
       if (pending.length > 0) {
         const form = new FormData()
@@ -125,7 +131,7 @@ export function ExpenseForm({ vehicle, tyreSets, initial, onDone, lockCategory, 
             work={f.work} onWork={(w) => set('work', w)}
             tyres={f.tyres} onTyres={(t) => set('tyres', t)}
             tyreSetId={f.tyreSetId} onTyreSetId={(v) => set('tyreSetId', v)}
-            tyreSets={tyreSets} tyreLocked={initial?.tyreSetId != null} err={err}
+            tyreSets={tyreSets} tyreLocked={(initial?.tyreSetId ?? savedTyreSetId) != null} err={err}
           />
           {err('work')}
           {f.maintenanceDescription && <p className="muted wide">Earlier description: {f.maintenanceDescription}</p>}

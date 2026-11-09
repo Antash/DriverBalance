@@ -207,7 +207,7 @@ export default function MaintenancePage() {
         <Modal title="Edit maintenance" onClose={() => setEditing(null)}>
           <ExpenseForm key={editing.id} vehicle={vehicle} tyreSets={tyreSets} initial={editing} lockCategory="Maintenance"
             onDone={() => setEditing(null)} deleting={remove.isPending}
-            onDelete={() => { if (window.confirm(`Delete this maintenance record from ${editing.date}?`)) remove.mutate(editing) }} />
+            onDelete={() => { if (window.confirm(`Delete this maintenance record from ${editing.date}${editing.documents.length > 0 ? ` and its ${editing.documents.length} document(s)` : ''}?`)) remove.mutate(editing) }} />
           {remove.isError && <ul className="errors">{errorLines(remove.error).map((m) => <li key={m}>{m}</li>)}</ul>}
         </Modal>
       )}

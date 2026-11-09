@@ -151,7 +151,7 @@ export default function ExpensesPage() {
                   <td>{e.note ?? ''}</td>
                   <td>
                     <button className="btn small" onClick={() => setEditing(e)}>Edit</button>{' '}
-                    <button className="btn small danger" onClick={() => { if (window.confirm(`Delete this ${label(e.category)} expense from ${e.date}?`)) del.mutate(e.id) }}>Delete</button>
+                    <button className="btn small danger" onClick={() => { if (window.confirm(`Delete this ${label(e.category)} expense from ${e.date}${e.documents.length > 0 ? ` and its ${e.documents.length} document(s)` : ''}?`)) del.mutate(e.id) }}>Delete</button>
                   </td>
                 </tr>
               )

@@ -119,7 +119,6 @@ function extremes(values: (number | null)[], better: 'up' | 'down' | null, ranke
   return better === 'up' ? { best: at(hi), worst: at(lo) } : { best: at(lo), worst: at(hi) }
 }
 
-/** Any number of periods side by side, with the best and worst marked on metrics that have a good direction. */
 /** Volumes that only trips can measure: with no trips in a period they are unknown, not zero. */
 const TRIP_VOLUMES: MetricKey[] = ['tripKm', 'coldStarts', 'drivingHoursPerDay']
 
