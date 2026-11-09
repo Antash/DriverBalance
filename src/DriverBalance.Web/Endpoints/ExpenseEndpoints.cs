@@ -58,6 +58,7 @@ public static class ExpenseEndpoints
         row.Odometer = e.Odometer; row.Note = e.Note; row.CoversFrom = e.CoversFrom; row.CoversTo = e.CoversTo; row.Litres = e.Litres;
         row.FullTank = e.FullTank; row.Station = e.Station; row.MaintenanceFlags = (int)e.Maintenance;
         row.MaintenanceDescription = e.MaintenanceDescription; row.TyreSetId = e.TyreSetId;
+        row.WorkJson = e.ToRow().WorkJson;
         await db.SaveChangesAsync(ct);
         return Results.Ok(row.ToDomain());
     }

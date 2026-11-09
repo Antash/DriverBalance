@@ -21,6 +21,7 @@ public sealed record Expense
     public string? Station { get; init; }
     public MaintenanceType Maintenance { get; init; }
     public string? MaintenanceDescription { get; init; }
+    public IReadOnlyList<MaintenanceWork> Work { get; init; } = Array.Empty<MaintenanceWork>();
     public long? TyreSetId { get; init; }
     public ExpenseSource Source { get; init; }
 }

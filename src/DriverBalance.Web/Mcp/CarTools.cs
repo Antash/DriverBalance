@@ -19,7 +19,7 @@ public sealed class CarTools(DriverBalanceDbContext db, VehicleDataLoader loader
 {
     private const string VehicleIdDoc = "Vehicle id. Optional: defaults to the user's default vehicle, else the first vehicle.";
     private const string DateDoc = "Date as yyyy-MM-dd. Optional: defaults to today in the vehicle's time zone.";
-    private const string MaintenanceNames = "OilChange, BrakeFluid, TyreSwap, BrakePads, TransmissionOil, HaldexOil, Coolant, CabinFilter, AirFilter, FuelFilter, ACCleaning, NewTyres";
+    private const string MaintenanceNames = "OilChange, BrakeFluid, TyreSwap, BrakePads, TransmissionOil, HaldexOil, Coolant, CabinFilter, AirFilter, FuelFilter, ACCleaning, NewTyres, OilFilter, BrakeDiscs, WheelAlignment, TimingBelt, AuxiliaryBelt, GlowPlugs, DpfService, Battery, WiperBladesFront, WiperBladesRear";
 
     private static readonly string CategoryNames = string.Join(", ", Enum.GetNames<ExpenseCategory>());
 

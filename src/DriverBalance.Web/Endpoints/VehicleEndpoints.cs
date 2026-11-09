@@ -16,8 +16,24 @@ public static class VehicleEndpoints
 
         v.MapGet("/{vid:long}/parameters", GetParameters);
         v.MapPut("/{vid:long}/parameters", PutParameters);
+        v.MapGet("/{vid:long}/odometer/latest", LatestOdometer);
         api.MapGet("/parameters/defaults", () => Results.Ok(new AnalysisParameters()));
     }
+
+    /// <summary>Highest odometer reading across trips (end odometer) and expenses, with the date it was taken; 204 when none.</summary>
+    private static async Task<IResult> LatestOdometer(long vid, VehicleDataLoader loader, DriverBalanceDbContext db, CancellationToken ct)
+    {
+        await loader.GetVehicleAsync(vid, ct);
+        var trip = await db.Trips.AsNoTracking().Where(t => t.VehicleId == vid && t.EndOdometer > 0)
+            .OrderByDescending(t => t.EndOdometer).ThenByDescending(t => t.End).Select(t => new { Odo = t.EndOdometer, t.End }).FirstOrDefaultAsync(ct);
+        var exp = await db.Expenses.AsNoTracking().Where(x => x.VehicleId == vid && x.Odometer > 0)
+            .OrderByDescending(x => x.Odometer).ThenByDescending(x => x.Date).Select(x => new { Odo = x.Odometer!.Value, x.Date }).FirstOrDefaultAsync(ct);
+        if (trip is null && exp is null) return Results.NoContent();
+        if (exp is null || (trip is not null && trip.Odo > exp.Odo)) return Results.Ok(new OdometerReading(trip!.Odo, DateOnly.FromDateTime(trip.End)));
+        return Results.Ok(new OdometerReading(exp.Odo, exp.Date));
+    }
+
+    private sealed record OdometerReading(int Odometer, DateOnly Date);
 
     private static async Task<IResult> List(DriverBalanceDbContext db, CancellationToken ct) =>
         Results.Ok((await db.Vehicles.AsNoTracking().OrderBy(v => v.Id).ToListAsync(ct)).Select(VehicleDto.From).ToList());

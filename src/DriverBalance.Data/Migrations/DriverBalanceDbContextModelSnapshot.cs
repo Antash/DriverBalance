@@ -116,6 +116,9 @@ namespace DriverBalance.Data.Migrations
                     b.Property<long>("VehicleId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("WorkJson")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.HasIndex("UserId", "TyreSetId");

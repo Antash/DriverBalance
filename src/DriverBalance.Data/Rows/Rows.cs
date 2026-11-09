@@ -66,6 +66,7 @@ public sealed class ExpenseRow : IUserOwned
     public string? Station { get; set; }
     public int MaintenanceFlags { get; set; }
     public string? MaintenanceDescription { get; set; }
+    public string? WorkJson { get; set; }
     public long? TyreSetId { get; set; }
     public ExpenseSource Source { get; set; }
     public DateTime CreatedAt { get; set; }

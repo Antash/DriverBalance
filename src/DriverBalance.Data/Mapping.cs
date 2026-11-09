@@ -23,15 +23,21 @@ public static class Mapping
         Id = r.Id, Date = r.Date, Category = r.Category, Amount = r.Amount, Currency = r.Currency, HomeAmount = r.HomeAmount,
         Odometer = r.Odometer, Note = r.Note, CoversFrom = r.CoversFrom, CoversTo = r.CoversTo, Litres = r.Litres,
         FullTank = r.FullTank, Station = r.Station, Maintenance = (MaintenanceType)r.MaintenanceFlags,
-        MaintenanceDescription = r.MaintenanceDescription, TyreSetId = r.TyreSetId, Source = r.Source,
+        MaintenanceDescription = r.MaintenanceDescription, Work = WorkFromJson(r.WorkJson), TyreSetId = r.TyreSetId, Source = r.Source,
     };
+
+    private static IReadOnlyList<MaintenanceWork> WorkFromJson(string? json) =>
+        string.IsNullOrEmpty(json) ? Array.Empty<MaintenanceWork>() : JsonSerializer.Deserialize<List<MaintenanceWork>>(json) ?? (IReadOnlyList<MaintenanceWork>)Array.Empty<MaintenanceWork>();
+
+    private static string? WorkToJson(IReadOnlyList<MaintenanceWork>? work) =>
+        work is null or { Count: 0 } ? null : JsonSerializer.Serialize(work);
 
     public static ExpenseRow ToRow(this Expense e) => new()
     {
         Id = e.Id, Date = e.Date, Category = e.Category, Amount = e.Amount, Currency = e.Currency, HomeAmount = e.HomeAmount,
         Odometer = e.Odometer, Note = e.Note, CoversFrom = e.CoversFrom, CoversTo = e.CoversTo, Litres = e.Litres,
         FullTank = e.FullTank, Station = e.Station, MaintenanceFlags = (int)e.Maintenance,
-        MaintenanceDescription = e.MaintenanceDescription, TyreSetId = e.TyreSetId, Source = e.Source,
+        MaintenanceDescription = e.MaintenanceDescription, WorkJson = WorkToJson(e.Work), TyreSetId = e.TyreSetId, Source = e.Source,
         CreatedAt = DateTime.UtcNow,
     };
 
