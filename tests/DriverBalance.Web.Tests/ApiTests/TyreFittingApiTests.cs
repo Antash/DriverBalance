@@ -91,20 +91,34 @@ public sealed class TyreFittingApiTests(ApiFactory f) : IClassFixture<ApiFactory
         Assert.Equal("Alpin 6", (await SetAsync(c, vid, s3)).GetProperty("name").GetString());
     }
 
+
     [Fact]
-    public async Task Update_AddsTyres_AndDoesNotRetireItself()
+    public async Task Update_OnUnlinkedSwap_AttachesSet_AndIgnoresItsOwnStaleRow()
     {
         var c = f.CreateClient();
         var vid = await Api.NewVehicleAsync(c);
-        var a = await NewSetAsync(c, vid, "Old set");
-        await PostAsync(c, vid, Swap("2026-03-01", tyreSetId: a));
-        var (id, _, _) = await PostAsync(c, vid, Swap("2026-06-01", tyreSetId: a));
-        var put = await c.PutAsJsonAsync($"/api/vehicles/{vid}/expenses/{id}", Swap("2026-06-01", new { brand = "Pirelli", season = "Summer", isNew = true }), ApiJson.Options);
+        var a = await NewSetAsync(c, vid, "Set A");
+        await PostAsync(c, vid, Swap("2026-01-01", tyreSetId: a));
+        var (id, _, _) = await PostAsync(c, vid, Swap("2026-01-15"));
+        var put = await c.PutAsJsonAsync($"/api/vehicles/{vid}/expenses/{id}", Swap("2026-03-01", new { brand = "Pirelli", season = "Summer", isNew = true }), ApiJson.Options);
         Assert.Equal(HttpStatusCode.OK, put.StatusCode);
         var newId = JsonDocument.Parse(await put.Content.ReadAsStringAsync()).RootElement.GetProperty("tyreSetId").GetInt64();
         Assert.NotEqual(a, newId);
         Assert.False((await SetAsync(c, vid, newId)).GetProperty("retired").GetBoolean());
         Assert.True((await SetAsync(c, vid, a)).GetProperty("retired").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Update_WithTyres_WhenAlreadyLinked_400()
+    {
+        var c = f.CreateClient();
+        var vid = await Api.NewVehicleAsync(c);
+        var a = await NewSetAsync(c, vid, "Set A");
+        var (id, _, _) = await PostAsync(c, vid, Swap("2026-03-01", tyreSetId: a));
+        var put = await c.PutAsJsonAsync($"/api/vehicles/{vid}/expenses/{id}", Swap("2026-03-01", new { season = "Summer", isNew = true }), ApiJson.Options);
+        Assert.Equal(HttpStatusCode.BadRequest, put.StatusCode);
+        Assert.Contains("This record already has a tyre set; pick a set instead, or edit the set's details from the tyre summary.", await put.Content.ReadAsStringAsync());
+        Assert.Single(JsonDocument.Parse(await c.GetStringAsync($"/api/vehicles/{vid}/tyres")).RootElement.EnumerateArray());
     }
 
     [Fact]

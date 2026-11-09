@@ -47,7 +47,7 @@ public static class ExpenseEndpoints
         row.VehicleId = vid;
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        if (set is not null) row.TyreSetId = await TyreFitting.CreateAndRetireAsync(vid, set, tyres!.IsNew, expense.Date, long.MaxValue, db, ct);
+        if (set is not null) row.TyreSetId = await TyreFitting.CreateAndRetireAsync(vid, set, tyres!.IsNew, expense.Date, null, db, ct);
         db.Expenses.Add(row);
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
@@ -61,6 +61,8 @@ public static class ExpenseEndpoints
         if (row is null) return Results.NotFound();
 
         var (input, tyres) = TyreFitting.ReadBody(body);
+        if (tyres is not null && row.TyreSetId is not null)
+            throw new ApiValidationException("This record already has a tyre set; pick a set instead, or edit the set's details from the tyre summary.");
         var e = await ExpenseRules.ValidateAsync(vid, input, db, ct);
         var set = tyres is null ? null : TyreFitting.Check(e, tyres);
         await using var tx = await db.Database.BeginTransactionAsync(ct);

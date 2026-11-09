@@ -66,12 +66,12 @@ public static class TyreFitting
     }
 
     /// <summary>The set fitted just before (date, id): the latest earlier mount's set, else the vehicle's initial set.</summary>
-    public static async Task<long?> FittedBeforeAsync(long vid, DateOnly date, long id, DriverBalanceDbContext db, CancellationToken ct)
+    public static async Task<long?> FittedBeforeAsync(long vid, DateOnly date, long? excludeId, DriverBalanceDbContext db, CancellationToken ct)
     {
         int mask = (int)TyreMileage.MountFlags;
         var prev = await db.Expenses.AsNoTracking()
             .Where(x => x.VehicleId == vid && x.Category == ExpenseCategory.Maintenance && (x.MaintenanceFlags & mask) != 0
-                        && (x.Date < date || (x.Date == date && x.Id < id)))
+                        && x.Id != excludeId && (x.Date < date || (x.Date == date && (excludeId == null || x.Id < excludeId))))
             .OrderByDescending(x => x.Date).ThenByDescending(x => x.Id)
             .Select(x => new { x.TyreSetId }).FirstOrDefaultAsync(ct);
         if (prev is not null) return prev.TyreSetId;
@@ -79,7 +79,7 @@ public static class TyreFitting
     }
 
     /// <summary>Inserts the new set and, for new tyres, retires the previously fitted one. Returns the new set's id.</summary>
-    public static async Task<long> CreateAndRetireAsync(long vid, TyreSet set, bool isNew, DateOnly date, long expenseId,
+    public static async Task<long> CreateAndRetireAsync(long vid, TyreSet set, bool isNew, DateOnly date, long? expenseId,
         DriverBalanceDbContext db, CancellationToken ct)
     {
         var previous = isNew ? await FittedBeforeAsync(vid, date, expenseId, db, ct) : null;
