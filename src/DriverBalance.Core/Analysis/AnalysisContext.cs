@@ -57,6 +57,7 @@ public sealed class AnalysisContext
         var shortGroups = groups.Where(g => g.Duration < shortLimit).ToList();
         double shortKm = shortGroups.Sum(g => g.DistanceKm);
 
+        int daysUsed = groups.SelectMany(g => g.Trips).Select(t => DateOnly.FromDateTime(t.Start)).Distinct().Count();
         double? odometerKm = Timeline.KmIn(period);
         // Per-day rates divide by elapsed days only: a period reaching into the future is clipped to today (inclusive).
         int elapsedDays = Math.Min(period.To.DayNumber, Data.Today.DayNumber + 1) - period.From.DayNumber;
@@ -70,7 +71,8 @@ public sealed class AnalysisContext
             shortGroups.Count,
             groups.Count > 0 ? (double)shortGroups.Count / groups.Count : null,
             km > 0 ? shortKm / km : null,
-            Math.Max(0, elapsedDays));
+            Math.Max(0, elapsedDays),
+            daysUsed, daysUsed > 0 ? km / daysUsed : null, time.TotalHours);
 
         var buckets = new Dictionary<DrivingScore, ScoreBucket>();
         foreach (var score in Enum.GetValues<DrivingScore>())

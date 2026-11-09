@@ -6,8 +6,8 @@ import { DateInput } from '../components/DateInput'
 import { ParamsPanel } from '../components/ParamsPanel'
 import { errorLines, fmtDate, fmtInstant } from '../lib/format'
 import { useTyreSets, useVehicle } from '../state/useVehicle'
+import { FUEL_TYPES } from '../lib/fuelTypes'
 
-const FUEL_TYPES: [FuelType | '', string][] = [['Diesel', 'Diesel'], ['Petrol', 'Petrol'], ['PetrolHybrid', 'Petrol hybrid'], ['Electric', 'Electric'], ['', 'Not set']]
 
 function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
   const qc = useQueryClient()
@@ -21,7 +21,7 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
     details: vehicle.details,
     fuelType: vehicle.fuelType,
   })
-  const d = f.details ?? { model: null, engine: null, trim: null, modelYear: null, exteriorColour: null, interior: null, equipment: [] }
+  const d = f.details ?? { model: null, engine: null, trim: null, modelYear: null, exteriorColour: null, interior: null, equipment: [], transmission: null, awd: false }
   const setD = (p: Partial<typeof d>) => setF({ ...f, details: { ...d, ...p } })
   const [equipmentText, setEquipmentText] = useState(d.equipment.join('\n'))
   // The first recorded trip, for the "Use first trip" shortcut: the list is newest first, so ask for the last page of size 1.
@@ -86,6 +86,14 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
               </select>
               <span className="hint muted">DPF health and index are shown for diesel cars only.</span>
             </label>
+            <label>Transmission
+              <select value={d.transmission ?? ''} onChange={(e) => setD({ transmission: (e.target.value || null) as 'Manual' | 'Automatic' | null })}>
+                <option value="Automatic">Automatic</option>
+                <option value="Manual">Manual</option>
+                <option value="">Not set</option>
+              </select>
+            </label>
+            <label className="check"><input type="checkbox" checked={d.awd} onChange={(e) => setD({ awd: e.target.checked })} /> All-wheel drive (AWD)</label>
             <label>Model<input value={d.model ?? ''} placeholder="e.g. Volvo V90" onChange={(e) => setD({ model: e.target.value || null })} /></label>
             <label>Engine<input value={d.engine ?? ''} placeholder="e.g. D5 AWD" onChange={(e) => setD({ engine: e.target.value || null })} /></label>
             <label>Trim<input value={d.trim ?? ''} onChange={(e) => setD({ trim: e.target.value || null })} /></label>

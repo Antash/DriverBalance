@@ -30,10 +30,19 @@ public sealed class CarDetailsApiTests(ApiFactory f) : IClassFixture<ApiFactory>
         Assert.Equal(2024, d.GetProperty("modelYear").GetInt32());
         Assert.Equal(["Harman Kardon audio", "Pilot Assist"], d.GetProperty("equipment").EnumerateArray().Select(x => x.GetString()!).ToArray());
 
+        Assert.Equal(JsonValueKind.Null, d.GetProperty("transmission").ValueKind);
+        Assert.False(d.GetProperty("awd").GetBoolean());
+
+        await Put(c, vid, new { name = "Car", details = new { model = "Volvo V90", transmission = "Automatic", awd = true } });
+        d = (await Api.ReadAsync<JsonElement>(await c.GetAsync($"/api/vehicles/{vid}"))).GetProperty("details");
+        Assert.Equal("Automatic", d.GetProperty("transmission").GetString());
+        Assert.True(d.GetProperty("awd").GetBoolean());
+        Assert.Equal(HttpStatusCode.BadRequest, (await Put(c, vid, new { name = "Car", details = new { transmission = "Sideways" } })).StatusCode);
+
         // A save without details keeps them.
         await Put(c, vid, new { name = "Car" });
         d = (await Api.ReadAsync<JsonElement>(await c.GetAsync($"/api/vehicles/{vid}"))).GetProperty("details");
-        Assert.Equal("Momentum", d.GetProperty("trim").GetString());
+        Assert.Equal("Automatic", d.GetProperty("transmission").GetString());
     }
 
     [Fact]
@@ -66,7 +75,9 @@ public sealed class FuelTypeApiTests(ApiFactory f) : IClassFixture<ApiFactory>
     [Theory]
     [InlineData("Diesel", true)]
     [InlineData("Petrol", false)]
-    [InlineData("PetrolHybrid", false)]
+    [InlineData("DieselMhev", true)]
+    [InlineData("PetrolMhev", false)]
+    [InlineData("PetrolPhev", false)]
     [InlineData("Electric", false)]
     [InlineData(null, true)]
     [InlineData("", true)]

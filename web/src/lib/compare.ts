@@ -3,6 +3,7 @@ import { timeSpanHours } from './format'
 
 export type BaseMetricKey =
   | 'tripKm' | 'odometerKm' | 'tripCoverage' | 'days' | 'kmPerDay' | 'averageSpeedKmh' | 'drivingHoursPerDay'
+  | 'daysUsed' | 'kmPerDayUsed' | 'drivingHours'
   | 'cityShare' | 'mixedShare' | 'highwayShare'
   | 'coldStarts' | 'coldStartsPer100Km' | 'shortShareByCount' | 'shortShareByKm' | 'dpfIndex'
   | 'tripLPer100' | 'fullTankLPer100'
@@ -43,6 +44,9 @@ export const METRICS: Def[] = [
   { key: 'odometerKm', label: 'Odometer distance (km)', group: 'Usage', better: null, isRate: false, read: (s) => s.usage.odometerKm },
   { key: 'tripCoverage', label: 'Trip coverage of odometer', group: 'Usage', better: null, isRate: true, read: (s) => s.usage.tripCoverage },
   { key: 'days', label: 'Days', group: 'Usage', better: null, isRate: false, read: (s) => s.usage.days },
+  { key: 'daysUsed', label: 'Days used', group: 'Usage', better: null, isRate: false, read: (s) => s.usage.daysUsed },
+  { key: 'kmPerDayUsed', label: 'Km per day used', group: 'Usage', better: null, isRate: true, read: (s) => s.usage.kmPerDayUsed },
+  { key: 'drivingHours', label: 'Driving hours', group: 'Usage', better: null, isRate: false, read: (s) => s.usage.drivingHours },
   { key: 'kmPerDay', label: 'Km per day', group: 'Usage', better: null, isRate: true, read: (s) => s.usage.kmPerDay },
   { key: 'drivingHoursPerDay', label: 'Driving time per day (h)', group: 'Usage', better: null, isRate: true, read: drivingHoursPerDay },
   { key: 'averageSpeedKmh', label: 'Average speed (km/h)', group: 'Usage', better: 'up', isRate: true, read: (s) => s.usage.averageSpeedKmh },
@@ -120,7 +124,7 @@ function extremes(values: (number | null)[], better: 'up' | 'down' | null, ranke
 }
 
 /** Volumes that only trips can measure: with no trips in a period they are unknown, not zero. */
-const TRIP_VOLUMES: MetricKey[] = ['tripKm', 'coldStarts', 'drivingHoursPerDay']
+const TRIP_VOLUMES: MetricKey[] = ['tripKm', 'coldStarts', 'drivingHoursPerDay', 'daysUsed', 'kmPerDayUsed', 'drivingHours']
 
 /**
  * Any number of periods side by side, with the best and worst marked on metrics that have a good direction.

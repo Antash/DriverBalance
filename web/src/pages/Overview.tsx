@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { FUEL_TYPES } from '../lib/fuelTypes'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
 import { DpfHealthStrip } from '../charts/DpfHealthStrip'
@@ -82,7 +83,9 @@ function CarCard() {
   const d = v.details
   if (!d || (!d.model && !d.engine && !d.trim && !d.modelYear && d.equipment.length === 0)) return null
   const title = [d.model ?? v.name, d.engine, d.trim].filter(Boolean).join(' ')
-  const sub = [d.modelYear ? `MY${d.modelYear}` : null, d.exteriorColour, d.interior].filter(Boolean).join(' · ')
+  const fuel = FUEL_TYPES.find(([key]) => key === v.fuelType)?.[1].replace(/ \(.*\)$/, '') ?? null
+  const sub = [d.modelYear ? `MY${d.modelYear}` : null, fuel, d.transmission, d.awd ? 'AWD' : null, d.exteriorColour, d.interior]
+    .filter(Boolean).join(' · ')
   return (
     <section className="card car-card">
       <h2>{title}</h2>

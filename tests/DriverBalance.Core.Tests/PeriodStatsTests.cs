@@ -16,6 +16,22 @@ public class PeriodStatsTests
     private static Period Year => new(new DateOnly(2025, 1, 1), new DateOnly(2026, 1, 1), "2025");
 
     [Fact]
+    public void Stats_DaysUsed_KmPerDayUsed_DrivingHours()
+    {
+        var stats = Ctx(
+            T(new DateTime(2025, 3, 1, 8, 0, 0), 30, 20),
+            T(new DateTime(2025, 3, 1, 17, 0, 0), 30, 20),
+            T(new DateTime(2025, 3, 5, 9, 0, 0), 60, 50)).Stats(Year);
+        Assert.Equal(2, stats.Usage.DaysUsed);
+        Assert.Equal(45.0, stats.Usage.KmPerDayUsed);
+        Assert.Equal(2.0, stats.Usage.DrivingHours, 6);
+        var empty = Ctx().Stats(Year);
+        Assert.Equal(0, empty.Usage.DaysUsed);
+        Assert.Null(empty.Usage.KmPerDayUsed);
+        Assert.Equal(0.0, empty.Usage.DrivingHours);
+    }
+
+    [Fact]
     public void Stats_EmptyVehicle_NoNaN()
     {
         var stats = Ctx().Stats(Year);

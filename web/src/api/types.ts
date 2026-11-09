@@ -76,7 +76,7 @@ export interface Vehicle {
   hasDpf: boolean
 }
 
-export type FuelType = 'Diesel' | 'Petrol' | 'PetrolHybrid' | 'Electric'
+export type FuelType = 'Diesel' | 'DieselMhev' | 'Petrol' | 'PetrolMhev' | 'PetrolPhev' | 'Electric'
 
 /** What the car is (all optional). */
 export interface CarDetails {
@@ -87,6 +87,8 @@ export interface CarDetails {
   exteriorColour: string | null
   interior: string | null
   equipment: string[]
+  transmission: 'Manual' | 'Automatic' | null
+  awd: boolean
 }
 
 export interface Period {
@@ -263,6 +265,12 @@ export interface UsageStats {
   shortShareByKm: number | null
   /** Days of the period that have elapsed (clipped to today); denominator of per-day rates. */
   elapsedDays: number
+  /** Days with at least one trip. */
+  daysUsed: number
+  /** Trip km per day used. */
+  kmPerDayUsed: number | null
+  /** Total driving time in hours. */
+  drivingHours: number
 }
 
 export interface ScoreBucket { km: number; duration: string; groups: number }

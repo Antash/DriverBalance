@@ -12,7 +12,7 @@ import { ExpenseForm } from './ExpenseForm'
 const vehicle: Vehicle = {
   id: 7, name: 'Car', homeCurrency: 'CZK', timeZone: 'Europe/Prague', initialTyreSetId: null, isDefault: true,
   historyStart: null, historyStartOdometer: null, purchaseDate: null, estimatedResaleValue: null, resaleEstimateDate: null,
-  details: { model: null, engine: null, trim: null, modelYear: null, exteriorColour: null, interior: null, equipment: [] },
+  details: { model: null, engine: null, trim: null, modelYear: null, exteriorColour: null, interior: null, equipment: [], transmission: null, awd: false },
   fuelType: 'Diesel', hasDpf: true,
 }
 const m = vi.mocked(api)

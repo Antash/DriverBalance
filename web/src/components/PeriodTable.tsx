@@ -2,7 +2,8 @@ import type { PeriodWithStats } from '../api/types'
 import { useVehicle } from '../state/useVehicle'
 import { fmtMoney, fmtNum, fmtPct } from '../lib/format'
 
-/** One row per period: km, cold starts, DPF (diesel only), L/100 and cost. Rows are clickable when onSelect is given. */
+/** One row per period, newest first: km, days used, km per day used, driving hours, cold starts, DPF (diesel only), L/100 and cost.
+ * Rows are clickable when onSelect is given. */
 export function PeriodTable({ rows, currency, onSelect, selected }: {
   rows: PeriodWithStats[]
   currency: string
@@ -15,12 +16,13 @@ export function PeriodTable({ rows, currency, onSelect, selected }: {
       <table className="data">
         <thead>
           <tr>
-            <th>Period</th><th className="num">Km</th><th className="num">Cold starts</th>{hasDpf && <th className="num">DPF</th>}
+            <th>Period</th><th className="num">Km</th><th className="num">Days used</th><th className="num">Km / day used</th>
+            <th className="num">Driving hours</th><th className="num">Cold starts</th>{hasDpf && <th className="num">DPF</th>}
             <th className="num">L/100</th><th className="num">Cost</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => {
+          {[...rows].sort((a, b) => (a.period.from < b.period.from ? 1 : -1)).map((r) => {
             const s = r.stats
             const open = onSelect ? () => onSelect(r) : undefined
             return (
@@ -32,6 +34,9 @@ export function PeriodTable({ rows, currency, onSelect, selected }: {
                     : r.period.label}
                 </td>
                 <td className="num">{fmtNum(s.usage.tripKm, 0)}</td>
+                <td className="num">{s.usage.daysUsed}</td>
+                <td className="num">{fmtNum(s.usage.kmPerDayUsed, 1)}</td>
+                <td className="num">{fmtNum(s.usage.drivingHours, 1)}</td>
                 <td className="num">{s.usage.coldStarts}</td>
                 {hasDpf && <td className="num">{fmtPct(s.scores.dpfIndex)}</td>}
                 <td className="num">{fmtNum(s.fuel.tripLPer100, 1)}</td>
