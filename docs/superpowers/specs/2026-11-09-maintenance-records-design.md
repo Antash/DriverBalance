@@ -62,6 +62,8 @@ only a 12-item checklist plus one free-text description inside the generic expen
 - New `GET /api/vehicles/{vid}/odometer/latest` → `{ odometer, date }` (largest known reading from trips and expenses), or 204 when none.
 
 ## UI
+- **The Maintenance page shows all maintenance, oil changes included** (owner, 2026-11-09). Oil intervals stays as an extra
+  view because engine stats matter for oil (replaced by load), while other parts are replaced when worn.
 - Remove the Tyres tab and page; move the tyre summary + set editor onto the Maintenance page.
 - Maintenance page: "Add maintenance" button; Services table rows clickable to edit; under each work item show the part
   ("Original" or "Brand Model") and details. Timeline gets a lane per custom work name. "Since last time" also works
