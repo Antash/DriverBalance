@@ -1,14 +1,14 @@
 import type { ReactNode } from 'react'
-import type { MaintenanceType, PartSource, TyreSeason, TyreSet } from '../api/types'
+import type { Expense, MaintenanceType, PartSource, TyreSeason, TyreSet } from '../api/types'
 import { newWorkId, type TyreDraft, type WorkDraft } from '../lib/expenseForm'
 import { seasonLabel, tyreDisplayName } from '../lib/tyreSummary'
 import { MAINTENANCE_GROUPS, MAINTENANCE_TYPES, maintenanceLabel } from '../lib/maintenanceCatalog'
+import { previousParts, workKey } from '../lib/previousParts'
 
 const OWNED = '__owned'
 const SEASONS: TyreSeason[] = ['Winter', 'Summer', 'AllSeason']
-const PARTS: { value: PartSource; label: string }[] = [
-  { value: 'None', label: 'No part' }, { value: 'Original', label: 'Original (Volvo)' }, { value: 'Aftermarket', label: 'Other brand' },
-]
+const NEW_BRAND = 'new'
+const PREVIOUS = 'prev:'
 
 interface Props {
   work: WorkDraft[]
@@ -21,9 +21,13 @@ interface Props {
   /** The stored expense already has a tyre set: only picking a set is allowed. */
   tyreLocked: boolean
   err(key: string): ReactNode
+  /** Earlier maintenance records, for offering the products used last time. */
+  history: Expense[]
+  /** The record being edited, left out of the earlier products. */
+  editingId: number | null
 }
 
-export function MaintenanceWorkEditor({ work, onWork, tyres, onTyres, tyreSetId, onTyreSetId, tyreSets, tyreLocked, err }: Props) {
+export function MaintenanceWorkEditor({ work, onWork, tyres, onTyres, tyreSetId, onTyreSetId, tyreSets, tyreLocked, err, history, editingId }: Props) {
   const find = (t: MaintenanceType) => work.find((w) => w.type === t)
   const patch = (id: string, p: Partial<WorkDraft>) => onWork(work.map((w) => (w.id === id ? { ...w, ...p } : w)))
   const toggle = (t: MaintenanceType) => {
@@ -33,23 +37,42 @@ export function MaintenanceWorkEditor({ work, onWork, tyres, onTyres, tyreSetId,
   const legacy = work.filter((w) => w.type !== null && !MAINTENANCE_TYPES.includes(w.type))
   const custom = work.filter((w) => w.type === null)
 
-  // One compact row per ticked item: part source, brand/model when another brand, details.
-  const partsBlock = (w: WorkDraft, title: ReactNode) => (
-    <div className="work-row">
-      <div className="work-row-title">{title}</div>
-      <select aria-label="Part" value={w.part} onChange={(e) => patch(w.id, { part: e.target.value as PartSource })}>
-        {PARTS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-      </select>
-      {w.part === 'Aftermarket' && (
-        <>
-          <input aria-label="Brand" placeholder="Brand" value={w.brand} onChange={(e) => patch(w.id, { brand: e.target.value })} />
-          <input aria-label="Model / part no." placeholder="Model / part no." value={w.model} onChange={(e) => patch(w.id, { model: e.target.value })} />
-        </>
-      )}
-      <input aria-label="Details" placeholder="Details" className="grow" value={w.details} onChange={(e) => patch(w.id, { details: e.target.value })} />
-      {err(`work.${w.id}.brand`)}
-    </div>
-  )
+  // One compact row per ticked item: part source (none, original, a product used before for this item, or a new brand) and details.
+  const partsBlock = (w: WorkDraft, title: ReactNode) => {
+    const used = previousParts(history, workKey(w.type, w.name), editingId)
+    const same = (p: { brand: string; model: string | null }) =>
+      p.brand.toLowerCase() === w.brand.trim().toLowerCase() && (p.model ?? '').toLowerCase() === w.model.trim().toLowerCase()
+    const usedIndex = w.part === 'Aftermarket' ? used.findIndex(same) : -1
+    const choice = w.part !== 'Aftermarket' ? w.part : usedIndex >= 0 ? `${PREVIOUS}${usedIndex}` : NEW_BRAND
+    const choose = (v: string) => {
+      if (v === 'None' || v === 'Original') patch(w.id, { part: v as PartSource, brand: '', model: '' })
+      else if (v === NEW_BRAND) patch(w.id, { part: 'Aftermarket', brand: '', model: '' })
+      else { const p = used[Number(v.slice(PREVIOUS.length))]; patch(w.id, { part: 'Aftermarket', brand: p.brand, model: p.model ?? '' }) }
+    }
+    return (
+      <div className="work-row">
+        <div className="work-row-title">{title}</div>
+        <select aria-label="Part" value={choice} onChange={(e) => choose(e.target.value)}>
+          <option value="None">No part</option>
+          <option value="Original">Original (Volvo)</option>
+          {used.length > 0 && (
+            <optgroup label="Used before">
+              {used.map((p, i) => <option key={i} value={`${PREVIOUS}${i}`}>{[p.brand, p.model].filter(Boolean).join(' ')}</option>)}
+            </optgroup>
+          )}
+          <option value={NEW_BRAND}>Other brand…</option>
+        </select>
+        {choice === NEW_BRAND && (
+          <>
+            <input aria-label="Brand" placeholder="Brand" value={w.brand} onChange={(e) => patch(w.id, { brand: e.target.value })} />
+            <input aria-label="Model / part no." placeholder="Model / part no." value={w.model} onChange={(e) => patch(w.id, { model: e.target.value })} />
+          </>
+        )}
+        <input aria-label="Details" placeholder="Details" className="grow" value={w.details} onChange={(e) => patch(w.id, { details: e.target.value })} />
+        {err(`work.${w.id}.brand`)}
+      </div>
+    )
+  }
 
   const fitting = tyres.mode === 'new' || tyres.mode === 'owned'
   const setTyre = (p: Partial<TyreDraft>) => onTyres({ ...tyres, ...p })

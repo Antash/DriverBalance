@@ -49,6 +49,11 @@ export function ExpenseForm({ vehicle, tyreSets, initial, onDone, lockCategory, 
   const [docs, setDocs] = useState<ExpenseDocument[]>(initial?.documents ?? [])
   const [pending, setPending] = useState<File[]>([])
   const [uploadErrors, setUploadErrors] = useState<string[]>([])
+  const { data: maintenanceHistory = [] } = useQuery({
+    queryKey: ['expenses', vehicle.id, 'maintenance'],
+    queryFn: () => api.get<Expense[]>(`/vehicles/${vehicle.id}/expenses?category=Maintenance`),
+    enabled: f.category === 'Maintenance',
+  })
   const { data: places = [] } = useQuery({
     queryKey: ['expenses', vehicle.id, 'places'],
     queryFn: () => api.get<string[]>(`/vehicles/${vehicle.id}/expenses/places`),
@@ -141,6 +146,7 @@ export function ExpenseForm({ vehicle, tyreSets, initial, onDone, lockCategory, 
             tyres={f.tyres} onTyres={(t) => set('tyres', t)}
             tyreSetId={f.tyreSetId} onTyreSetId={(v) => set('tyreSetId', v)}
             tyreSets={tyreSets} tyreLocked={(initial?.tyreSetId ?? savedTyreSetId) != null} err={err}
+            history={maintenanceHistory} editingId={savedId}
           />
           {err('work')}
           {f.maintenanceDescription && <p className="muted wide">Earlier description: {f.maintenanceDescription}</p>}
