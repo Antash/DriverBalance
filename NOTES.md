@@ -74,6 +74,16 @@ Tests: Core 112, Web 129, VolvoSync 28, web (vitest) 200, all green; `dotnet bui
   single trip or back-to-back trips; "needs a long drive" after 14 days; it is an estimate from trips only.
 - DB backups this session: `pre-categories.db`, `pre-fuel-type.db` (all next to the real DB).
 
+## 2026-11-09 late: Trips page polish (commit 261e389)
+- Insights card on Trips Overview (distance, days active, driving time, **longest journey** = trips chained while stops
+  are <= 4 h, across midnight and cold starts; `Journeys.Longest`, `UsageStats.LongestJourney`) and on Fuel (fuel burned,
+  average, per active day). Owner's longest so far: 900 km on 06/08/2026.
+- Monthly score and DPF index are separate cards (DPF hidden for non-diesels).
+- Fuel trend y axis is a "focus scale" (`web/src/lib/fuelScale.ts`): 3rd-90th percentile band linear (5-11 L on real
+  data), tails log-compressed and shaded, ticks in real litres; chart 420 px high.
+- When you drive: legend on top, "Trip start hour" axis title, same grid/hint layout as Gaps between trips.
+- Not republished to the live app on :5180 yet.
+
 ## State
 - Published app: `%LOCALAPPDATA%\DriverBalance\app\DriverBalance.Web.exe` (serves on http://localhost:5180).
 - Real DB: `%LOCALAPPDATA%\DriverBalance\driverbalance.db`: the owner's trips through 2026-11-08, services, tyres, 2025 + 2026 costs.
