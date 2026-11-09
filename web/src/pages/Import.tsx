@@ -2,7 +2,7 @@ import { useRef, useState, type DragEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { ImportBatch, ImportResult } from '../api/types'
-import { daysAgo, errorLines, invalidateVehicleData } from '../lib/format'
+import { daysAgo, errorLines, invalidateVehicleData, fmtDate, fmtInstant } from '../lib/format'
 import { useParams } from '../state/ParamsContext'
 
 function CsvCard({ vehicleId }: { vehicleId: number }) {
@@ -40,7 +40,7 @@ function CsvCard({ vehicleId }: { vehicleId: number }) {
       {r && (
         <div role="status">
           <p><strong>{r.imported}</strong> new trips, <strong>{r.skipped}</strong> duplicates skipped.
-            {r.firstTrip && r.lastTrip && <> Range {r.firstTrip} to {r.lastTrip}.</>}</p>
+            {r.firstTrip && r.lastTrip && <> Range {fmtDate(r.firstTrip)} to {fmtDate(r.lastTrip)}.</>}</p>
           {r.warnings.length > 0 && <ul className="warn">{r.warnings.map((w) => <li key={w}>{w}</li>)}</ul>}
         </div>
       )}
@@ -67,7 +67,7 @@ export default function ImportPage() {
       <h1>Import</h1>
       {last && (
         <p className={age != null && age >= saved.exportReminderDays ? 'warn' : 'muted'}>
-          {age == null ? 'No trips imported yet.' : `Last trip: ${age} day${age === 1 ? '' : 's'} ago (${lastTrip}).`}
+          {age == null ? 'No trips imported yet.' : `Last trip: ${age} day${age === 1 ? '' : 's'} ago (${fmtDate(lastTrip)}).`}
         </p>
       )}
       <CsvCard vehicleId={vehicleId} />
@@ -79,9 +79,9 @@ export default function ImportPage() {
             <tbody>
               {(batches ?? []).map((b) => (
                 <tr key={b.id}>
-                  <td>{new Date(b.importedAt).toLocaleString()}</td><td>{b.fileName}</td>
+                  <td>{fmtInstant(b.importedAt)}</td><td>{b.fileName}</td>
                   <td className="num">{b.imported}</td><td className="num">{b.skipped}</td>
-                  <td>{b.firstTrip ?? '-'}</td><td>{b.lastTrip ?? '-'}</td>
+                  <td>{fmtDate(b.firstTrip)}</td><td>{fmtDate(b.lastTrip)}</td>
                 </tr>
               ))}
               {batches?.length === 0 && <tr><td colSpan={6} className="muted">No imports yet.</td></tr>}

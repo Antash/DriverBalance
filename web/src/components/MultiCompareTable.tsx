@@ -1,7 +1,7 @@
 import type { PeriodWithStats } from '../api/types'
 import { compareMany } from '../lib/compare'
 import { addDays } from '../lib/dates'
-import { fmtNum } from '../lib/format'
+import { fmtNum, fmtDate } from '../lib/format'
 import { isPreviousOwnerInterval } from '../lib/ownership'
 import { GROUPS, formatMetric } from '../lib/metricFormat'
 import { GroupRows } from './StatsTable'
@@ -11,7 +11,7 @@ function Heading({ p, inProgress, purchaseDate }: { p: PeriodWithStats; inProgre
   const km = stats.usage.odometerKm ?? stats.usage.tripKm
   return (
     <th className="num" scope="col">
-      <div>{period.from} → {addDays(period.to, -1)}</div>
+      <div>{fmtDate(period.from)} → {fmtDate(addDays(period.to, -1))}</div>
       {period.startOdometer != null && <div className="th-sub">from {fmtNum(period.startOdometer, 0)} km</div>}
       <div className="th-sub">{stats.usage.days} days · {fmtNum(km, 0)} km</div>
       {isPreviousOwnerInterval(period.to, purchaseDate) && <div className="th-sub muted">previous owner</div>}

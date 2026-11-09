@@ -8,7 +8,7 @@ import { ExpenseForm, label } from '../components/ExpenseForm'
 import { Modal } from '../components/Modal'
 import type { OverviewData, Ownership, PeriodStats } from '../api/types'
 import { addDays, addYears, iso } from '../lib/dates'
-import { fmtLPer100, fmtMoney, fmtNum, fmtPct } from '../lib/format'
+import { fmtLPer100, fmtMoney, fmtNum, fmtPct, fmtDate } from '../lib/format'
 import { ownershipRows } from '../lib/ownership'
 import { useAnalytics } from '../state/ParamsContext'
 import { useTyreSets, useVehicle } from '../state/useVehicle'
@@ -61,7 +61,7 @@ function OwnershipCard({ currency }: { currency: string }) {
                     {r.note && <span className="muted"> ({r.note})</span>}
                     {r.label === 'Purchase costs' && data.purchaseCosts.length > 0 && (
                       <div className="th-sub muted">
-                        {data.purchaseCosts.map((c, i) => <div key={i}>{c.date} · {fmtMoney(c.amount, currency)}{c.note ? ` · ${c.note}` : ''}</div>)}
+                        {data.purchaseCosts.map((c, i) => <div key={i}>{fmtDate(c.date)} · {fmtMoney(c.amount, currency)}{c.note ? ` · ${c.note}` : ''}</div>)}
                       </div>
                     )}
                   </td>
@@ -137,7 +137,7 @@ export default function OverviewPage() {
                 <tbody>
                   {data.recentExpenses.map((e) => (
                     <tr key={e.id}>
-                      <td>{e.date}</td><td>{label(e.category)}</td>
+                      <td>{fmtDate(e.date)}</td><td>{label(e.category)}</td>
                       <td className="num">{fmtMoney(e.amount, e.currency)}</td><td>{e.note ?? ''}</td>
                     </tr>
                   ))}

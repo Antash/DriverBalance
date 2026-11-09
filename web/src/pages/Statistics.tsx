@@ -6,12 +6,13 @@ import { ChartCard } from '../components/ChartCard'
 import { Chart } from '../components/Chart'
 import { axisStyle, chartTheme } from '../components/chartTheme'
 import { CompareTable } from '../components/CompareTable'
+import { DateInput } from '../components/DateInput'
 import { PeriodTable } from '../components/PeriodTable'
 import { StatsTable } from '../components/StatsTable'
 import { TripList } from '../components/TripList'
 import { comparisonRequest } from '../lib/compare'
 import { addDays, addYears, iso } from '../lib/dates'
-import { fmtNum } from '../lib/format'
+import { fmtNum, fmtDate } from '../lib/format'
 import { parseStatsState, statsStateToParams, type StatsUrlState } from '../lib/urlState'
 import { useAnalytics } from '../state/ParamsContext'
 import { useVehicle } from '../state/useVehicle'
@@ -65,7 +66,7 @@ function WeeksLevel({ year, month, week, update, currency }: {
       </ChartCard>
       {selected && (
         <TripList key={selected.period.from} from={selected.period.from} to={selected.period.to}
-          title={`Trips in the week of ${selected.period.from}`} />
+          title={`Trips in the week of ${fmtDate(selected.period.from)}`} />
       )}
     </>
   )
@@ -78,7 +79,7 @@ function Calendar({ state, update, currency }: LevelProps) {
   const crumbs: { label: string; go(): void }[] = [{ label: 'All years', go: () => update({ year: null, month: null, week: null }) }]
   if (year != null) crumbs.push({ label: String(year), go: () => update({ month: null, week: null }) })
   if (year != null && month != null) crumbs.push({ label: MONTHS[month - 1], go: () => update({ week: null }) })
-  if (year != null && month != null && week) crumbs.push({ label: `Week of ${week}`, go: () => undefined })
+  if (year != null && month != null && week) crumbs.push({ label: `Week of ${fmtDate(week)}`, go: () => undefined })
 
   return (
     <>
@@ -115,14 +116,14 @@ function Custom({ state, update, currency }: LevelProps) {
   }, [aOk, bOk, from, to, cmpFrom, cmpTo])
   const stats = useAnalytics<PeriodStats[]>('stats', { periods })
 
-  const rangeLabel = (a: string, b: string) => `${a} – ${b}`
+  const rangeLabel = (a: string, b: string) => `${fmtDate(a)} – ${fmtDate(b)}`
   const show = periods.length > 0 && stats.data?.length === periods.length
 
   return (
     <>
       <div className="toolbar">
-        <label className="inline">From <input type="date" value={from ?? ''} onChange={(e) => update({ from: e.target.value || null })} /></label>
-        <label className="inline">To <input type="date" aria-label="To (inclusive)" value={to ?? ''} onChange={(e) => update({ to: e.target.value || null })} /></label>
+        <label className="inline">From <DateInput value={from ?? ''} onChange={(v) => update({ from: v || null })} /></label>
+        <label className="inline">To <DateInput aria-label="To (inclusive)" value={to ?? ''} onChange={(v) => update({ to: v || null })} /></label>
         <label className="check">
           <input type="checkbox" checked={comparing}
             onChange={(e) => update(e.target.checked
@@ -132,8 +133,8 @@ function Custom({ state, update, currency }: LevelProps) {
         </label>
         {comparing && (
           <>
-            <input type="date" aria-label="Compare from" value={cmpFrom ?? ''} onChange={(e) => update({ cmpFrom: e.target.value || null })} />
-            <input type="date" aria-label="Compare to (inclusive)" value={cmpTo ?? ''} onChange={(e) => update({ cmpTo: e.target.value || null })} />
+            <DateInput aria-label="Compare from" value={cmpFrom ?? ''} onChange={(v) => update({ cmpFrom: v || null })} />
+            <DateInput aria-label="Compare to (inclusive)" value={cmpTo ?? ''} onChange={(v) => update({ cmpTo: v || null })} />
           </>
         )}
       </div>

@@ -67,11 +67,11 @@ public class TimelineTests
         Assert.Equal(new DateOnly(2025, 1, 6), first);
         var iv = Intervals.Build(MaintenanceType.OilChange, data.Expenses, first, Today);
         Assert.Equal(3, iv.Count);
-        Assert.Equal("Current (since 2025-09-15)", iv[0].Label);
+        Assert.Equal("Current (since 15/09/2025)", iv[0].Label);
         Assert.Equal(4493, iv[0].StartOdometer);
         Assert.Equal(new DateOnly(2025, 3, 10), iv[1].From);
         Assert.Equal(new DateOnly(2025, 9, 15), iv[1].To);
-        Assert.Equal("2025-03-10 → 2025-09-15", iv[1].Label);
+        Assert.Equal("10/03/2025 → 15/09/2025", iv[1].Label);
         Assert.Equal(1864, iv[1].StartOdometer);
         Assert.Equal(4493, iv[1].EndOdometer);
         Assert.Equal("Before first OilChange", iv[2].Label);

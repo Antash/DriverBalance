@@ -20,3 +20,19 @@ export function addYears(s: string, n: number): string {
   d.setDate(Math.min(day, last))
   return iso(d)
 }
+
+/** "2026-11-09" as "09/11/2026"; '' for anything that is not an ISO date. */
+export const toDmy = (s: string | null | undefined): string => {
+  const m = s ? /^(\d{4})-(\d{2})-(\d{2})/.exec(s) : null
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : ''
+}
+
+/** Parses d/m/yyyy (also . or - separators) into ISO; null when malformed or not a real calendar day. */
+export function parseDmy(text: string): string | null {
+  const m = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/.exec(text.trim())
+  if (!m) return null
+  const [d, mo, y] = [Number(m[1]), Number(m[2]), Number(m[3])]
+  const dt = new Date(y, mo - 1, d)
+  if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null
+  return `${m[3]}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+}

@@ -39,9 +39,9 @@ describe('ownershipRows', () => {
       'Bought on', 'Purchase costs', 'Running costs since purchase', 'Km driven since purchase',
       'Estimated resale value', 'Net cost of ownership', 'Net cost per km', 'Net cost per month',
     ])
-    expect(r[0].value).toBe('2025-04-14')
+    expect(r[0].value).toBe('14/04/2025')
     expect(r[3].value).toBe('10,000 km')
-    expect(r[4].note).toBe('on 2026-11-01')
+    expect(r[4].note).toBe('on 01/11/2026')
     expect(r[5].strong).toBe(true)
   })
   it('shows not set without a resale estimate and dashes for missing figures', () => {

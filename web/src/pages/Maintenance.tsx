@@ -8,7 +8,7 @@ import { Clip } from '../components/Clip'
 import { ExpenseForm } from '../components/ExpenseForm'
 import { Modal } from '../components/Modal'
 import { addDays, iso } from '../lib/dates'
-import { errorLines, fmtKm, fmtMoney, fmtNum, invalidateVehicleData } from '../lib/format'
+import { errorLines, fmtKm, fmtMoney, fmtNum, invalidateVehicleData, fmtDate } from '../lib/format'
 import { maintenanceHistory, type WorkItem } from '../lib/maintenance'
 import { derivedTyreName, partLine, seasonLabel, tyreDisplayName, tyreRows } from '../lib/tyreSummary'
 import { useParams } from '../state/ParamsContext'
@@ -132,7 +132,7 @@ export default function MaintenancePage() {
                   return (
                     <tr key={s.id} className="clickable" tabIndex={0} onClick={open}
                       onKeyDown={(e) => { if (e.key === 'Enter') open() }}>
-                      <td>{s.date}{isPreviousOwner(s.date, vehicle.purchaseDate) && <span className="muted"> previous owner</span>}<Clip n={s.expense.documents.length} /></td>
+                      <td>{fmtDate(s.date)}{isPreviousOwner(s.date, vehicle.purchaseDate) && <span className="muted"> previous owner</span>}<Clip n={s.expense.documents.length} /></td>
                       <td className="num">{s.odometer != null ? `${fmtNum(s.odometer, 0)} km` : '—'}</td>
                       <td>{s.work.map((w, i) => {
                         const part = partLine(w)
@@ -184,9 +184,9 @@ export default function MaintenancePage() {
                     <td>{r.name}</td>
                     <td>{r.size ?? '—'}</td>
                     <td>{seasonLabel(r.season)}</td>
-                    <td>{r.status}{r.fittedSince ? ` since ${r.fittedSince}` : ''}</td>
+                    <td>{r.status}{r.fittedSince ? ` since ${fmtDate(r.fittedSince)}` : ''}</td>
                     <td className="num">{fmtKm(r.km)}</td>
-                    <td>{r.firstFitted ?? '—'}</td>
+                    <td>{fmtDate(r.firstFitted)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -194,7 +194,7 @@ export default function MaintenancePage() {
           </div>}
           {tyreSummary?.unassignedSpans.map((sp, i) => (
             <p key={`${sp.from}-${sp.to}-${i}`} className="muted">
-              Unrecorded tyres: {sp.from} → {sp.to ?? 'now'}{sp.km != null ? `, ${fmtNum(sp.km, 0)} km` : ''}
+              Unrecorded tyres: {fmtDate(sp.from)} → {sp.to ? fmtDate(sp.to) : 'now'}{sp.km != null ? `, ${fmtNum(sp.km, 0)} km` : ''}
             </p>
           ))}
         </section>
@@ -209,7 +209,7 @@ export default function MaintenancePage() {
         <Modal title="Edit maintenance" onClose={() => setEditing(null)}>
           <ExpenseForm key={editing.id} vehicle={vehicle} tyreSets={tyreSets} initial={editing} lockCategory="Maintenance"
             onDone={() => setEditing(null)} deleting={remove.isPending}
-            onDelete={() => { if (window.confirm(`Delete this maintenance record from ${editing.date}${editing.documents.length > 0 ? ` and its ${editing.documents.length} document(s)` : ''}?`)) remove.mutate(editing) }} />
+            onDelete={() => { if (window.confirm(`Delete this maintenance record from ${fmtDate(editing.date)}${editing.documents.length > 0 ? ` and its ${editing.documents.length} document(s)` : ''}?`)) remove.mutate(editing) }} />
           {remove.isError && <ul className="errors">{errorLines(remove.error).map((m) => <li key={m}>{m}</li>)}</ul>}
         </Modal>
       )}

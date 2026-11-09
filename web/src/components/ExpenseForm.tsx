@@ -5,6 +5,7 @@ import type { Expense, ExpenseCategory, ExpenseDocument, TyreSet, Vehicle } from
 import { buildExpensePayload, parseDecimal, validateExpenseForm, emptyFormState, pricePerLitre, toFormState, type ExpenseFormState } from '../lib/expenseForm'
 import { MAINTENANCE_TYPES } from '../lib/maintenanceCatalog'
 import { tyreDisplayName } from '../lib/tyreSummary'
+import { DateInput } from './DateInput'
 import { DocumentList, DOCUMENT_ACCEPT } from './DocumentList'
 import { MaintenanceWorkEditor } from './MaintenanceWorkEditor'
 import { errorLines, fmtMoney, invalidateVehicleData } from '../lib/format'
@@ -115,7 +116,7 @@ export function ExpenseForm({ vehicle, tyreSets, initial, onDone, lockCategory, 
           <datalist id="expense-places">{places.map((p) => <option key={p} value={p} />)}</datalist>
         </label>
       )}
-      <label>Date<input type="date" required value={f.date} onChange={(e) => set('date', e.target.value)} /></label>
+      <label>Date<DateInput required value={f.date} onChange={(v) => set('date', v)} /></label>
       <label>Odometer (km)<input inputMode="numeric" value={f.odometer} onChange={(e) => set('odometer', e.target.value)} />{err('odometer')}</label>
       <div className="amount-row">
         <label>Amount<input inputMode="decimal" value={f.amount} onChange={(e) => set('amount', e.target.value)} />{err('amount')}</label>
@@ -163,8 +164,8 @@ export function ExpenseForm({ vehicle, tyreSets, initial, onDone, lockCategory, 
       <details className="wide" open={!!(f.coversFrom || f.coversTo) || undefined}>
         <summary className="muted">Spread cost over a period</summary>
         <div className="row">
-          <label>Covers from<input type="date" value={f.coversFrom} onChange={(e) => set('coversFrom', e.target.value)} /></label>
-          <label>Covers to<input type="date" value={f.coversTo} onChange={(e) => set('coversTo', e.target.value)} /></label>
+          <label>Covers from<DateInput value={f.coversFrom} onChange={(v) => set('coversFrom', v)} /></label>
+          <label>Covers to<DateInput value={f.coversTo} onChange={(v) => set('coversTo', v)} /></label>
         </div>
       </details>
 

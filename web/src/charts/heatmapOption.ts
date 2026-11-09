@@ -1,7 +1,7 @@
 import type { EChartsOption } from 'echarts'
 import type { HeatmapDay } from '../api/types'
 import { chartTheme, scoreColor } from '../components/chartTheme'
-import { fmtNum } from '../lib/format'
+import { fmtNum, fmtDate } from '../lib/format'
 import { SCORES } from './shared'
 
 /** Colour = best score of the day (fixed score palette); opacity = intensity (km, capped by the heatmap cap). */
@@ -14,7 +14,7 @@ export function heatmapOption(days: HeatmapDay[], year: number): () => EChartsOp
         trigger: 'item',
         formatter: (p: unknown) => {
           const v = (p as { value: [string, number, number, string] }).value
-          return `${v[0]}<br/>${fmtNum(v[2], 1)} km, best score: ${v[3]}`
+          return `${fmtDate(v[0])}<br/>${fmtNum(v[2], 1)} km, best score: ${v[3]}`
         },
       },
       calendar: {

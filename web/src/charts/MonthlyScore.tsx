@@ -7,6 +7,7 @@ import { ChartCard } from '../components/ChartCard'
 import { fmtNum, fmtPct } from '../lib/format'
 import { useAnalytics } from '../state/ParamsContext'
 import { rangeBody, SCORES, type RangeProps } from './shared'
+import { timeAxisTooltip } from './dateTooltip'
 
 const KEYS = ['excellentKm', 'goodKm', 'fairKm', 'badKm'] as const
 
@@ -31,7 +32,7 @@ function dpfOption(d: MonthlyScoreChart): () => EChartsOption {
     const t = chartTheme()
     return {
       legend: { top: 0 },
-      tooltip: { trigger: 'axis', valueFormatter: (v) => (v == null ? '—' : fmtPct(Number(v))) } as EChartsOption['tooltip'],
+      tooltip: { trigger: 'axis', formatter: timeAxisTooltip((v) => fmtPct(v)) } as EChartsOption['tooltip'],
       grid: { left: 8, right: 16, top: 40, bottom: ZOOM_GRID_BOTTOM, containLabel: true },
       dataZoom: timeZoom(),
       xAxis: { type: 'time', ...axisStyle() },

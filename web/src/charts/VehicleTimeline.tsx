@@ -6,12 +6,13 @@ import type { Expense, TimelineChart, TyreSet } from '../api/types'
 import { axisStyle, chartTheme } from '../components/chartTheme'
 import { Chart } from '../components/Chart'
 import { ChartCard } from '../components/ChartCard'
-import { fmtMoney, fmtNum } from '../lib/format'
+import { fmtMoney, fmtNum, fmtDate } from '../lib/format'
 import { timelineWidthPercent } from '../lib/timelineWidth'
 import { MILESTONE_GROUPS, serviceMilestones, type MilestoneGroupKey, type ServiceMilestone } from '../lib/milestones'
 import { partLine, tyreDisplayName } from '../lib/tyreSummary'
 import { useAnalytics, useParams } from '../state/ParamsContext'
 import { useTyreSets } from '../state/useVehicle'
+import { timeAxisTooltip } from './dateTooltip'
 
 
 /** 24x24 silhouettes for the service icons. */
@@ -34,7 +35,7 @@ function milestoneTooltip(m: ServiceMilestone, sets: TyreSet[]): string {
     return `${i.label}${part ? ` · ${part}` : ''}${i.details ? ` · ${i.details}` : ''}`
   })
   const odo = m.odometer != null ? ` · ${fmtNum(m.odometer, 0)} km` : ''
-  return `<b>${m.date}</b>${odo}<br/>${lines.join('<br/>')}<br/>${fmtMoney(m.expense.amount, m.expense.currency)}`
+  return `<b>${fmtDate(m.date)}</b>${odo}<br/>${lines.join('<br/>')}<br/>${fmtMoney(m.expense.amount, m.expense.currency)}`
 }
 
 function timelineOption(d: TimelineChart, sets: TyreSet[], maintenance: Expense[], from: string, end: string): () => EChartsOption {
@@ -71,7 +72,7 @@ function timelineOption(d: TimelineChart, sets: TyreSet[], maintenance: Expense[
         {
           name: 'Odometer', type: 'line', showSymbol: false, lineStyle: { width: 2, color: t.series[0] }, itemStyle: { color: t.series[0] },
           data: line,
-          tooltip: { trigger: 'axis', valueFormatter: (v: unknown) => `${fmtNum(Number(v), 0)} km` },
+          tooltip: { trigger: 'axis', formatter: timeAxisTooltip((v) => `${fmtNum(v, 0)} km`) },
           markArea: {
             silent: true,
             data: d.tyreBands.map((b) => {

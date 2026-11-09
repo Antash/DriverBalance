@@ -78,7 +78,7 @@ table.data td.num, table.data th.num { text-align: right; font-variant-numeric: 
 .hint { margin: 0 0 8px; font-size: 13px; }
 .empty { padding: 24px 0; text-align: center; }
 .toolbar label.inline { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-2); }
-.toolbar input[type="date"], .toolbar select, .card-head select { padding: 4px 8px; border: 1px solid var(--axis); border-radius: 6px; background: var(--surface); }
+.toolbar .date-input input[type="text"], .toolbar select, .card-head select { padding: 4px 8px; border: 1px solid var(--axis); border-radius: 6px; background: var(--surface); }
 .segmented { display: inline-flex; }
 .segmented .btn { border-radius: 0; }
 .segmented .btn:first-child { border-radius: 6px 0 0 6px; }
@@ -153,3 +153,9 @@ table.data td.actions { white-space: nowrap; text-align: right; width: 1%; }
 .breakdown-summary .kpi-value { margin-bottom: 8px; }
 table.data.compact td { padding: 4px 6px; }
 .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 8px; vertical-align: baseline; }
+
+.date-input { display: inline-flex; flex-direction: column; gap: 2px; position: relative; }
+.date-input-row { display: inline-flex; align-items: center; gap: 4px; position: relative; }
+.date-input-row input[type="text"] { width: 9.5em; min-width: 0; }
+.date-input-native { position: absolute; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; border: 0; padding: 0; }
+.date-input input[aria-invalid="true"] { border-color: var(--err); }

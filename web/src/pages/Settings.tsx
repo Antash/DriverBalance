@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { TokenCreated, TokenInfo, TripPage, Vehicle, VehicleInput } from '../api/types'
+import { DateInput } from '../components/DateInput'
 import { ParamsPanel } from '../components/ParamsPanel'
-import { errorLines } from '../lib/format'
+import { errorLines, fmtDate, fmtInstant } from '../lib/format'
 import { useTyreSets, useVehicle } from '../state/useVehicle'
 
 function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
@@ -52,8 +53,8 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
           </select>
         </label>
         <label>Car history start
-          <input type="date" value={f.historyStart ?? ''}
-            onChange={(e) => setF({ ...f, historyStart: e.target.value || null, historyStartOdometer: e.target.value ? (f.historyStartOdometer ?? 0) : null })} />
+          <DateInput value={f.historyStart ?? ''}
+            onChange={(v) => setF({ ...f, historyStart: v || null, historyStartOdometer: v ? (f.historyStartOdometer ?? 0) : null })} />
         </label>
         <label>Odometer at that date (km)
           <input type="number" min={0} step={1} disabled={!f.historyStart} value={f.historyStartOdometer ?? ''}
@@ -61,10 +62,10 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
         </label>
         <p className="muted">When the car was new (or when you bought it). Stats count from here.</p>
         <label>Bought on
-          <input type="date" value={f.purchaseDate ?? ''} onChange={(e) => setF({ ...f, purchaseDate: e.target.value || null })} />
+          <DateInput value={f.purchaseDate ?? ''} onChange={(v) => setF({ ...f, purchaseDate: v || null })} />
         </label>
         {!f.purchaseDate && firstTrip && (
-          <div><button className="btn small" type="button" onClick={() => setF({ ...f, purchaseDate: firstTrip })}>Use first trip ({firstTrip})</button></div>
+          <div><button className="btn small" type="button" onClick={() => setF({ ...f, purchaseDate: firstTrip })}>Use first trip ({fmtDate(firstTrip)})</button></div>
         )}
         <p className="muted">Your first day with the car; earlier records belong to the previous owner.</p>
         <label>Estimated resale value ({f.homeCurrency})
@@ -72,7 +73,7 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
             onChange={(e) => setF({ ...f, estimatedResaleValue: e.target.value === '' ? null : Math.max(0, Number(e.target.value)) })} />
         </label>
         <label>Estimated on
-          <input type="date" value={f.resaleEstimateDate ?? ''} onChange={(e) => setF({ ...f, resaleEstimateDate: e.target.value || null })} />
+          <DateInput value={f.resaleEstimateDate ?? ''} onChange={(v) => setF({ ...f, resaleEstimateDate: v || null })} />
         </label>
         <fieldset className="group"><legend>Car details</legend>
           <div className="stack">
@@ -144,8 +145,8 @@ function TokensCard() {
           <tbody>
             {(tokens ?? []).map((t) => (
               <tr key={t.id}>
-                <td>{t.name}</td><td>{new Date(t.createdAt).toLocaleDateString()}</td>
-                <td>{t.lastUsedAt ? new Date(t.lastUsedAt).toLocaleString() : 'never'}</td>
+                <td>{t.name}</td><td>{fmtInstant(t.createdAt).slice(0, 10)}</td>
+                <td>{t.lastUsedAt ? fmtInstant(t.lastUsedAt) : 'never'}</td>
                 <td><button className="btn small danger" onClick={() => { if (window.confirm(`Revoke token "${t.name}"?`)) revoke.mutate(t.id) }}>Revoke</button></td>
               </tr>
             ))}

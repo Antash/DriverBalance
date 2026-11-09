@@ -4,9 +4,10 @@ import type { FuelTrendChart, MonthlyScoreChart } from '../api/types'
 import { axisStyle, chartTheme } from '../components/chartTheme'
 import { Chart } from '../components/Chart'
 import { ChartCard } from '../components/ChartCard'
-import { fmtNum, fmtPct } from '../lib/format'
+import { fmtNum, fmtPct, fmtDate } from '../lib/format'
 import { weeklyLPer100 } from '../lib/intervals'
 import { useAnalytics } from '../state/ParamsContext'
+import { timeAxisTooltip } from './dateTooltip'
 
 function lineOption(opts: {
   name: string; data: [string, number | null][]; color: number; unit: string; min?: number; max?: number
@@ -16,7 +17,7 @@ function lineOption(opts: {
     const t = chartTheme()
     return {
       legend: { show: false },
-      tooltip: { trigger: 'axis', valueFormatter: (v) => (v == null ? '—' : opts.fmt(Number(v))) } as EChartsOption['tooltip'],
+      tooltip: { trigger: 'axis', formatter: timeAxisTooltip(opts.fmt) } as EChartsOption['tooltip'],
       grid: { left: 8, right: 16, top: 28, bottom: 8, containLabel: true },
       xAxis: { type: 'time', ...axisStyle() },
       yAxis: {
@@ -30,7 +31,7 @@ function lineOption(opts: {
         markLine: opts.serviceDates.length > 0 ? {
           symbol: 'none', silent: true,
           lineStyle: { color: t.text, type: 'dashed', width: 1.5 },
-          label: { formatter: (p: { value?: unknown }) => `Service ${p.value as string}`, color: t.textSecondary, position: 'insideEndTop' },
+          label: { formatter: (p: { value?: unknown }) => `Service ${fmtDate(p.value as string)}`, color: t.textSecondary, position: 'insideEndTop' },
           data: opts.serviceDates.map((d) => ({ xAxis: d, value: d })),
         } : undefined,
       }],
@@ -55,7 +56,7 @@ export function IntervalTrend({ from, to, serviceDates }: { from: string; to: st
   return (
     <ChartCard title="Consumption and DPF over the intervals" loading={(fuel.isLoading && !fuel.data) || (score.isLoading && !score.data)}
       error={fuel.isError || score.isError} empty={empty}
-      hint={serviceDates.length === 1 ? `Weekly values; the dashed line marks the service on ${serviceDates[0]}.`
+      hint={serviceDates.length === 1 ? `Weekly values; the dashed line marks the service on ${fmtDate(serviceDates[0])}.`
         : serviceDates.length > 1 ? 'Weekly values; the dashed lines mark the services.' : 'Weekly values.'}>
       {fuelOpt && <Chart option={fuelOpt} height={220} />}
       {dpfOpt && <Chart option={dpfOpt} height={200} />}

@@ -1,4 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query'
+import { toDmy } from './dates'
 
 export const fmtMoney = (n: number | null | undefined, currency: string) =>
   n == null ? '—' : new Intl.NumberFormat('en', { style: 'currency', currency, maximumFractionDigits: 2 }).format(n)
@@ -30,8 +31,11 @@ export function timeSpanHours(ts: string | null | undefined): number | null {
   return Number(m[1] ?? 0) * 24 + Number(m[2]) + Number(m[3]) / 60 + Number(m[4]) / 3600
 }
 
-/** "2025-03-04T08:05:00" as "2025-03-04 08:05". */
-export const fmtDateTime = (s: string) => s.slice(0, 16).replace('T', ' ')
+/** "2026-11-09" (or a datetime) as "09/11/2026"; the em dash for empty. */
+export const fmtDate = (iso: string | null | undefined): string => (iso ? toDmy(iso) || '—' : '—')
+
+/** "2026-11-09T08:05:00" as "09/11/2026 08:05". */
+export const fmtDateTime = (s: string) => `${toDmy(s)} ${s.slice(11, 16)}`
 
 export function daysAgo(date: string, today = new Date()): number {
   const d = new Date(`${date}T00:00:00`)
@@ -64,4 +68,12 @@ export function errorLines(e: unknown): string[] {
 /** Fixed colour per entity (never by rank); everything else folds into "Other". */
 export const CATEGORY_COLOR_INDEX: Record<string, number> = {
   Fuel: 0, Maintenance: 1, Tyres: 2, Insurance: 3, Repair: 4, Parking: 5, TollsVignette: 6,
+}
+
+/** A UTC instant (e.g. "2026-11-09T07:05:00Z") as local "dd/mm/yyyy HH:mm". */
+export function fmtInstant(s: string): string {
+  const d = new Date(s)
+  if (Number.isNaN(d.getTime())) return '—'
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`
 }

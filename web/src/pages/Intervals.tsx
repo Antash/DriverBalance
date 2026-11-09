@@ -14,9 +14,10 @@ import { allIntervalsWindow, intervalWindow } from '../lib/intervals'
 import { isPreviousOwnerInterval } from '../lib/ownership'
 import { useAnalytics, useParams } from '../state/ParamsContext'
 import { useVehicle } from '../state/useVehicle'
+import { fmtDate } from '../lib/format'
 
 /** Inclusive-to display of a half-open interval. */
-const describe = (p: PeriodWithStats['period']) => `${p.label} (${p.from} → ${addDays(p.to, -1)})`
+const describe = (p: PeriodWithStats['period']) => `${p.label} (${fmtDate(p.from)} → ${fmtDate(addDays(p.to, -1))})`
 
 type View = 'all' | 'avg' | 'last'
 const VIEWS: { key: View; label: string }[] = [

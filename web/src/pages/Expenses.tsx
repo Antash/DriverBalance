@@ -10,9 +10,10 @@ import { CATEGORIES, ExpenseForm, label } from '../components/ExpenseForm'
 import { Modal } from '../components/Modal'
 import { iso } from '../lib/dates'
 import { expensePeriods } from '../lib/expensePeriods'
-import { errorLines, fmtMoney, fmtNum, invalidateVehicleData } from '../lib/format'
+import { errorLines, fmtMoney, fmtNum, invalidateVehicleData, fmtDate } from '../lib/format'
 import { useParams, useAnalytics } from '../state/ParamsContext'
 import { useTyreSets, useVehicle } from '../state/useVehicle'
+import { timeAxisTooltip } from '../charts/dateTooltip'
 
 /** Category name for tables and charts: the purchase category without its long hint. */
 const shortLabel = (c: ExpenseCategory) => label(c)
@@ -55,7 +56,7 @@ function cumulativeOption(points: CumulativeCostPoint[], currency: string): ECha
   const pts = points.filter((p) => p.costPerKm != null)
   return {
     legend: { show: false },
-    tooltip: { trigger: 'axis', valueFormatter: (v) => `${fmtMoney(Number(v), currency)} / km` } as EChartsOption['tooltip'],
+    tooltip: { trigger: 'axis', formatter: timeAxisTooltip((v) => `${fmtMoney(v, currency)} / km`) } as EChartsOption['tooltip'],
     grid: { left: 8, right: 16, top: 36, bottom: 8, containLabel: true },
     xAxis: { type: 'time', ...axisStyle() },
     yAxis: { type: 'value', name: `${currency} / km`, nameGap: 14, nameTextStyle: { color: t.muted, align: 'left' }, ...axisStyle() },
@@ -173,7 +174,7 @@ export default function ExpensesPage() {
               const needsConversion = e.currency !== cur && e.homeAmount == null
               return (
                 <tr key={e.id}>
-                  <td>{e.date}<Clip n={e.documents.length} /></td>
+                  <td>{fmtDate(e.date)}<Clip n={e.documents.length} /></td>
                   <td>{shortLabel(e.category)}</td>
                   <td className="num">{fmtMoney(e.amount, e.currency)}</td>
                   {foreignShown && (
@@ -185,8 +186,8 @@ export default function ExpensesPage() {
                   <td className="num">{e.odometer == null ? '' : `${fmtNum(e.odometer, 0)} km`}</td>
                   <td className="wrap">{e.note ?? ''}</td>
                   <td className="actions">
-                    <button className="btn small" aria-label={`Edit ${shortLabel(e.category)} from ${e.date}`} title="Edit" onClick={() => setEditing(e)}>✎</button>{' '}
-                    <button className="btn small danger" aria-label={`Delete ${shortLabel(e.category)} from ${e.date}`} title="Delete" onClick={() => { if (window.confirm(`Delete this ${label(e.category)} expense from ${e.date}${e.documents.length > 0 ? ` and its ${e.documents.length} document(s)` : ''}?`)) del.mutate(e.id) }}>✕</button>
+                    <button className="btn small" aria-label={`Edit ${shortLabel(e.category)} from ${fmtDate(e.date)}`} title="Edit" onClick={() => setEditing(e)}>✎</button>{' '}
+                    <button className="btn small danger" aria-label={`Delete ${shortLabel(e.category)} from ${fmtDate(e.date)}`} title="Delete" onClick={() => { if (window.confirm(`Delete this ${label(e.category)} expense from ${fmtDate(e.date)}${e.documents.length > 0 ? ` and its ${e.documents.length} document(s)` : ''}?`)) del.mutate(e.id) }}>✕</button>
                   </td>
                 </tr>
               )
