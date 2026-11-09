@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
-import type { Expense, ExpenseCategory, MaintenanceType, TyreSet, Vehicle } from '../api/types'
-import { buildExpensePayload, parseDecimal, validateExpenseForm, emptyFormState, pricePerLitre, toFormState, usesTyreSet, type ExpenseFormState } from '../lib/expenseForm'
-import { MAINTENANCE_TYPES, maintenanceLabel } from '../lib/maintenanceCatalog'
+import type { Expense, ExpenseCategory, TyreSet, Vehicle } from '../api/types'
+import { buildExpensePayload, parseDecimal, validateExpenseForm, emptyFormState, pricePerLitre, toFormState, type ExpenseFormState } from '../lib/expenseForm'
+import { MAINTENANCE_TYPES } from '../lib/maintenanceCatalog'
+import { MaintenanceWorkEditor } from './MaintenanceWorkEditor'
 import { errorLines, fmtMoney, invalidateVehicleData } from '../lib/format'
 
 export const CATEGORIES: ExpenseCategory[] = [
@@ -26,12 +27,21 @@ export function TyreSetSelect({ sets, value, onChange }: { sets: TyreSet[]; valu
   )
 }
 
-export function ExpenseForm({ vehicle, tyreSets, initial, onDone }: {
+export function ExpenseForm({ vehicle, tyreSets, initial, onDone, lockCategory, onDelete, defaultOdometer }: {
   vehicle: Vehicle; tyreSets: TyreSet[]; initial?: Expense; onDone(): void
+  lockCategory?: ExpenseCategory; onDelete?: () => void; defaultOdometer?: number
 }) {
   const qc = useQueryClient()
   const [submitted, setSubmitted] = useState(false)
-  const [f, setF] = useState<ExpenseFormState>(() => (initial ? toFormState(initial) : emptyFormState(vehicle.homeCurrency)))
+  const [f, setF] = useState<ExpenseFormState>(() => {
+    if (initial) return toFormState(initial)
+    const e = emptyFormState(vehicle.homeCurrency)
+    return {
+      ...e,
+      category: lockCategory ?? e.category,
+      odometer: e.odometer.trim() === '' && defaultOdometer != null ? String(defaultOdometer) : e.odometer,
+    }
+  })
   const set = <K extends keyof ExpenseFormState>(k: K, v: ExpenseFormState[K]) => setF((s) => ({ ...s, [k]: v }))
 
   const save = useMutation({
@@ -48,17 +58,17 @@ export function ExpenseForm({ vehicle, tyreSets, initial, onDone }: {
   const err = (k: string) => (submitted && errors[k] ? <span className="field-error" role="alert">{errors[k]}</span> : null)
   const ppl = f.category === 'Fuel' ? pricePerLitre(parseDecimal(f.amount) ?? NaN, parseDecimal(f.litres) ?? NaN) : null
   const foreign = f.currency.trim().toUpperCase() !== vehicle.homeCurrency.toUpperCase()
-  const toggle = (t: MaintenanceType) =>
-    set('maintenance', f.maintenance.includes(t) ? f.maintenance.filter((x) => x !== t) : [...f.maintenance, t])
 
   return (
     <form className="form-grid" onSubmit={(e) => { e.preventDefault(); setSubmitted(true); if (Object.keys(errors).length === 0) save.mutate() }}>
       <label>Date<input type="date" required value={f.date} onChange={(e) => set('date', e.target.value)} /></label>
-      <label>Category
-        <select value={f.category} onChange={(e) => set('category', e.target.value as ExpenseCategory)}>
-          {CATEGORIES.map((c) => <option key={c} value={c}>{label(c)}</option>)}
-        </select>
-      </label>
+      {!lockCategory && (
+        <label>Category
+          <select value={f.category} onChange={(e) => set('category', e.target.value as ExpenseCategory)}>
+            {CATEGORIES.map((c) => <option key={c} value={c}>{label(c)}</option>)}
+          </select>
+        </label>
+      )}
       <label>Amount<input inputMode="decimal" value={f.amount} onChange={(e) => set('amount', e.target.value)} />{err('amount')}</label>
       <label>Currency<input maxLength={3} value={f.currency} onChange={(e) => set('currency', e.target.value)} /></label>
       {foreign && (
@@ -83,22 +93,17 @@ export function ExpenseForm({ vehicle, tyreSets, initial, onDone }: {
 
       {f.category === 'Maintenance' && (
         <>
-          <fieldset className="group wide"><legend>Work done</legend>
-            <div className="chips">
-              {MAINTENANCE_TYPES.map((t) => (
-                <label key={t} className="check">
-                  <input type="checkbox" checked={f.maintenance.includes(t)} onChange={() => toggle(t)} /> {maintenanceLabel(t)}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          <label className="wide">Description
-            <input value={f.maintenanceDescription} onChange={(e) => set('maintenanceDescription', e.target.value)} />
-          </label>
+          <MaintenanceWorkEditor
+            work={f.work} onWork={(w) => set('work', w)}
+            tyres={f.tyres} onTyres={(t) => set('tyres', t)}
+            tyreSetId={f.tyreSetId} onTyreSetId={(v) => set('tyreSetId', v)}
+            tyreSets={tyreSets} tyreLocked={initial?.tyreSetId != null} err={err}
+          />
+          {f.maintenanceDescription && <p className="muted wide">Earlier description: {f.maintenanceDescription}</p>}
         </>
       )}
 
-      {usesTyreSet(f.category, f.maintenance) && (
+      {f.category === 'Tyres' && (
         <label className="wide">Tyre set<TyreSetSelect sets={tyreSets} value={f.tyreSetId} onChange={(v) => set('tyreSetId', v)} /></label>
       )}
 
@@ -115,6 +120,7 @@ export function ExpenseForm({ vehicle, tyreSets, initial, onDone }: {
       <div className="wide row">
         <button className="btn primary" type="submit" disabled={save.isPending}>{initial ? 'Save' : 'Add expense'}</button>
         <button className="btn" type="button" onClick={onDone}>Cancel</button>
+        {initial && onDelete && <button className="btn danger" type="button" onClick={onDelete}>Delete</button>}
       </div>
     </form>
   )

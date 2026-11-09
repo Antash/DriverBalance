@@ -1,5 +1,25 @@
 import { iso } from './dates'
-import type { Expense, ExpenseCategory, MaintenanceType } from '../api/types'
+import type { Expense, ExpenseCategory, MaintenanceType, MaintenanceWork, PartSource, TyreSeason } from '../api/types'
+
+export interface WorkDraft {
+  id: string
+  type: MaintenanceType | null
+  name: string
+  part: PartSource
+  brand: string
+  model: string
+  details: string
+}
+
+export interface TyreDraft {
+  mode: 'existing' | 'owned' | 'new'
+  brand: string
+  model: string
+  size: string
+  season: TyreSeason
+}
+
+export interface TyresPayload { brand: string | null; model: string | null; size: string | null; season: TyreSeason; isNew: boolean }
 
 export interface ExpenseFormState {
   date: string
@@ -14,12 +34,20 @@ export interface ExpenseFormState {
   litres: string
   fullTank: boolean
   station: string
-  maintenance: MaintenanceType[]
+  work: WorkDraft[]
   maintenanceDescription: string
   tyreSetId: string
+  tyres: TyreDraft
 }
 
-export type ExpensePayload = Omit<Expense, 'id' | 'source' | 'work'>
+export type ExpensePayload = Omit<Expense, 'id' | 'source'> & { tyres: TyresPayload | null }
+
+export const newWorkId = (() => { let n = 0; return () => `w${++n}` })()
+export const emptyTyres = (): TyreDraft => ({ mode: 'existing', brand: '', model: '', size: '', season: 'Summer' })
+
+const isBlankCustom = (w: WorkDraft) =>
+  w.type === null && w.name.trim() === '' && w.part === 'None' && w.brand.trim() === '' && w.model.trim() === '' && w.details.trim() === ''
+const typedTypes = (work: WorkDraft[]): MaintenanceType[] => work.flatMap((w) => (w.type ? [w.type] : []))
 
 export const MOUNT_TYPES: MaintenanceType[] = ['TyreSwap', 'NewTyres']
 
@@ -42,6 +70,12 @@ export function validateExpenseForm(f: ExpenseFormState, homeCurrency: string): 
   if (f.category === 'Fuel' && bad(f.litres)) errors.litres = 'Enter a number, e.g. 40,5.'
   if (!isHome(f.currency, homeCurrency) && bad(f.homeAmount)) errors.homeAmount = 'Enter a number, e.g. 1 500 or 12,50.'
   if (f.odometer.trim() !== '' && !Number.isInteger(parseDecimal(f.odometer))) errors.odometer = 'Enter a whole number of km.'
+  if (f.category === 'Maintenance') {
+    for (const w of f.work) {
+      if (w.type === null && w.name.trim() === '' && !isBlankCustom(w)) errors[`work.${w.id}.name`] = 'Name the work.'
+      if (w.part === 'Aftermarket' && w.brand.trim() === '') errors[`work.${w.id}.brand`] = 'Enter the brand.'
+    }
+  }
   return errors
 }
 
@@ -50,13 +84,26 @@ export function pricePerLitre(totalPrice: number, litres: number): number | null
   return totalPrice / litres
 }
 
-export function usesTyreSet(category: ExpenseCategory, maintenance: MaintenanceType[]): boolean {
+export function usesTyreSet(category: ExpenseCategory, maintenance: readonly MaintenanceType[]): boolean {
   return category === 'Tyres' || (category === 'Maintenance' && maintenance.some((m) => MOUNT_TYPES.includes(m)))
+}
+
+function toWork(w: WorkDraft): MaintenanceWork {
+  const after = w.part === 'Aftermarket'
+  return {
+    type: w.type, name: w.type === null ? w.name.trim() : null, part: w.part,
+    brand: after ? emptyToNull(w.brand) : null, model: after ? emptyToNull(w.model) : null, details: emptyToNull(w.details),
+  }
 }
 
 export function buildExpensePayload(f: ExpenseFormState, homeCurrency: string): ExpensePayload {
   const fuel = f.category === 'Fuel'
   const maint = f.category === 'Maintenance'
+  const work = maint ? f.work.filter((w) => !isBlankCustom(w)) : []
+  const types = typedTypes(work)
+  const tyreSwap = maint && types.includes('TyreSwap')
+  const fitNew = tyreSwap && f.tyres.mode !== 'existing'
+  const usesSet = usesTyreSet(f.category, types)
   return {
     date: f.date,
     category: f.category,
@@ -70,9 +117,13 @@ export function buildExpensePayload(f: ExpenseFormState, homeCurrency: string): 
     litres: fuel ? num(f.litres) : null,
     fullTank: fuel ? f.fullTank : null,
     station: fuel ? emptyToNull(f.station) : null,
-    maintenance: maint ? [...f.maintenance] : [],
+    maintenance: types,
+    work: work.map(toWork),
     maintenanceDescription: maint ? emptyToNull(f.maintenanceDescription) : null,
-    tyreSetId: usesTyreSet(f.category, f.maintenance) ? num(f.tyreSetId) : null,
+    tyreSetId: usesSet && !fitNew ? num(f.tyreSetId) : null,
+    tyres: fitNew
+      ? { brand: emptyToNull(f.tyres.brand), model: emptyToNull(f.tyres.model), size: emptyToNull(f.tyres.size), season: f.tyres.season, isNew: f.tyres.mode === 'new' }
+      : null,
   }
 }
 
@@ -83,8 +134,11 @@ export function toFormState(e: Expense): ExpenseFormState {
     odometer: e.odometer == null ? '' : String(e.odometer), note: e.note ?? '',
     coversFrom: e.coversFrom ?? '', coversTo: e.coversTo ?? '',
     litres: e.litres == null ? '' : String(e.litres), fullTank: e.fullTank ?? false, station: e.station ?? '',
-    maintenance: [...e.maintenance], maintenanceDescription: e.maintenanceDescription ?? '',
-    tyreSetId: e.tyreSetId == null ? '' : String(e.tyreSetId),
+    work: e.work.length > 0
+      ? e.work.map((w) => ({ id: newWorkId(), type: w.type, name: w.name ?? '', part: w.part, brand: w.brand ?? '', model: w.model ?? '', details: w.details ?? '' }))
+      : e.maintenance.map((t) => ({ id: newWorkId(), type: t, name: '', part: 'None' as const, brand: '', model: '', details: '' })),
+    maintenanceDescription: e.maintenanceDescription ?? '',
+    tyreSetId: e.tyreSetId == null ? '' : String(e.tyreSetId), tyres: emptyTyres(),
   }
 }
 
@@ -92,6 +146,6 @@ export function emptyFormState(currency: string, today = new Date()): ExpenseFor
   const d = iso(today)
   return {
     date: d, category: 'Fuel', amount: '', currency, homeAmount: '', odometer: '', note: '', coversFrom: '', coversTo: '',
-    litres: '', fullTank: true, station: '', maintenance: [], maintenanceDescription: '', tyreSetId: '',
+    litres: '', fullTank: true, station: '', work: [], maintenanceDescription: '', tyreSetId: '', tyres: emptyTyres(),
   }
 }

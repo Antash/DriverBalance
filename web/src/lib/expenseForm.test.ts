@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import type { Expense } from '../api/types'
-import { buildExpensePayload, parseDecimal, pricePerLitre, toFormState, validateExpenseForm, type ExpenseFormState } from './expenseForm'
+import { buildExpensePayload, emptyFormState, parseDecimal, pricePerLitre, toFormState, usesTyreSet, validateExpenseForm, type ExpenseFormState, type WorkDraft } from './expenseForm'
 
 const base: ExpenseFormState = {
   date: '2026-03-01', category: 'Other', amount: '120', currency: 'CZK', homeAmount: '', odometer: '', note: '',
   coversFrom: '', coversTo: '', litres: '', fullTank: false, station: '',
-  maintenance: [], maintenanceDescription: '', tyreSetId: '',
+  work: [], maintenanceDescription: '', tyreSetId: '',
+  tyres: { mode: 'existing', brand: '', model: '', size: '', season: 'Summer' },
 }
+const item = (o: Partial<WorkDraft> = {}): WorkDraft => ({ id: 'a', type: 'OilChange', name: '', part: 'None', brand: '', model: '', details: '', ...o })
+const M: ExpenseFormState = { ...base, category: 'Maintenance' }
+const newTyres = { mode: 'new' as const, brand: 'Michelin', model: 'Alpin 6', size: '225/45R17', season: 'Winter' as const }
 
 describe('pricePerLitre', () => {
   it('returns null for 0 litres', () => expect(pricePerLitre(1000, 0)).toBeNull())
@@ -17,29 +21,65 @@ describe('pricePerLitre', () => {
 describe('buildExpensePayload', () => {
   it('Fuel includes litres, full tank and station', () => {
     const p = buildExpensePayload({ ...base, category: 'Fuel', amount: '1500.5', litres: '40.2', fullTank: true, station: 'Shell' }, 'CZK')
-    expect(p).toMatchObject({ category: 'Fuel', amount: 1500.5, litres: 40.2, fullTank: true, station: 'Shell', maintenance: [] })
+    expect(p).toMatchObject({ category: 'Fuel', amount: 1500.5, litres: 40.2, fullTank: true, station: 'Shell', maintenance: [], work: [], tyres: null })
   })
 
-  it('Maintenance types become a string array and a tyre set is sent for TyreSwap', () => {
-    const p = buildExpensePayload({ ...base, category: 'Maintenance', maintenance: ['TyreSwap', 'OilChange'], maintenanceDescription: 'x', tyreSetId: '3' }, 'CZK')
-    expect(p.maintenance).toEqual(['TyreSwap', 'OilChange'])
+  it('Maintenance work and typed item types are sent; description kept', () => {
+    const p = buildExpensePayload({ ...M, work: [item(), item({ id: 'b', type: 'TyreSwap' })], maintenanceDescription: 'x' }, 'CZK')
+    expect(p.maintenance).toEqual(['OilChange', 'TyreSwap'])
+    expect(p.work).toHaveLength(2)
     expect(p.maintenanceDescription).toBe('x')
-    expect(p.tyreSetId).toBe(3)
   })
 
-  it('Maintenance without a mount flag drops the tyre set', () => {
-    const p = buildExpensePayload({ ...base, category: 'Maintenance', maintenance: ['OilChange'], tyreSetId: '3' }, 'CZK')
+  it('tyre mode new sends tyres.isNew and no tyreSetId', () => {
+    const p = buildExpensePayload({ ...M, work: [item({ type: 'TyreSwap' })], tyreSetId: '3', tyres: newTyres }, 'CZK')
+    expect(p.tyreSetId).toBeNull()
+    expect(p.tyres).toEqual({ brand: 'Michelin', model: 'Alpin 6', size: '225/45R17', season: 'Winter', isNew: true })
+  })
+
+  it('tyre mode owned sends isNew false', () => {
+    const p = buildExpensePayload({ ...M, work: [item({ type: 'TyreSwap' })],
+      tyres: { mode: 'owned', brand: 'B', model: '', size: '', season: 'Summer' } }, 'CZK')
+    expect(p.tyres).toMatchObject({ brand: 'B', model: null, size: null, isNew: false })
     expect(p.tyreSetId).toBeNull()
   })
 
+  it('tyre mode existing sends tyreSetId and no tyres', () => {
+    const p = buildExpensePayload({ ...M, work: [item({ type: 'TyreSwap' })], tyreSetId: '3' }, 'CZK')
+    expect(p.tyreSetId).toBe(3)
+    expect(p.tyres).toBeNull()
+  })
+
+  it('Maintenance without a tyre swap drops the tyre set and tyres', () => {
+    const p = buildExpensePayload({ ...M, work: [item()], tyreSetId: '3', tyres: newTyres }, 'CZK')
+    expect(p.tyreSetId).toBeNull()
+    expect(p.tyres).toBeNull()
+  })
+
+  it('Original clears brand and model; Aftermarket keeps them', () => {
+    const p = buildExpensePayload({ ...M, work: [
+      item({ part: 'Original', brand: 'B', model: 'M' }),
+      item({ id: 'b', type: 'Battery', part: 'Aftermarket', brand: 'Varta', model: 'E11', details: ' d ' }),
+    ] }, 'CZK')
+    expect(p.work[0]).toMatchObject({ type: 'OilChange', part: 'Original', brand: null, model: null })
+    expect(p.work[1]).toMatchObject({ part: 'Aftermarket', brand: 'Varta', model: 'E11', details: 'd' })
+  })
+
+  it('a fully empty custom draft is dropped; a named custom one is sent', () => {
+    const p = buildExpensePayload({ ...M, work: [item({ id: 'c', type: null }), item({ id: 'd', type: null, name: 'Mudflaps' })] }, 'CZK')
+    expect(p.work).toHaveLength(1)
+    expect(p.work[0]).toMatchObject({ type: null, name: 'Mudflaps' })
+    expect(p.maintenance).toEqual([])
+  })
+
   it('other categories drop fuel and maintenance fields', () => {
-    const p = buildExpensePayload({ ...base, category: 'Parking', litres: '5', station: 'x', maintenance: ['OilChange'], tyreSetId: '2' }, 'CZK')
-    expect(p).toMatchObject({ litres: null, fullTank: null, station: null, maintenance: [], maintenanceDescription: null, tyreSetId: null })
+    const p = buildExpensePayload({ ...base, category: 'Parking', litres: '5', station: 'x', work: [item()], tyreSetId: '2', tyres: newTyres }, 'CZK')
+    expect(p).toMatchObject({ litres: null, fullTank: null, station: null, maintenance: [], work: [], maintenanceDescription: null, tyreSetId: null, tyres: null })
   })
 
   it('Tyres sends the set; empty optionals become null; currency is upper-cased', () => {
     const p = buildExpensePayload({ ...base, category: 'Tyres', tyreSetId: '2', currency: 'eur', homeAmount: '', odometer: '' }, 'CZK')
-    expect(p).toMatchObject({ tyreSetId: 2, currency: 'EUR', homeAmount: null, odometer: null, note: null, coversFrom: null, coversTo: null })
+    expect(p).toMatchObject({ tyreSetId: 2, currency: 'EUR', homeAmount: null, odometer: null, note: null, coversFrom: null, coversTo: null, tyres: null })
   })
 
   it('keeps the covers period for any category', () => {
@@ -49,7 +89,7 @@ describe('buildExpensePayload', () => {
 })
 
 describe('parseDecimal', () => {
-  it.each([['1 500', 1500], ['12,50', 12.5], [' 99 ', 99], ['1 500,5', 1500.5], ['7', 7]])('accepts %j', (input, out) =>
+  it.each([['1 500', 1500], ['12,50', 12.5], [' 99 ', 99], ['1 500,5', 1500.5], ['7', 7]])('accepts %j', (input, out) =>
     expect(parseDecimal(input)).toBe(out))
   it.each(['abc', '12,5,0', '', '  ', '1.2.3', '-', '1e3'])('rejects %j', (input) => expect(parseDecimal(input)).toBeNull())
 })
@@ -66,6 +106,28 @@ describe('validateExpenseForm', () => {
     expect(validateExpenseForm({ ...base, homeAmount: 'junk', litres: 'junk' }, 'CZK')).toEqual({}))
 })
 
+describe('work validation', () => {
+  it('custom with details but no name errors; an empty custom does not', () => {
+    expect(validateExpenseForm({ ...M, work: [item({ id: 'x', type: null, details: 'hm' })] }, 'CZK')['work.x.name']).toBeTruthy()
+    expect(validateExpenseForm({ ...M, work: [item({ id: 'x', type: null })] }, 'CZK')).toEqual({})
+  })
+  it('Aftermarket without a brand errors', () => {
+    expect(validateExpenseForm({ ...M, work: [item({ id: 'y', part: 'Aftermarket' })] }, 'CZK')['work.y.brand']).toBeTruthy()
+    expect(validateExpenseForm({ ...M, work: [item({ id: 'y', part: 'Aftermarket', brand: 'Bosch' })] }, 'CZK')).toEqual({})
+  })
+  it('is ignored outside Maintenance', () =>
+    expect(validateExpenseForm({ ...base, work: [item({ part: 'Aftermarket' })] }, 'CZK')).toEqual({}))
+})
+
+describe('usesTyreSet / emptyFormState', () => {
+  it('Tyres, or Maintenance with a mount type', () => {
+    expect(usesTyreSet('Tyres', [])).toBe(true)
+    expect(usesTyreSet('Maintenance', ['TyreSwap'])).toBe(true)
+    expect(usesTyreSet('Maintenance', ['OilChange'])).toBe(false)
+  })
+  it('starts with no work', () => expect(emptyFormState('CZK').work).toEqual([]))
+})
+
 describe('homeAmount', () => {
   it('is null when currency equals the home currency, even if stale', () =>
     expect(buildExpensePayload({ ...base, currency: 'czk', homeAmount: '99' }, 'CZK').homeAmount).toBeNull())
@@ -73,14 +135,37 @@ describe('homeAmount', () => {
     expect(buildExpensePayload({ ...base, currency: 'EUR', homeAmount: '2 500,5' }, 'CZK').homeAmount).toBe(2500.5))
 })
 
+describe('toFormState', () => {
+  const common: Expense = { id: 1, date: '2026-02-03', amount: 1234.5, currency: 'CZK', homeAmount: null, odometer: 45678, note: 'n',
+    coversFrom: null, coversTo: null, litres: null, fullTank: null, station: null, maintenance: [], maintenanceDescription: null,
+    tyreSetId: null, source: 'Web', category: 'Other', work: [] }
+
+  it('toFormState_legacyFlagsBecomeWorkItems', () => {
+    const f = toFormState({ ...common, category: 'Maintenance', maintenance: ['OilChange', 'BrakeFluid'], maintenanceDescription: 'old text' })
+    expect(f.work.map((w) => [w.type, w.part])).toEqual([['OilChange', 'None'], ['BrakeFluid', 'None']])
+    expect(f.maintenanceDescription).toBe('old text')
+  })
+
+  it('uses work when present', () => {
+    const f = toFormState({ ...common, category: 'Maintenance', maintenance: ['Battery'],
+      work: [{ type: 'Battery', name: null, part: 'Aftermarket', brand: 'Varta', model: null, details: null }] })
+    expect(f.work[0]).toMatchObject({ type: 'Battery', part: 'Aftermarket', brand: 'Varta', model: '' })
+  })
+})
+
 describe('toFormState -> buildExpensePayload round trip', () => {
   const common: Expense = { id: 1, date: '2026-02-03', amount: 1234.5, currency: 'CZK', homeAmount: null, odometer: 45678, note: 'n',
     coversFrom: null, coversTo: null, litres: null, fullTank: null, station: null, maintenance: [], maintenanceDescription: null,
     tyreSetId: null, source: 'Web', category: 'Other', work: [] }
-  const strip = ({ id: _id, source: _s, work: _w, ...rest }: Expense) => rest
+  const strip = ({ id: _id, source: _s, ...rest }: Expense) => ({ ...rest, tyres: null })
   it.each([
     ['Fuel', { ...common, category: 'Fuel', litres: 40.2, fullTank: true, station: 'Shell' }],
-    ['Maintenance with tyre set', { ...common, category: 'Maintenance', maintenance: ['TyreSwap', 'OilChange'], maintenanceDescription: 'd', tyreSetId: 3 }],
+    ['Maintenance with tyre set', { ...common, category: 'Maintenance', maintenance: ['TyreSwap', 'OilChange'], maintenanceDescription: 'd', tyreSetId: 3,
+      work: [
+        { type: 'TyreSwap', name: null, part: 'None', brand: null, model: null, details: null },
+        { type: 'OilChange', name: null, part: 'Aftermarket', brand: 'Castrol', model: '5W30', details: 'x' },
+        { type: null, name: 'Mudflaps', part: 'Original', brand: null, model: null, details: null },
+      ] }],
     ['Insurance with covers', { ...common, category: 'Insurance', coversFrom: '2026-01-01', coversTo: '2026-12-31' }],
     ['foreign currency', { ...common, category: 'Parking', currency: 'EUR', homeAmount: 250.5 }],
   ] as [string, Expense][])('%s', (_n, e) => expect(buildExpensePayload(toFormState(e), 'CZK')).toEqual(strip(e)))
