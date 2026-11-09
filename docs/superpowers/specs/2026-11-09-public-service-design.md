@@ -30,7 +30,7 @@ the MCP/bot connection) working against the hosted service with his own API toke
      user and, technically, the admin as operator), how to export and delete.
 7. **Hosting on Azure App Service F1** (free), deployed from GitHub Actions.
    - The address is `https://<app-name>.azurewebsites.net` (HTTPS included; no custom domain on F1).
-   - The SQLite database lives on the app's persistent storage (`%HOME%\data\driverbalance.db`). F1 runs a single
+   - The SQLite database lives on the app's persistent storage (`/home/data/driverbalance.db` on Linux). F1 runs a single
      instance, so SQLite's single-writer model is fine.
    - Documents (receipts, orders) go to Azure Blob Storage, not the 1 GB app disk.
    - A daily database backup is copied to Blob Storage (keep the last 14).
