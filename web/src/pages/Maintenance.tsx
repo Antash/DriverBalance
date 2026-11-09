@@ -23,22 +23,25 @@ function Since({ w }: { w: WorkItem }) {
   return <span>{fmtNum(w.sinceDays, 0)} days{w.sinceKm != null ? ` · ${fmtNum(w.sinceKm, 0)} km` : ''}</span>
 }
 
-function TyreSetEditor({ vehicleId, set, onDone }: { vehicleId: number; set: TyreSet; onDone(): void }) {
+/** Edits a tyre set, or adds one when `set` is null (so it can be picked as the fitted tyres on a tyre swap). */
+function TyreSetEditor({ vehicleId, set, onDone }: { vehicleId: number; set: TyreSet | null; onDone(): void }) {
   const qc = useQueryClient()
   const [f, setF] = useState({
-    brand: set.brand ?? '', model: set.model ?? '', size: set.size ?? '', season: set.season, retired: set.retired,
+    brand: set?.brand ?? '', model: set?.model ?? '', size: set?.size ?? '', season: set?.season ?? ('Summer' as TyreSeason), retired: set?.retired ?? false,
   })
   // A name that was derived from the previous brand/model/season is re-derived by the server (name: '').
-  const nameWasDerived = set.name === derivedTyreName(set)
+  const nameWasDerived = !set || set.name === derivedTyreName(set)
   const save = useMutation({
-    mutationFn: () => api.put<TyreSet>(`/vehicles/${vehicleId}/tyres/${set.id}`, {
-      ...set, name: nameWasDerived ? '' : set.name, brand: f.brand.trim() || null, model: f.model.trim() || null, size: f.size.trim() || null,
-      season: f.season, retired: f.retired,
-    }),
+    mutationFn: () => {
+      const fields = { brand: f.brand.trim() || null, model: f.model.trim() || null, size: f.size.trim() || null, season: f.season, retired: f.retired }
+      return set
+        ? api.put<TyreSet>(`/vehicles/${vehicleId}/tyres/${set.id}`, { ...set, ...fields, name: nameWasDerived ? '' : set.name })
+        : api.post<TyreSet>(`/vehicles/${vehicleId}/tyres`, { ...fields, name: '', description: null, purchaseDate: null })
+    },
     onSuccess: async () => { await invalidateVehicleData(qc, vehicleId); onDone() },
   })
   const remove = useMutation({
-    mutationFn: () => api.del<void>(`/vehicles/${vehicleId}/tyres/${set.id}`),
+    mutationFn: () => api.del<void>(`/vehicles/${vehicleId}/tyres/${set!.id}`),
     onSuccess: async () => { await invalidateVehicleData(qc, vehicleId); onDone() },
   })
   return (
@@ -51,14 +54,14 @@ function TyreSetEditor({ vehicleId, set, onDone }: { vehicleId: number; set: Tyr
           {SEASONS.map((s) => <option key={s} value={s}>{seasonLabel(s)}</option>)}
         </select>
       </label>
-      <label className="check wide"><input type="checkbox" checked={f.retired} onChange={(e) => setF({ ...f, retired: e.target.checked })} /> Retired</label>
+      {set && <label className="check wide"><input type="checkbox" checked={f.retired} onChange={(e) => setF({ ...f, retired: e.target.checked })} /> Retired</label>}
       {save.isError && <ul className="errors wide">{errorLines(save.error).map((m) => <li key={m}>{m}</li>)}</ul>}
       {remove.isError && <ul className="errors wide">{errorLines(remove.error).map((m) => <li key={m}>{m}</li>)}</ul>}
       <div className="wide row">
-        <button className="btn primary" type="submit" disabled={save.isPending}>Save</button>
+        <button className="btn primary" type="submit" disabled={save.isPending}>{set ? 'Save' : 'Add tyre set'}</button>
         <button className="btn" type="button" onClick={onDone}>Cancel</button>
-        <button className="btn danger" type="button" disabled={remove.isPending}
-          onClick={() => { if (window.confirm(`Delete tyre set ${tyreDisplayName(set)}?`)) remove.mutate() }}>Delete</button>
+        {set && <button className="btn danger" type="button" disabled={remove.isPending}
+          onClick={() => { if (window.confirm(`Delete tyre set ${tyreDisplayName(set)}?`)) remove.mutate() }}>Delete</button>}
       </div>
     </form>
   )
@@ -71,6 +74,7 @@ export default function MaintenancePage() {
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<Expense | null>(null)
   const [editingSet, setEditingSet] = useState<TyreSet | null>(null)
+  const [addingSet, setAddingSet] = useState(false)
 
   const { data: expenses, isLoading, isError } = useQuery({
     queryKey: ['expenses', vehicleId, 'maintenance'],
@@ -156,9 +160,13 @@ export default function MaintenancePage() {
       )}
 
       <section className="card">
-          <h2>Tyres</h2>
+          <div className="card-head">
+            <h2>Tyres</h2>
+            <button className="btn" onClick={() => setAddingSet(true)}>Add tyre set</button>
+          </div>
+          <p className="muted hint">Add the tyre sets you own, then pick them under Tyre swap in a maintenance record.</p>
           {rows.length === 0 && !tyreSummary?.unassignedSpans.length && (
-            <p className="muted">No tyre sets yet. Tick Tyre swap in a maintenance record to record which tyres were fitted.</p>
+            <p className="muted">No tyre sets yet.</p>
           )}
           {rows.length > 0 && <div className="table-wrap">
             <table className="data">
@@ -199,6 +207,11 @@ export default function MaintenancePage() {
             onDone={() => setEditing(null)} deleting={remove.isPending}
             onDelete={() => { if (window.confirm(`Delete this maintenance record from ${editing.date}?`)) remove.mutate(editing) }} />
           {remove.isError && <ul className="errors">{errorLines(remove.error).map((m) => <li key={m}>{m}</li>)}</ul>}
+        </Modal>
+      )}
+      {addingSet && (
+        <Modal title="Add tyre set" onClose={() => setAddingSet(false)}>
+          <TyreSetEditor vehicleId={vehicleId} set={null} onDone={() => setAddingSet(false)} />
         </Modal>
       )}
       {editingSet && (

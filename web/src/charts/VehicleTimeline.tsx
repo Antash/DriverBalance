@@ -65,6 +65,8 @@ function timelineOption(d: TimelineChart, sets: TyreSet[], maintenance: Expense[
       xAxis: { type: 'time', min: (v: Extent) => v.min - (v.max - v.min) * 0.02, max: (v: Extent) => v.max + (v.max - v.min) * 0.02, ...axisStyle() },
       yAxis: {
         type: 'value', scale: true, name: 'km', nameTextStyle: { color: t.muted }, ...axisStyle(),
+        // The padded top is rarely on a tick, so its label would crowd the one below.
+        axisLabel: { ...axisStyle().axisLabel, showMaxLabel: false },
         max: (v: Extent) => {
           const top = v.max + (v.max - v.min) * headroom / (1 - headroom)
           const step = v.max - v.min > 20000 ? 5000 : 1000
