@@ -137,8 +137,11 @@ internal sealed class VolvoJournal : IAsyncDisposable
     private Task SignInAsync(Credentials creds) => RunStep("sign in", async () =>
     {
         await DismissCookieBannerAsync();
-        await Page.Locator("input[type=email], input[name=username], input[name=email]").First.FillAsync(creds.Email);
         var password = Page.Locator("input[type=password]").First;
+        // A remembered account shows the e-mail as text with only a password box ("Použití jiného účtu" link);
+        // fill the e-mail only when a visible e-mail field is there.
+        var email = Page.Locator("input[type=email]:visible, input[name=username]:visible, input[name=email]:visible").First;
+        if (await email.CountAsync() > 0) await email.FillAsync(creds.Email);
         if (!await password.IsVisibleAsync())
         {
             // Some Keycloak themes ask for the e-mail first, then the password.
