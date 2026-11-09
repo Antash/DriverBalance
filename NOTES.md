@@ -82,7 +82,7 @@ Tests: Core 112, Web 129, VolvoSync 28, web (vitest) 200, all green; `dotnet bui
 - Fuel trend y axis is a "focus scale" (`web/src/lib/fuelScale.ts`): 3rd-90th percentile band linear (5-11 L on real
   data), tails log-compressed and shaded, ticks in real litres; chart 420 px high.
 - When you drive: legend on top, "Trip start hour" axis title, same grid/hint layout as Gaps between trips.
-- Not republished to the live app on :5180 yet.
+- Republished to the live app on :5180 (same evening).
 
 ## State
 - Published app: `%LOCALAPPDATA%\DriverBalance\app\DriverBalance.Web.exe` (serves on http://localhost:5180).
