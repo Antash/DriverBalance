@@ -73,7 +73,7 @@ export function validateExpenseForm(f: ExpenseFormState, homeCurrency: string): 
   if (f.category === 'Maintenance') {
     for (const w of f.work) {
       if (w.type === null && w.name.trim() === '' && !isBlankCustom(w)) errors[`work.${w.id}.name`] = 'Name the work.'
-      if (w.part === 'Aftermarket' && w.brand.trim() === '') errors[`work.${w.id}.brand`] = 'Enter the brand.'
+      if (w.type !== 'TyreSwap' && w.part === 'Aftermarket' && w.brand.trim() === '') errors[`work.${w.id}.brand`] = 'Enter the brand.'
     }
   }
   return errors
@@ -89,6 +89,7 @@ export function usesTyreSet(category: ExpenseCategory, maintenance: readonly Mai
 }
 
 function toWork(w: WorkDraft): MaintenanceWork {
+  if (w.type === 'TyreSwap') return { type: w.type, name: null, part: 'None', brand: null, model: null, details: emptyToNull(w.details) }
   const after = w.part === 'Aftermarket'
   return {
     type: w.type, name: w.type === null ? w.name.trim() : null, part: w.part,
@@ -135,7 +136,9 @@ export function toFormState(e: Expense): ExpenseFormState {
     coversFrom: e.coversFrom ?? '', coversTo: e.coversTo ?? '',
     litres: e.litres == null ? '' : String(e.litres), fullTank: e.fullTank ?? false, station: e.station ?? '',
     work: e.work.length > 0
-      ? e.work.map((w) => ({ id: newWorkId(), type: w.type, name: w.name ?? '', part: w.part, brand: w.brand ?? '', model: w.model ?? '', details: w.details ?? '' }))
+      ? e.work.map((w) => w.type === 'TyreSwap'
+        ? { id: newWorkId(), type: w.type, name: '', part: 'None' as const, brand: '', model: '', details: w.details ?? '' }
+        : { id: newWorkId(), type: w.type, name: w.name ?? '', part: w.part, brand: w.brand ?? '', model: w.model ?? '', details: w.details ?? '' })
       : e.maintenance.map((t) => ({ id: newWorkId(), type: t, name: '', part: 'None' as const, brand: '', model: '', details: '' })),
     maintenanceDescription: e.maintenanceDescription ?? '',
     tyreSetId: e.tyreSetId == null ? '' : String(e.tyreSetId), tyres: emptyTyres(),

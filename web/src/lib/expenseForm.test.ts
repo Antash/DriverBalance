@@ -89,7 +89,7 @@ describe('buildExpensePayload', () => {
 })
 
 describe('parseDecimal', () => {
-  it.each([['1 500', 1500], ['12,50', 12.5], [' 99 ', 99], ['1 500,5', 1500.5], ['7', 7]])('accepts %j', (input, out) =>
+  it.each([['1 500', 1500], ['12,50', 12.5], [' 99 ', 99], ['1 500,5', 1500.5], ['7', 7]])('accepts %j', (input, out) =>
     expect(parseDecimal(input)).toBe(out))
   it.each(['abc', '12,5,0', '', '  ', '1.2.3', '-', '1e3'])('rejects %j', (input) => expect(parseDecimal(input)).toBeNull())
 })
@@ -150,6 +150,21 @@ describe('toFormState', () => {
     const f = toFormState({ ...common, category: 'Maintenance', maintenance: ['Battery'],
       work: [{ type: 'Battery', name: null, part: 'Aftermarket', brand: 'Varta', model: null, details: null }] })
     expect(f.work[0]).toMatchObject({ type: 'Battery', part: 'Aftermarket', brand: 'Varta', model: '' })
+  })
+})
+
+describe('stored TyreSwap with a stray part', () => {
+  it('is normalised so validation cannot fail invisibly', () => {
+    const e: Expense = { id: 1, date: '2026-02-03', amount: 1, currency: 'CZK', homeAmount: null, odometer: null, note: null,
+      coversFrom: null, coversTo: null, litres: null, fullTank: null, station: null, maintenance: ['TyreSwap'],
+      maintenanceDescription: null, tyreSetId: 3, source: 'Web', category: 'Maintenance',
+      work: [{ type: 'TyreSwap', name: null, part: 'Aftermarket', brand: null, model: 'x', details: null }] }
+    const f = toFormState(e)
+    expect(validateExpenseForm(f, 'CZK')).toEqual({})
+    expect(buildExpensePayload(f, 'CZK').work[0]).toMatchObject({ type: 'TyreSwap', part: 'None', brand: null, model: null })
+    const g = { ...f, work: [{ ...f.work[0], part: 'Aftermarket' as const }] }
+    expect(validateExpenseForm(g, 'CZK')).toEqual({})
+    expect(buildExpensePayload(g, 'CZK').work[0]).toMatchObject({ part: 'None', brand: null, model: null })
   })
 })
 
