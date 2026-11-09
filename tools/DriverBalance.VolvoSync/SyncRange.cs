@@ -15,6 +15,10 @@ internal static class SyncRange
         if (from > today) from = today;
         return new DateRange(from, today);
     }
+
+    /// <summary>False when the page's date inputs (yyyy-MM-dd) already hold the wanted range, so no reload will happen.</summary>
+    public static bool NeedsChange(string currentStart, string currentEnd, DateRange wanted)
+        => currentStart != wanted.From.ToString("yyyy-MM-dd") || currentEnd != wanted.To.ToString("yyyy-MM-dd");
 }
 
 internal static class ExportNaming

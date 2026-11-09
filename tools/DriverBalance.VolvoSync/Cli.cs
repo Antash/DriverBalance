@@ -100,7 +100,7 @@ internal static class Cli
         Console.WriteLine($"Exporting Volvo trips {range.From:yyyy-MM-dd} to {range.To:yyyy-MM-dd}.");
 
         var file = Path.Combine(AppPaths.ExportsDir, ExportNaming.ExportFileName(range.From, range.To));
-        await using var journal = new VolvoJournal(options, store, options.Headed);
+        await using var journal = new VolvoJournal(options, store, !options.Headless);
         try
         {
             await journal.StartAsync();

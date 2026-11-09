@@ -10,7 +10,7 @@ internal sealed record Options
     public string AppUrl { get; init; } = "http://localhost:5180";
     public long VehicleId { get; init; } = 1;
     public DateOnly? From { get; init; }
-    public bool Headed { get; init; }
+    public bool Headless { get; init; }
     public bool KeepOpen { get; init; }
     public string? CarId { get; init; }
     public bool Help { get; init; }
@@ -43,7 +43,7 @@ internal sealed record Options
                     if (!DateOnly.TryParseExact(f, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d)) throw new UsageException($"--from must be yyyy-MM-dd, got '{f}'.");
                     o = o with { From = d };
                     break;
-                case "--headed": o = o with { Headed = true }; break;
+                case "--headless": o = o with { Headless = true }; break;
                 case "--keep-open": o = o with { KeepOpen = true }; break;
                 case "--car-id": o = o with { CarId = Value() }; break;
                 default:
@@ -63,8 +63,8 @@ internal sealed record Options
         Usage: DriverBalance.VolvoSync [command] [options]
 
         Commands:
-          sync (default)      headless: export trips from Volvo and import them into the app
-          login               headed: sign in to Volvo by hand (stores the browser session)
+          sync (default)      export trips from Volvo (visible Edge window, opens and closes by itself) and import them into the app
+          login               sign in to Volvo by hand (stores the browser session)
           set-credentials     store the Volvo e-mail and password (Windows DPAPI, current user)
           clear-credentials   delete the stored credentials
 
@@ -73,7 +73,7 @@ internal sealed record Options
           --vehicle <id>      vehicle id (default 1)
           --from <yyyy-MM-dd> first day to export (default: last trip - 2 days, else today - 90 days)
           --car-id <id>       Volvo car id, only used if it cannot be found on the account page
-          --headed            show the browser during sync
+          --headless          run sync without a visible window (usually blocked by Volvo's bot protection)
           --keep-open         debug: wait for Enter before closing the browser
           -h, --help          this text
         """;

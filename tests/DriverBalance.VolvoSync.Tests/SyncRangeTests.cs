@@ -61,19 +61,19 @@ public class OptionsTests
         Assert.Equal(1, o.VehicleId);
         Assert.Null(o.From);
         Assert.Null(o.CarId);
-        Assert.False(o.Headed);
+        Assert.False(o.Headless);
         Assert.False(o.KeepOpen);
     }
 
     [Fact]
     public void Parses_command_and_options()
     {
-        var o = Options.Parse(["sync", "--app", "http://localhost:9999/", "--vehicle", "3", "--from", "2026-10-01", "--headed", "--keep-open", "--car-id", "abc"]);
+        var o = Options.Parse(["sync", "--app", "http://localhost:9999/", "--vehicle", "3", "--from", "2026-10-01", "--headless", "--keep-open", "--car-id", "abc"]);
         Assert.Equal("sync", o.Command);
         Assert.Equal("http://localhost:9999", o.AppUrl);
         Assert.Equal(3, o.VehicleId);
         Assert.Equal(new DateOnly(2026, 10, 1), o.From);
-        Assert.True(o.Headed);
+        Assert.True(o.Headless);
         Assert.True(o.KeepOpen);
         Assert.Equal("abc", o.CarId);
     }
@@ -88,9 +88,9 @@ public class OptionsTests
     [Fact]
     public void Options_before_command_are_fine()
     {
-        var o = Options.Parse(["--headed", "login"]);
+        var o = Options.Parse(["--headless", "login"]);
         Assert.Equal("login", o.Command);
-        Assert.True(o.Headed);
+        Assert.True(o.Headless);
     }
 
     [Theory]
@@ -99,6 +99,7 @@ public class OptionsTests
     [InlineData("sync", "--vehicle", "x")]
     [InlineData("sync", "--from", "yesterday")]
     [InlineData("sync", "--app")]
+    [InlineData("sync", "--headed")]
     public void Rejects_bad_input(params string[] args)
         => Assert.Throws<UsageException>(() => Options.Parse(args));
 
@@ -142,4 +143,20 @@ public class CredentialStoreTests : IDisposable
     [Fact]
     public void ToString_hides_password()
         => Assert.DoesNotContain("pw123", new Credentials("a@b.c", "pw123").ToString());
+}
+
+public class RangeChangeTests
+{
+    private static readonly DateRange R = new(new DateOnly(2026, 10, 9), new DateOnly(2026, 11, 9));
+
+    [Fact]
+    public void No_change_needed_when_inputs_already_hold_the_range()
+        => Assert.False(SyncRange.NeedsChange("2026-10-09", "2026-11-09", R));
+
+    [Theory]
+    [InlineData("2026-10-01", "2026-11-09")]
+    [InlineData("2026-10-09", "2026-11-08")]
+    [InlineData("", "")]
+    public void Change_needed_otherwise(string start, string end)
+        => Assert.True(SyncRange.NeedsChange(start, end, R));
 }

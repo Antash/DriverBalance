@@ -66,12 +66,14 @@ internal sealed class VolvoJournal : IAsyncDisposable
         _journalUrl ??= await DiscoverJournalUrlAsync();
         await Page.GotoAsync(_journalUrl, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await SettleAsync();
+        await ThrowIfAccessDeniedAsync();
     });
 
     private async Task<string> DiscoverJournalUrlAsync()
     {
         await Page.GotoAsync(AccountUrl, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await SettleAsync();
+        await ThrowIfAccessDeniedAsync();
         if (OnLoginPage)
         {
             // Not signed in: the car id cannot be discovered until after sign-in.
@@ -176,6 +178,9 @@ internal sealed class VolvoJournal : IAsyncDisposable
     public Task SetRangeAsync(DateRange range) => RunStep("set date range", async () =>
     {
         await DismissCookieBannerAsync();
+        var start = await Page.Locator("input[name=filter-start-date]").InputValueAsync();
+        var end = await Page.Locator("input[name=filter-end-date]").InputValueAsync();
+        if (!SyncRange.NeedsChange(start, end, range)) return; // already the page's default range: no reload will happen
         await SetDateAsync("filter-start-date", range.From);
         await SetDateAsync("filter-end-date", range.To);
         await RunStep("wait for list reload", async () =>
@@ -239,6 +244,15 @@ internal sealed class VolvoJournal : IAsyncDisposable
     }
 
     // ---- helpers ----
+    private async Task ThrowIfAccessDeniedAsync()
+    {
+        var title = await Page.TitleAsync();
+        var body = "";
+        try { body = await Page.Locator("body").InnerTextAsync(new LocatorInnerTextOptions { Timeout = 3_000 }); } catch (PlaywrightException) { }
+        if (title.Contains("Access Denied", StringComparison.OrdinalIgnoreCase) || body.Contains("Access Denied", StringComparison.OrdinalIgnoreCase))
+            throw new SyncException("Volvo's bot protection returned 'Access Denied'. Run without --headless (a visible Edge window is not blocked).");
+    }
+
     private async Task SettleAsync()
     {
         try { await Page.WaitForLoadStateAsync(LoadState.NetworkIdle, new PageWaitForLoadStateOptions { Timeout = 15_000 }); }
