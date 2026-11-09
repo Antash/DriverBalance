@@ -99,6 +99,7 @@ public static class DocumentEndpoints
         disposition.SetHttpFileName(row.FileName);
         ctx.Response.Headers.ContentDisposition = disposition.ToString();
         ctx.Response.Headers.XContentTypeOptions = "nosniff";
+        ctx.Response.Headers.ContentSecurityPolicy = "sandbox";
         return Results.File(stream, row.ContentType, enableRangeProcessing: false);
     }
 

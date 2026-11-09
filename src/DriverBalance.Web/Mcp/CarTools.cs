@@ -142,10 +142,11 @@ public sealed class CarTools(DriverBalanceDbContext db, VehicleDataLoader loader
         var take = Math.Clamp(count, 1, 100);
         var rows = await db.Expenses.AsNoTracking().Where(e => e.VehicleId == v.Id)
             .OrderByDescending(e => e.Date).ThenByDescending(e => e.Id).Take(take).ToListAsync(ct);
-        return Ok(new { expenses = rows.Select(r => r.ToDomain()).ToList() }, $"{rows.Count} most recent expense(s) on {v.Name}.");
+        var docs = await DocumentEndpoints.LoadAsync(db, v.Id, rows.Select(r => r.Id).ToList(), ct);
+        return Ok(new { expenses = rows.Select(r => r.ToDomain() with { Documents = docs.GetValueOrDefault(r.Id) ?? [] }).ToList() }, $"{rows.Count} most recent expense(s) on {v.Name}.");
     });
 
-    [McpServerTool(Name = "delete_expense", Destructive = true), Description("Delete an expense by id. Returns the deleted expense plus a one-line summary. Optional: vehicleId.")]
+    [McpServerTool(Name = "delete_expense", Destructive = true), Description("Delete an expense by id; its attached documents are deleted too. Returns the deleted expense plus a one-line summary. Optional: vehicleId.")]
     public Task<CallToolResult> DeleteExpense(
         [Description("Id of the expense to delete (from list_recent_expenses).")] long id,
         [Description(VehicleIdDoc)] long? vehicleId = null,
@@ -154,10 +155,12 @@ public sealed class CarTools(DriverBalanceDbContext db, VehicleDataLoader loader
         var v = await ResolveVehicleAsync(vehicleId, ct);
         var row = await db.Expenses.AsNoTracking().FirstOrDefaultAsync(e => e.Id == id && e.VehicleId == v.Id, ct)
             ?? throw new ApiValidationException($"Expense {id} not found on vehicle {v.Id}.");
-        var deleted = row.ToDomain();
+        var docs = await DocumentEndpoints.LoadAsync(db, v.Id, [id], ct);
+        var deleted = row.ToDomain() with { Documents = docs.GetValueOrDefault(id) ?? [] };
         await ExpenseDeletion.DeleteAsync(v.Id, id, db, documents, ct);
         return Ok(deleted, string.Create(CultureInfo.InvariantCulture,
-            $"Deleted {deleted.Category} {deleted.Amount} {deleted.Currency} dated {deleted.Date:yyyy-MM-dd} (id {id})."));
+            $"Deleted {deleted.Category} {deleted.Amount} {deleted.Currency} dated {deleted.Date:yyyy-MM-dd} (id {id})")
+            + (deleted.Documents.Count > 0 ? $" and {deleted.Documents.Count} document(s)." : "."));
     });
 
     [McpServerTool(Name = "get_stats", ReadOnly = true), Description(

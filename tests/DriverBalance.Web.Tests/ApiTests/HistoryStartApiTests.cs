@@ -40,7 +40,7 @@ public sealed class HistoryStartApiTests(ApiFactory f) : IClassFixture<ApiFactor
         var vid = await Api.NewVehicleAsync(c);
         var bad = new Dictionary<string, object>
         {
-            ["future date"] = new { name = "Car", historyStart = DateOnly.FromDateTime(ApiFactory.Now.UtcDateTime).AddDays(1).ToString("yyyy-MM-dd") },
+            ["future date"] = new { name = "Car", historyStart = DateOnly.FromDateTime(ApiFactory.Now.UtcDateTime).AddDays(2).ToString("yyyy-MM-dd") },
             ["negative odometer"] = new { name = "Car", historyStart = "2023-05-01", historyStartOdometer = -1 },
         };
         foreach (var (name, body) in bad)
@@ -73,5 +73,22 @@ public sealed class HistoryStartApiTests(ApiFactory f) : IClassFixture<ApiFactor
         var usage = oldest.GetProperty("stats").GetProperty("usage");
         Assert.Equal(7350, usage.GetProperty("odometerKm").GetDouble());
         Assert.Equal(0, usage.GetProperty("tripCount").GetInt32());
+    }
+
+    [Fact]
+    public async Task HistoryStartOdometer_AboveFirstRealReading_400()
+    {
+        var c = f.CreateClient();
+        var vid = await Api.NewVehicleAsync(c);
+        (await Api.PostAsync(c, $"/api/vehicles/{vid}/expenses", new
+        {
+            date = "2025-02-06", category = "Maintenance", amount = 3000, currency = "CZK", odometer = 7350,
+        })).EnsureSuccessStatusCode();
+
+        var r = await Put(c, vid, new { name = "Car", historyStart = "2023-05-01", historyStartOdometer = 9000 });
+        Assert.Equal(HttpStatusCode.BadRequest, r.StatusCode);
+        Assert.Contains("The odometer at the history start can't be higher than the first recorded reading (7350 km).",
+            (await Api.ReadAsync<Api.ErrorsBody>(r)).Errors);
+        Assert.Equal(HttpStatusCode.OK, (await Put(c, vid, new { name = "Car", historyStart = "2023-05-01", historyStartOdometer = 7350 })).StatusCode);
     }
 }

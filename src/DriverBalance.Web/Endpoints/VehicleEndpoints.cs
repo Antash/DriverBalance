@@ -63,6 +63,14 @@ public static class VehicleEndpoints
         var errors = Validate(input, loader.TodayFor(new VehicleRow { TimeZone = input.TimeZone ?? row.TimeZone }));
         if (input.InitialTyreSetId is { } setId && !await db.TyreSets.AnyAsync(t => t.Id == setId && t.VehicleId == vid, ct))
             errors.Add("Initial tyre set does not exist on this vehicle.");
+        if (input.HistoryStart is not null && input.HistoryStartOdometer is > 0 and var hsKm)
+        {
+            var tripMin = await db.Trips.Where(t => t.VehicleId == vid && t.StartOdometer > 0).Select(t => (int?)t.StartOdometer).MinAsync(ct);
+            var expMin = await db.Expenses.Where(e => e.VehicleId == vid && e.Odometer > 0).Select(e => e.Odometer).MinAsync(ct);
+            var first = new[] { tripMin, expMin }.Where(x => x is not null).Min();
+            if (first is { } firstKm && hsKm > firstKm)
+                errors.Add($"The odometer at the history start can't be higher than the first recorded reading ({firstKm} km).");
+        }
         if (errors.Count > 0) throw new ApiValidationException(errors);
 
         Apply(input, row);

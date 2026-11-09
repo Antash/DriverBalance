@@ -70,6 +70,8 @@ public sealed class DocumentApiTests(ApiFactory f) : IClassFixture<ApiFactory>
         Assert.Equal(Pdf, await get.Content.ReadAsByteArrayAsync());
         Assert.Equal("inline", get.Content.Headers.ContentDisposition!.DispositionType);
         Assert.Equal("receipt.pdf", get.Content.Headers.ContentDisposition!.FileNameStar);
+        Assert.Equal("sandbox", get.Headers.GetValues("Content-Security-Policy").Single());
+        Assert.Equal("nosniff", get.Headers.GetValues("X-Content-Type-Options").Single());
     }
 
     [Fact]
@@ -237,5 +239,23 @@ public sealed class DocumentApiTests(ApiFactory f) : IClassFixture<ApiFactory>
         var files = Enumerable.Range(0, 7).Select(i => ($"f{i}.pdf", "application/pdf", data)).ToArray();
         var r = await c.PostAsync($"/api/vehicles/{vid}/expenses/{eid}/documents", Form(files));
         Assert.Equal(HttpStatusCode.Created, r.StatusCode);
+    }
+
+    [Fact]
+    public async Task Mcp_ListRecentAndDelete_ShowDocuments()
+    {
+        var (c, vid, eid) = await SetupAsync();
+        (await c.PostAsync($"/api/vehicles/{vid}/expenses/{eid}/documents", Form(("a.pdf", "application/pdf", Pdf), ("b.png", "image/png", Png)))).EnsureSuccessStatusCode();
+        await using var mcp = await McpHelpers.ConnectAsync(f, (await McpHelpers.CreateTokenAsync(c)).Token);
+
+        var recent = McpHelpers.JsonOf(await McpHelpers.CallAsync(mcp, "list_recent_expenses", new { vehicleId = vid }));
+        Assert.Equal(2, recent["expenses"]![0]!["documents"]!.AsArray().Count);
+
+        var tool = (await mcp.ListToolsAsync()).First(t => t.Name == "delete_expense");
+        Assert.Contains("document", tool.Description, StringComparison.OrdinalIgnoreCase);
+
+        var del = McpHelpers.JsonOf(await McpHelpers.CallAsync(mcp, "delete_expense", new { vehicleId = vid, id = eid }));
+        Assert.Equal(2, del["documents"]!.AsArray().Count);
+        Assert.EndsWith("and 2 document(s).", (string)del["summary"]!);
     }
 }
