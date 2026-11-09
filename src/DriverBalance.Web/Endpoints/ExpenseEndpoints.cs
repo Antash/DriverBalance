@@ -12,6 +12,7 @@ public static class ExpenseEndpoints
         var e = api.MapGroup("/vehicles/{vid:long}/expenses");
         e.MapGet("", List);
         e.MapPost("", Create);
+        e.MapGet("/places", Places);
         e.MapPut("/{id:long}", Update);
         e.MapDelete("/{id:long}", Delete);
     }
@@ -35,6 +36,18 @@ public static class ExpenseEndpoints
         if (cat is { } c) query = query.Where(x => x.Category == c);
         var rows = await query.OrderByDescending(x => x.Date).ThenByDescending(x => x.Id).ToListAsync(ct);
         return Results.Ok(rows.Select(r => r.ToDomain()).ToList());
+    }
+
+    /// <summary>Distinct places (case-insensitive, latest spelling), most recent first, at most 50.</summary>
+    private static async Task<IResult> Places(long vid, VehicleDataLoader loader, DriverBalanceDbContext db, CancellationToken ct)
+    {
+        await loader.GetVehicleAsync(vid, ct);
+        var rows = await db.Expenses.AsNoTracking()
+            .Where(x => x.VehicleId == vid && x.Place != null)
+            .OrderByDescending(x => x.Date).ThenByDescending(x => x.Id)
+            .Select(x => x.Place!).ToListAsync(ct);
+        var places = rows.Distinct(StringComparer.OrdinalIgnoreCase).Take(50).ToList();
+        return Results.Ok(places);
     }
 
     private static async Task<IResult> Create(long vid, JsonElement body, VehicleDataLoader loader, DriverBalanceDbContext db, CancellationToken ct)
@@ -68,7 +81,7 @@ public static class ExpenseEndpoints
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         row.Date = e.Date; row.Category = e.Category; row.Amount = e.Amount; row.Currency = e.Currency; row.HomeAmount = e.HomeAmount;
         row.Odometer = e.Odometer; row.Note = e.Note; row.CoversFrom = e.CoversFrom; row.CoversTo = e.CoversTo; row.Litres = e.Litres;
-        row.FullTank = e.FullTank; row.Station = e.Station; row.MaintenanceFlags = (int)e.Maintenance;
+        row.FullTank = e.FullTank; row.Station = e.Station; row.Place = e.Place; row.MaintenanceFlags = (int)e.Maintenance;
         row.MaintenanceDescription = e.MaintenanceDescription; row.TyreSetId = e.TyreSetId;
         row.WorkJson = e.ToRow().WorkJson;
         if (set is not null) row.TyreSetId = await TyreFitting.CreateAndRetireAsync(vid, set, tyres!.IsNew, e.Date, id, db, ct);

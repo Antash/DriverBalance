@@ -88,6 +88,7 @@ public sealed class CarTools(DriverBalanceDbContext db, VehicleDataLoader loader
         [Description("Odometer in km. Optional.")] int? odometer = null,
         [Description(DateDoc)] string? date = null,
         [Description("Free-text description. Optional.")] string? description = null,
+        [Description("Where the work was done (workshop or garage name), max 100 characters. Optional.")] string? place = null,
         [Description(VehicleIdDoc)] long? vehicleId = null,
         CancellationToken ct = default) => Run(async () =>
     {
@@ -98,7 +99,7 @@ public sealed class CarTools(DriverBalanceDbContext db, VehicleDataLoader loader
         return await SaveAsync(v, new Expense
         {
             Date = ParseDate(date, "date") ?? loader.TodayFor(v), Category = ExpenseCategory.Maintenance, Amount = cost,
-            Currency = v.HomeCurrency, Maintenance = flags, MaintenanceDescription = description, Odometer = odometer,
+            Currency = v.HomeCurrency, Maintenance = flags, MaintenanceDescription = description, Odometer = odometer, Place = place,
         }, ct);
     });
 

@@ -100,6 +100,9 @@ namespace DriverBalance.Data.Migrations
                     b.Property<int?>("Odometer")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Place")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Source")
                         .IsRequired()
                         .HasColumnType("TEXT");

@@ -23,13 +23,15 @@ public static class ExpenseRules
         if (e.CoversFrom is { } from && e.CoversTo is { } to && from > to) errors.Add("CoversFrom must not be after CoversTo.");
         if (e.TyreSetId is { } setId && !await db.TyreSets.AnyAsync(t => t.Id == setId && t.VehicleId == vid, ct))
             errors.Add("Tyre set does not exist on this vehicle.");
+        var place = e.Category == ExpenseCategory.Fuel ? null : Clean(e.Place);
+        if (place is { Length: > MaxPlaceLength }) errors.Add($"Place must be at most {MaxPlaceLength} characters.");
         var work = NormaliseWork(e, errors);
         if (errors.Count > 0) throw new ApiValidationException(errors);
         var flags = work.Count > 0 ? work.Aggregate(MaintenanceType.Custom, (acc, w) => acc | (w.Type ?? MaintenanceType.Custom)) : e.Maintenance;
-        return e with { Currency = e.Currency!.ToUpperInvariant(), Work = work, Maintenance = flags };
+        return e with { Place = place, Currency = e.Currency!.ToUpperInvariant(), Work = work, Maintenance = flags };
     }
 
-    private const int MaxWorkItems = 50, MaxNameLength = 100, MaxBrandLength = 100, MaxDetailsLength = 200;
+    private const int MaxWorkItems = 50, MaxNameLength = 100, MaxBrandLength = 100, MaxDetailsLength = 200, MaxPlaceLength = 100;
 
     private static string? Clean(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 

@@ -19,6 +19,7 @@ public sealed record Expense
     public double? Litres { get; init; }
     public bool? FullTank { get; init; }
     public string? Station { get; init; }
+    public string? Place { get; init; }
     public MaintenanceType Maintenance { get; init; }
     public string? MaintenanceDescription { get; init; }
     public IReadOnlyList<MaintenanceWork> Work { get; init; } = Array.Empty<MaintenanceWork>();

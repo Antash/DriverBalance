@@ -64,6 +64,7 @@ public sealed class ExpenseRow : IUserOwned
     public double? Litres { get; set; }
     public bool? FullTank { get; set; }
     public string? Station { get; set; }
+    public string? Place { get; set; }
     public int MaintenanceFlags { get; set; }
     public string? MaintenanceDescription { get; set; }
     public string? WorkJson { get; set; }
