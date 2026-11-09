@@ -242,7 +242,13 @@ namespace DriverBalance.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Brand")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Description")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Model")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
@@ -257,6 +263,9 @@ namespace DriverBalance.Data.Migrations
 
                     b.Property<string>("Season")
                         .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Size")
                         .HasColumnType("TEXT");
 
                     b.Property<long>("UserId")

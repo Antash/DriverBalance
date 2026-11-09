@@ -34,7 +34,7 @@ public static class TyreEndpoints
     private static async Task<IResult> Create(long vid, TyreSet body, VehicleDataLoader loader, DriverBalanceDbContext db, CancellationToken ct)
     {
         await loader.GetVehicleAsync(vid, ct);
-        Validate(body);
+        body = TyreFitting.Normalise(body);
         var row = (body with { Id = 0 }).ToRow();
         row.VehicleId = vid;
         db.TyreSets.Add(row);
@@ -47,8 +47,8 @@ public static class TyreEndpoints
         await loader.GetVehicleAsync(vid, ct);
         var row = await db.TyreSets.FirstOrDefaultAsync(t => t.Id == id && t.VehicleId == vid, ct);
         if (row is null) return Results.NotFound();
-        Validate(body);
-        row.Name = body.Name.Trim(); row.Season = body.Season; row.Description = body.Description;
+        body = TyreFitting.Normalise(body);
+        row.Name = body.Name; row.Brand = body.Brand; row.Model = body.Model; row.Size = body.Size; row.Season = body.Season; row.Description = body.Description;
         row.PurchaseDate = body.PurchaseDate; row.Retired = body.Retired;
         await db.SaveChangesAsync(ct);
         return Results.Ok(row.ToDomain());
@@ -71,10 +71,5 @@ public static class TyreEndpoints
         db.TyreSets.Remove(row);
         await db.SaveChangesAsync(ct);
         return Results.NoContent();
-    }
-
-    private static void Validate(TyreSet t)
-    {
-        if (string.IsNullOrWhiteSpace(t.Name)) throw new ApiValidationException("Name is required.");
     }
 }

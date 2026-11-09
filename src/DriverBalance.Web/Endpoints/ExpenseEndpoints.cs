@@ -1,3 +1,4 @@
+using System.Text.Json;
 using DriverBalance.Core;
 using DriverBalance.Data;
 using Microsoft.EntityFrameworkCore;
@@ -36,30 +37,41 @@ public static class ExpenseEndpoints
         return Results.Ok(rows.Select(r => r.ToDomain()).ToList());
     }
 
-    private static async Task<IResult> Create(long vid, Expense body, VehicleDataLoader loader, DriverBalanceDbContext db, CancellationToken ct)
+    private static async Task<IResult> Create(long vid, JsonElement body, VehicleDataLoader loader, DriverBalanceDbContext db, CancellationToken ct)
     {
         await loader.GetVehicleAsync(vid, ct);
-        var expense = await ExpenseRules.ValidateAsync(vid, body, db, ct);
+        var (input, tyres) = TyreFitting.ReadBody(body);
+        var expense = await ExpenseRules.ValidateAsync(vid, input, db, ct);
+        var set = tyres is null ? null : TyreFitting.Check(expense, tyres);
         var row = (expense with { Id = 0, Source = ExpenseSource.Web }).ToRow();
         row.VehicleId = vid;
+
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        if (set is not null) row.TyreSetId = await TyreFitting.CreateAndRetireAsync(vid, set, tyres!.IsNew, expense.Date, long.MaxValue, db, ct);
         db.Expenses.Add(row);
         await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
         return Results.Created($"/api/vehicles/{vid}/expenses/{row.Id}", row.ToDomain());
     }
 
-    private static async Task<IResult> Update(long vid, long id, Expense body, VehicleDataLoader loader, DriverBalanceDbContext db, CancellationToken ct)
+    private static async Task<IResult> Update(long vid, long id, JsonElement body, VehicleDataLoader loader, DriverBalanceDbContext db, CancellationToken ct)
     {
         await loader.GetVehicleAsync(vid, ct);
         var row = await db.Expenses.FirstOrDefaultAsync(x => x.Id == id && x.VehicleId == vid, ct);
         if (row is null) return Results.NotFound();
 
-        var e = await ExpenseRules.ValidateAsync(vid, body, db, ct);
+        var (input, tyres) = TyreFitting.ReadBody(body);
+        var e = await ExpenseRules.ValidateAsync(vid, input, db, ct);
+        var set = tyres is null ? null : TyreFitting.Check(e, tyres);
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
         row.Date = e.Date; row.Category = e.Category; row.Amount = e.Amount; row.Currency = e.Currency; row.HomeAmount = e.HomeAmount;
         row.Odometer = e.Odometer; row.Note = e.Note; row.CoversFrom = e.CoversFrom; row.CoversTo = e.CoversTo; row.Litres = e.Litres;
         row.FullTank = e.FullTank; row.Station = e.Station; row.MaintenanceFlags = (int)e.Maintenance;
         row.MaintenanceDescription = e.MaintenanceDescription; row.TyreSetId = e.TyreSetId;
         row.WorkJson = e.ToRow().WorkJson;
+        if (set is not null) row.TyreSetId = await TyreFitting.CreateAndRetireAsync(vid, set, tyres!.IsNew, e.Date, id, db, ct);
         await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
         return Results.Ok(row.ToDomain());
     }
 

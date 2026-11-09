@@ -43,12 +43,12 @@ public static class Mapping
 
     public static TyreSet ToDomain(this TyreSetRow r) => new()
     {
-        Id = r.Id, Name = r.Name, Season = r.Season, Description = r.Description, PurchaseDate = r.PurchaseDate, Retired = r.Retired,
+        Id = r.Id, Name = r.Name, Brand = r.Brand, Model = r.Model, Size = r.Size, Season = r.Season, Description = r.Description, PurchaseDate = r.PurchaseDate, Retired = r.Retired,
     };
 
     public static TyreSetRow ToRow(this TyreSet t) => new()
     {
-        Id = t.Id, Name = t.Name, Season = t.Season, Description = t.Description, PurchaseDate = t.PurchaseDate, Retired = t.Retired,
+        Id = t.Id, Name = t.Name, Brand = t.Brand, Model = t.Model, Size = t.Size, Season = t.Season, Description = t.Description, PurchaseDate = t.PurchaseDate, Retired = t.Retired,
     };
 
     private static readonly JsonSerializerOptions ParamOptions = new(JsonSerializerDefaults.Web);
