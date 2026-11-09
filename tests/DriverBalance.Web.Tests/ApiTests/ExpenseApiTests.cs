@@ -105,7 +105,8 @@ public sealed class ExpenseApiTests(ApiFactory f) : IClassFixture<ApiFactory>
         Assert.True(s.TryGetProperty("unassignedSpans", out _));
 
         await c.DeleteAsync($"/api/vehicles/{vid}/expenses/{expId}");
-        Assert.Equal(HttpStatusCode.NoContent, (await c.DeleteAsync($"/api/vehicles/{vid}/tyres/{setId}")).StatusCode);
+        // Deleting the last expense that used the set removes the orphaned set too.
+        Assert.Equal(HttpStatusCode.NotFound, (await c.DeleteAsync($"/api/vehicles/{vid}/tyres/{setId}")).StatusCode);
     }
 
     [Fact]

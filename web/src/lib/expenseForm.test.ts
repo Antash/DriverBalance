@@ -109,11 +109,18 @@ describe('validateExpenseForm', () => {
 describe('work validation', () => {
   it('custom with details but no name errors; an empty custom does not', () => {
     expect(validateExpenseForm({ ...M, work: [item({ id: 'x', type: null, details: 'hm' })] }, 'CZK')['work.x.name']).toBeTruthy()
-    expect(validateExpenseForm({ ...M, work: [item({ id: 'x', type: null })] }, 'CZK')).toEqual({})
+    expect(validateExpenseForm({ ...M, work: [item({ id: 'x', type: null })] }, 'CZK')['work.x.name']).toBeUndefined()
   })
   it('Aftermarket without a brand errors', () => {
     expect(validateExpenseForm({ ...M, work: [item({ id: 'y', part: 'Aftermarket' })] }, 'CZK')['work.y.brand']).toBeTruthy()
     expect(validateExpenseForm({ ...M, work: [item({ id: 'y', part: 'Aftermarket', brand: 'Bosch' })] }, 'CZK')).toEqual({})
+  })
+  it('Maintenance with nothing ticked or named needs at least one item', () => {
+    expect(validateExpenseForm({ ...M, work: [] }, 'CZK').work).toBeTruthy()
+    expect(validateExpenseForm({ ...M, work: [item({ id: 'x', type: null })] }, 'CZK').work).toBeTruthy()
+    expect(validateExpenseForm({ ...M, work: [item({ id: 'x', type: null, name: ' ' })] }, 'CZK').work).toBeTruthy()
+    expect(validateExpenseForm({ ...M, work: [item()] }, 'CZK').work).toBeUndefined()
+    expect(validateExpenseForm({ ...M, work: [item({ id: 'x', type: null, name: 'Tow hook' })] }, 'CZK').work).toBeUndefined()
   })
   it('is ignored outside Maintenance', () =>
     expect(validateExpenseForm({ ...base, work: [item({ part: 'Aftermarket' })] }, 'CZK')).toEqual({}))

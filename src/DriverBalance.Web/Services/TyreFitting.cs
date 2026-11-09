@@ -29,7 +29,12 @@ public static class TyreFitting
     {
         var errors = new List<string>();
         var brand = Clean(t.Brand); var model = Clean(t.Model); var size = Clean(t.Size);
-        var name = Clean(t.Name) ?? Clean($"{brand} {model}") ?? $"{SeasonLabel(t.Season)} tyres";
+        var name = Clean(t.Name);
+        if (name is null)
+        {
+            var derived = Clean($"{brand} {model}") ?? $"{SeasonLabel(t.Season)} tyres";
+            name = derived.Length > MaxLength ? derived[..MaxLength].TrimEnd() : derived;
+        }
         if (!Enum.IsDefined(t.Season)) errors.Add("Unknown season.");
         if (name.Length > MaxLength) errors.Add($"Name must be at most {MaxLength} characters.");
         if (brand is { Length: > MaxLength }) errors.Add($"Brand must be at most {MaxLength} characters.");

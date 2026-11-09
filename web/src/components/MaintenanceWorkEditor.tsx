@@ -1,13 +1,11 @@
 import type { ReactNode } from 'react'
 import type { MaintenanceType, PartSource, TyreSeason, TyreSet } from '../api/types'
 import { newWorkId, type TyreDraft, type WorkDraft } from '../lib/expenseForm'
+import { seasonLabel, tyreDisplayName } from '../lib/tyreSummary'
 import { MAINTENANCE_GROUPS, MAINTENANCE_TYPES, maintenanceLabel } from '../lib/maintenanceCatalog'
 
 const OWNED = '__owned'
-const SEASONS: { value: TyreSeason; label: string }[] = [
-  { value: 'Winter', label: 'Winter' }, { value: 'Summer', label: 'Summer' }, { value: 'AllSeason', label: 'All-season' },
-]
-const SEASON_LABEL: Record<TyreSeason, string> = { Winter: 'Winter', Summer: 'Summer', AllSeason: 'All-season' }
+const SEASONS: TyreSeason[] = ['Winter', 'Summer', 'AllSeason']
 const PARTS: { value: PartSource; label: string }[] = [
   { value: 'None', label: 'No part' }, { value: 'Original', label: 'Original (Volvo)' }, { value: 'Aftermarket', label: 'Other brand' },
 ]
@@ -71,9 +69,9 @@ export function MaintenanceWorkEditor({ work, onWork, tyres, onTyres, tyreSetId,
               if (e.target.value === OWNED) setTyre({ mode: 'owned' })
               else { setTyre({ mode: 'existing' }); onTyreSetId(e.target.value) }
             }}>
-            <option value="">- none yet -</option>
+            {!tyreLocked && <option value="">- none yet -</option>}
             {tyreSets.filter((s) => !s.retired || String(s.id) === tyreSetId).map((s) => (
-              <option key={s.id} value={s.id}>{s.name} ({SEASON_LABEL[s.season]}){s.retired ? ' (retired)' : ''}</option>
+              <option key={s.id} value={s.id}>{tyreDisplayName(s)} ({seasonLabel(s.season)}){s.retired ? ' (retired)' : ''}</option>
             ))}
             {!tyreLocked && <option value={OWNED}>+ Add a set I already own</option>}
           </select>
@@ -86,7 +84,7 @@ export function MaintenanceWorkEditor({ work, onWork, tyres, onTyres, tyreSetId,
           <label>Size<input value={tyres.size} placeholder="225/45R17" onChange={(e) => setTyre({ size: e.target.value })} /></label>
           <label>Season
             <select value={tyres.season} onChange={(e) => setTyre({ season: e.target.value as TyreSeason })}>
-              {SEASONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+              {SEASONS.map((s) => <option key={s} value={s}>{seasonLabel(s)}</option>)}
             </select>
           </label>
         </div>

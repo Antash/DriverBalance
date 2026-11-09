@@ -133,4 +133,14 @@ public sealed class MaintenanceWorkApiTests(ApiFactory f) : IClassFixture<ApiFac
         Assert.Equal(30000, j.GetProperty("odometer").GetInt32());
         Assert.Equal("2026-05-01", j.GetProperty("date").GetString());
     }
+
+    [Fact]
+    public async Task NullWorkElement_400NotCrash()
+    {
+        var c = f.CreateClient();
+        var vid = await Api.NewVehicleAsync(c);
+        var r = await Api.PostAsync(c, $"/api/vehicles/{vid}/expenses", Body(new object[] { null! }));
+        Assert.Equal(HttpStatusCode.BadRequest, r.StatusCode);
+        Assert.Contains("Work item 1 is empty.", await r.Content.ReadAsStringAsync());
+    }
 }

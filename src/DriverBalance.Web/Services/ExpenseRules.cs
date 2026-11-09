@@ -44,8 +44,8 @@ public static class ExpenseRules
         var seen = new HashSet<MaintenanceType>();
         for (var i = 0; i < items.Count; i++)
         {
-            var w = items[i];
             var n = $"Work item {i + 1}";
+            if (items[i] is not { } w) { errors.Add($"{n} is empty."); continue; }
             var name = Clean(w.Name); var brand = Clean(w.Brand); var model = Clean(w.Model); var details = Clean(w.Details);
             if (w.Type is { } t)
             {

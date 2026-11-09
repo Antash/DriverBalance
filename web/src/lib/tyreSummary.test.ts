@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { TyreSetSummary } from '../api/types'
-import { partLine, seasonLabel, tyreRows } from './tyreSummary'
+import { derivedTyreName, partLine, seasonLabel, tyreDisplayName, tyreRows } from './tyreSummary'
 
 const sum = (id: number, name: string, over: Partial<TyreSetSummary['set']> = {}, mounted = false, spans: TyreSetSummary['spans'] = [], totalKm = 0): TyreSetSummary => ({
   set: { id, name, season: 'Summer', description: null, purchaseDate: null, retired: false, brand: null, model: null, size: null, ...over },
@@ -45,5 +45,22 @@ describe('display name', () => {
       sum(4, 'Zed', { model: 'X1' }),
     ])
     expect(rows.map((r) => r.name)).toEqual(['Alpha set', 'Continental', 'Michelin Pilot', 'X1'])
+  })
+})
+
+describe('tyreDisplayName', () => {
+  const set = (o: Partial<TyreSetSummary['set']>) => sum(1, 'Stored name', o).set
+  it('joins brand and model, else falls back to the name', () => {
+    expect(tyreDisplayName(set({ brand: 'Nokian', model: 'WR D4' }))).toBe('Nokian WR D4')
+    expect(tyreDisplayName(set({ brand: 'Nokian' }))).toBe('Nokian')
+    expect(tyreDisplayName(set({ brand: ' ', model: null }))).toBe('Stored name')
+  })
+})
+
+describe('derivedTyreName', () => {
+  it('mirrors the server', () => {
+    expect(derivedTyreName({ brand: 'A', model: 'B', season: 'Winter' })).toBe('A B')
+    expect(derivedTyreName({ brand: null, model: ' ', season: 'AllSeason' })).toBe('All-season tyres')
+    expect(derivedTyreName({ brand: 'x'.repeat(100), model: 'y'.repeat(100), season: 'Winter' })).toHaveLength(100)
   })
 })

@@ -124,4 +124,4 @@ table.data td.cell-best { background: color-mix(in srgb, var(--score-excellent) 
 table.data td.cell-worst { background: color-mix(in srgb, var(--score-bad) 18%, transparent); }
 table.data thead th { vertical-align: bottom; }
 .work-item { margin: 4px 0 10px 22px; display: flex; flex-direction: column; gap: 6px; }
-.work-item .row label { display: flex; flex-direction: column; gap: 2px; }
+.work-item .row label:not(.check) { display: flex; flex-direction: column; gap: 2px; }

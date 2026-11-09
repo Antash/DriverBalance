@@ -4,6 +4,7 @@ import { api } from '../api/client'
 import type { Expense, ExpenseCategory, TyreSet, Vehicle } from '../api/types'
 import { buildExpensePayload, parseDecimal, validateExpenseForm, emptyFormState, pricePerLitre, toFormState, type ExpenseFormState } from '../lib/expenseForm'
 import { MAINTENANCE_TYPES } from '../lib/maintenanceCatalog'
+import { tyreDisplayName } from '../lib/tyreSummary'
 import { MaintenanceWorkEditor } from './MaintenanceWorkEditor'
 import { errorLines, fmtMoney, invalidateVehicleData } from '../lib/format'
 
@@ -21,7 +22,7 @@ export function TyreSetSelect({ sets, value, onChange }: { sets: TyreSet[]; valu
     <select aria-label="Tyre set" value={value} onChange={(e) => onChange(e.target.value)}>
       <option value="">- none yet -</option>
       {sets.filter((s) => !s.retired || String(s.id) === value).map((s) => (
-        <option key={s.id} value={s.id}>{s.name}{s.retired ? ' (retired)' : ''}</option>
+        <option key={s.id} value={s.id}>{tyreDisplayName(s)}{s.retired ? ' (retired)' : ''}</option>
       ))}
     </select>
   )
@@ -99,6 +100,7 @@ export function ExpenseForm({ vehicle, tyreSets, initial, onDone, lockCategory, 
             tyreSetId={f.tyreSetId} onTyreSetId={(v) => set('tyreSetId', v)}
             tyreSets={tyreSets} tyreLocked={initial?.tyreSetId != null} err={err}
           />
+          {err('work')}
           {f.maintenanceDescription && <p className="muted wide">Earlier description: {f.maintenanceDescription}</p>}
         </>
       )}
@@ -118,7 +120,7 @@ export function ExpenseForm({ vehicle, tyreSets, initial, onDone, lockCategory, 
 
       {save.isError && <ul className="errors wide">{errorLines(save.error).map((m) => <li key={m}>{m}</li>)}</ul>}
       <div className="wide row">
-        <button className="btn primary" type="submit" disabled={save.isPending}>{initial ? 'Save' : 'Add expense'}</button>
+        <button className="btn primary" type="submit" disabled={save.isPending}>{initial ? 'Save' : lockCategory === 'Maintenance' ? 'Add maintenance' : 'Add expense'}</button>
         <button className="btn" type="button" onClick={onDone}>Cancel</button>
         {initial && onDelete && <button className="btn danger" type="button" disabled={deleting} onClick={onDelete}>Delete</button>}
       </div>

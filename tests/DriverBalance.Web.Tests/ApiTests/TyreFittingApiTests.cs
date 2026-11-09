@@ -155,4 +155,40 @@ public sealed class TyreFittingApiTests(ApiFactory f) : IClassFixture<ApiFactory
         Assert.Contains("\"name\":\"Hankook\"", await put.Content.ReadAsStringAsync());
         Assert.Equal(HttpStatusCode.BadRequest, (await Api.PostAsync(c, $"/api/vehicles/{vid}/tyres", new { size = new string('x', 101), season = "Winter" })).StatusCode);
     }
+
+    private static async Task<int> SetCountAsync(HttpClient c, long vid) =>
+        JsonDocument.Parse(await c.GetStringAsync($"/api/vehicles/{vid}/tyres")).RootElement.GetArrayLength();
+
+    [Fact]
+    public async Task DeleteExpense_RemovesOrphanedSet_KeepsSharedSet()
+    {
+        var c = f.CreateClient();
+        var vid = await Api.NewVehicleAsync(c);
+        var shared = await NewSetAsync(c, vid, "Shared");
+        var (a, _, _) = await PostAsync(c, vid, Swap("2026-02-01", tyreSetId: shared));
+        var (b, _, _) = await PostAsync(c, vid, Swap("2026-03-01", tyreSetId: shared));
+        var (own, ownSet, _) = await PostAsync(c, vid, Swap("2026-04-01", new { brand = "Pirelli", season = "Summer", isNew = false }));
+        Assert.Equal(2, await SetCountAsync(c, vid));
+
+        Assert.Equal(HttpStatusCode.NoContent, (await c.DeleteAsync($"/api/vehicles/{vid}/expenses/{a}")).StatusCode);
+        Assert.Equal(2, await SetCountAsync(c, vid));
+        Assert.Equal(HttpStatusCode.NoContent, (await c.DeleteAsync($"/api/vehicles/{vid}/expenses/{own}")).StatusCode);
+        var left = JsonDocument.Parse(await c.GetStringAsync($"/api/vehicles/{vid}/tyres")).RootElement.EnumerateArray().ToList();
+        Assert.Single(left);
+        Assert.NotEqual(ownSet, left[0].GetProperty("id").GetInt64());
+        Assert.Equal(HttpStatusCode.NoContent, (await c.DeleteAsync($"/api/vehicles/{vid}/expenses/{b}")).StatusCode);
+        Assert.Equal(0, await SetCountAsync(c, vid)); // last reference gone: the shared set goes too
+    }
+
+    [Fact]
+    public async Task DerivedName_IsTruncatedTo100()
+    {
+        var c = f.CreateClient();
+        var vid = await Api.NewVehicleAsync(c);
+        var r = await Api.PostAsync(c, $"/api/vehicles/{vid}/tyres", new { brand = new string('b', 100), model = new string('m', 100), season = "Summer" });
+        Assert.Equal(HttpStatusCode.Created, r.StatusCode);
+        Assert.Equal(100, JsonDocument.Parse(await r.Content.ReadAsStringAsync()).RootElement.GetProperty("name").GetString()!.Length);
+        var named = await Api.PostAsync(c, $"/api/vehicles/{vid}/tyres", new { name = new string('n', 101), season = "Summer" });
+        Assert.Equal(HttpStatusCode.BadRequest, named.StatusCode);
+    }
 }

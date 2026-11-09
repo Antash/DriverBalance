@@ -71,6 +71,7 @@ export function validateExpenseForm(f: ExpenseFormState, homeCurrency: string): 
   if (!isHome(f.currency, homeCurrency) && bad(f.homeAmount)) errors.homeAmount = 'Enter a number, e.g. 1 500 or 12,50.'
   if (f.odometer.trim() !== '' && !Number.isInteger(parseDecimal(f.odometer))) errors.odometer = 'Enter a whole number of km.'
   if (f.category === 'Maintenance') {
+    if (!f.work.some((w) => w.type !== null || w.name.trim() !== '')) errors.work = 'Tick at least one item or add a custom work.'
     for (const w of f.work) {
       if (w.type === null && w.name.trim() === '' && !isBlankCustom(w)) errors[`work.${w.id}.name`] = 'Name the work.'
       if (w.type !== 'TyreSwap' && w.part === 'Aftermarket' && w.brand.trim() === '') errors[`work.${w.id}.brand`] = 'Enter the brand.'

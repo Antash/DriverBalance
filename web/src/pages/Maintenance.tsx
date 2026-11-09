@@ -10,7 +10,7 @@ import { ExpenseForm } from '../components/ExpenseForm'
 import { Modal } from '../components/Modal'
 import { errorLines, fmtKm, fmtMoney, fmtNum, invalidateVehicleData } from '../lib/format'
 import { maintenanceHistory, type ServiceRow, type WorkItem } from '../lib/maintenance'
-import { partLine, seasonLabel, tyreRows } from '../lib/tyreSummary'
+import { derivedTyreName, partLine, seasonLabel, tyreDisplayName, tyreRows } from '../lib/tyreSummary'
 import { useParams } from '../state/ParamsContext'
 import { useTyreSets, useVehicle } from '../state/useVehicle'
 
@@ -55,11 +55,17 @@ function TyreSetEditor({ vehicleId, set, onDone }: { vehicleId: number; set: Tyr
   const [f, setF] = useState({
     brand: set.brand ?? '', model: set.model ?? '', size: set.size ?? '', season: set.season, retired: set.retired,
   })
+  // A name that was derived from the previous brand/model/season is re-derived by the server (name: '').
+  const nameWasDerived = set.name === derivedTyreName(set)
   const save = useMutation({
     mutationFn: () => api.put<TyreSet>(`/vehicles/${vehicleId}/tyres/${set.id}`, {
-      ...set, brand: f.brand.trim() || null, model: f.model.trim() || null, size: f.size.trim() || null,
+      ...set, name: nameWasDerived ? '' : set.name, brand: f.brand.trim() || null, model: f.model.trim() || null, size: f.size.trim() || null,
       season: f.season, retired: f.retired,
     }),
+    onSuccess: async () => { await invalidateVehicleData(qc, vehicleId); onDone() },
+  })
+  const remove = useMutation({
+    mutationFn: () => api.del<void>(`/vehicles/${vehicleId}/tyres/${set.id}`),
     onSuccess: async () => { await invalidateVehicleData(qc, vehicleId); onDone() },
   })
   return (
@@ -74,9 +80,12 @@ function TyreSetEditor({ vehicleId, set, onDone }: { vehicleId: number; set: Tyr
       </label>
       <label className="check wide"><input type="checkbox" checked={f.retired} onChange={(e) => setF({ ...f, retired: e.target.checked })} /> Retired</label>
       {save.isError && <ul className="errors wide">{errorLines(save.error).map((m) => <li key={m}>{m}</li>)}</ul>}
+      {remove.isError && <ul className="errors wide">{errorLines(remove.error).map((m) => <li key={m}>{m}</li>)}</ul>}
       <div className="wide row">
         <button className="btn primary" type="submit" disabled={save.isPending}>Save</button>
         <button className="btn" type="button" onClick={onDone}>Cancel</button>
+        <button className="btn danger" type="button" disabled={remove.isPending}
+          onClick={() => { if (window.confirm(`Delete tyre set ${tyreDisplayName(set)}?`)) remove.mutate() }}>Delete</button>
       </div>
     </form>
   )
@@ -111,6 +120,10 @@ export default function MaintenancePage() {
   const { services, lanes } = useMemo(() => maintenanceHistory(expenses ?? []), [expenses])
   const opt = useMemo(() => (services.length ? timelineOption(services, lanes) : undefined), [services, lanes])
   const rows = useMemo(() => tyreRows(tyreSummary?.summaries ?? []), [tyreSummary])
+  const fittedName = (id: number | null) => {
+    const t = id == null ? undefined : tyreSets.find((x) => x.id === id)
+    return t ? tyreDisplayName(t) : 'set not recorded'
+  }
   const empty = !!expenses && services.length === 0
   const emptyText = 'No maintenance recorded yet. Use Add maintenance to log a service.'
 
@@ -149,6 +162,9 @@ export default function MaintenancePage() {
                         return (
                           <div key={`${w.key}-${i}`}>
                             {w.label}
+                            {(w.type === 'TyreSwap' || w.type === 'NewTyres') && (
+                              <span className="muted"> · {fittedName(s.expense.tyreSetId)}</span>
+                            )}
                             {part && <span className="muted"> · {part}</span>}
                             {w.details && <span className="muted"> · {w.details}</span>}
                           </div>

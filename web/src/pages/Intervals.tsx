@@ -105,7 +105,7 @@ export default function IntervalsPage() {
       {isError ? <p className="field-error">Could not load maintenance history.</p>
         : isLoading ? <p className="muted">Loading…</p>
         : !hasOil ? (
-          <ChartCard title="No oil changes recorded" empty emptyText="Add a maintenance expense with Oil change ticked to compare intervals.">{null}</ChartCard>
+          <ChartCard title="No oil changes recorded" empty emptyText="Add a maintenance expense with Engine oil ticked to compare intervals.">{null}</ChartCard>
         ) : <Compare currency={currency} />}
     </section>
   )
