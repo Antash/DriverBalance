@@ -64,3 +64,16 @@ describe('derivedTyreName', () => {
     expect(derivedTyreName({ brand: 'x'.repeat(100), model: 'y'.repeat(100), season: 'Winter' })).toHaveLength(100)
   })
 })
+
+describe('tyreRows first fitted', () => {
+  it('gives every set the start of its earliest span, including the original set fitted from the first day', () => {
+    const rows = tyreRows([
+      sum(1, 'Original summer', {}, false, [span('2026-03-18', '2026-11-04'), span('2024-01-31', '2025-10-22')], 32386),
+      sum(2, 'Winter', {}, true, [span('2025-10-22', '2026-03-18'), span('2026-11-04', null)], 8200),
+      sum(3, 'Never fitted'),
+    ])
+    expect(rows.map((r) => [r.name, r.firstFitted])).toEqual([
+      ['Winter', '2025-10-22'], ['Never fitted', null], ['Original summer', '2024-01-31'],
+    ].sort((a, b) => (a[0] === 'Winter' ? -1 : b[0] === 'Winter' ? 1 : String(a[0]).localeCompare(String(b[0])))))
+  })
+})

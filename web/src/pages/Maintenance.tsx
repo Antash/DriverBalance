@@ -174,7 +174,7 @@ export default function MaintenancePage() {
           {rows.length > 0 && <div className="table-wrap">
             <table className="data">
               <thead>
-                <tr><th>Tyres</th><th>Size</th><th>Season</th><th>Status</th><th className="num">Km</th><th>Fitted since</th></tr>
+                <tr><th>Tyres</th><th>Size</th><th>Season</th><th>Status</th><th className="num">Km</th><th>First fitted</th></tr>
               </thead>
               <tbody>
                 {rows.map((r) => (
@@ -183,9 +183,9 @@ export default function MaintenancePage() {
                     <td>{r.name}</td>
                     <td>{r.size ?? '—'}</td>
                     <td>{seasonLabel(r.season)}</td>
-                    <td>{r.status}</td>
+                    <td>{r.status}{r.fittedSince ? ` since ${r.fittedSince}` : ''}</td>
                     <td className="num">{fmtKm(r.km)}</td>
-                    <td>{r.fittedSince ?? '—'}</td>
+                    <td>{r.firstFitted ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>
