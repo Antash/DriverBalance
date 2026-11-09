@@ -5,7 +5,7 @@ export const MAINTENANCE_GROUPS: { title: string; types: MaintenanceType[] }[] =
   { title: 'Consumables', types: ['OilChange', 'OilFilter', 'AirFilter', 'CabinFilter', 'FuelFilter', 'BrakeFluid',
     'Coolant', 'TransmissionOil', 'HaldexOil', 'WiperBladesFront', 'WiperBladesRear', 'ACCleaning'] },
   { title: 'Engine, transmission & chassis', types: ['BrakePads', 'BrakeDiscs', 'Suspension', 'TimingBelt', 'AuxiliaryBelt',
-    'GlowPlugs', 'DpfService', 'Battery'] },
+    'GlowPlugs', 'DpfService', 'IntercoolerCleaning', 'Battery'] },
   { title: 'Tyres & wheels', types: ['TyreSwap', 'WheelAlignment'] },
 ]
 
@@ -18,8 +18,8 @@ const LABELS: Record<MaintenanceType, string> = {
   FuelFilter: 'Fuel filter', BrakePads: 'Brake pads', BrakeDiscs: 'Brake discs', TyreSwap: 'Tyre swap',
   NewTyres: 'New tyres', WheelAlignment: 'Wheel alignment', TimingBelt: 'Timing belt (+ water pump)',
   AuxiliaryBelt: 'Auxiliary belt', GlowPlugs: 'Glow plugs', DpfService: 'DPF service', Battery: 'Battery',
-  WiperBladesFront: 'Wiper blades (front)', WiperBladesRear: 'Wiper blades (rear)', ACCleaning: 'AC service',
-  Suspension: 'Suspension (shocks, arms, bushings)',
+  WiperBladesFront: 'Wiper blades (front)', WiperBladesRear: 'Wiper blades (rear)', ACCleaning: 'AC ozone cleaning',
+  Suspension: 'Suspension (shocks, arms, bushings)', IntercoolerCleaning: 'Intercooler cleaning',
 }
 
 export const maintenanceLabel = (t: MaintenanceType): string => LABELS[t]

@@ -9,7 +9,7 @@ export type MaintenanceType =
   | 'OilChange' | 'BrakeFluid' | 'TyreSwap' | 'BrakePads' | 'TransmissionOil' | 'HaldexOil'
   | 'Coolant' | 'CabinFilter' | 'AirFilter' | 'FuelFilter' | 'ACCleaning' | 'NewTyres'
   | 'OilFilter' | 'BrakeDiscs' | 'WheelAlignment' | 'TimingBelt' | 'AuxiliaryBelt' | 'GlowPlugs' | 'DpfService'
-  | 'Battery' | 'WiperBladesFront' | 'WiperBladesRear' | 'Suspension'
+  | 'Battery' | 'WiperBladesFront' | 'WiperBladesRear' | 'Suspension' | 'IntercoolerCleaning'
 
 export type PartSource = 'None' | 'Original' | 'Aftermarket'
 

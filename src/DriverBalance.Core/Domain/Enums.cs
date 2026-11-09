@@ -29,4 +29,5 @@ public enum MaintenanceType
     WiperBladesFront = 1 << 20,
     WiperBladesRear = 1 << 21,
     Suspension = 1 << 22,
+    IntercoolerCleaning = 1 << 23,
 }
