@@ -1,7 +1,7 @@
 # DriverBalance — working notes (read first)
 
 Last updated: 2026-11-09. Branch `feat/web-app` (over `master` c1c16dc), **not merged**.
-Tests: Core 97, Web 93, web (vitest) 142, all green; `dotnet build` 0 warnings.
+Tests: Core 108, Web 118, web (vitest) 154, all green; `dotnet build` 0 warnings.
 
 ## Where things are
 - Spec (binding): `docs/superpowers/specs/2026-11-08-driverbalance-web-design.md` (see "Rulings")
@@ -21,6 +21,13 @@ Tests: Core 97, Web 93, web (vitest) 142, all green; `dotnet build` 0 warnings.
 - Odometer chart (Overview, Oil intervals, Maintenance "Service milestones") shows maintenance visits as stacked icons:
   engine oil, tyres, brakes, filters, other service (`web/src/lib/milestones.ts`); the Maintenance lane chart is gone.
 - Trips "Places" tab removed (Top places + routes charts; API endpoints `charts/places`, `charts/routes` left in place).
+- Expenses have a **place** ("Where", suggestions from earlier places) and **documents** (PDF/images, ≤ 20 MB, stored in
+  `%LOCALAPPDATA%\DriverBalance\documents\<vehicle>\<expense>\`; back this folder up with the DB). Spec:
+  `docs/superpowers/specs/2026-11-09-documents-places-history-design.md`.
+- **Car history start** (Settings): date + odometer (0 for new) becomes the earliest odometer reading; intervals and
+  calendar periods count from it, km in the gap before the first real reading is interpolated linearly in time.
+  Pre-documents DB backup: `driverbalance.pre-documents.db`.
+- Odometer chart only on Maintenance (removed from Oil intervals; Overview still has "Last 12 months").
 - Owner's two old tyre swaps have no tyre set yet — they can edit them to attach sets.
 
 ## State
