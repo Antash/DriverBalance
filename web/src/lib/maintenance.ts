@@ -1,4 +1,4 @@
-import type { Expense, MaintenanceType, PartSource } from '../api/types'
+import type { Expense, MaintenanceType, PartSource, WorkPosition } from '../api/types'
 import { MAINTENANCE_TYPES, maintenanceLabel } from './maintenanceCatalog'
 
 type ServiceExpense = Pick<Expense, 'id' | 'date' | 'odometer' | 'maintenance' | 'amount' | 'currency' | 'homeAmount' | 'note'> & { work?: Expense['work'] }
@@ -6,6 +6,8 @@ type ServiceExpense = Pick<Expense, 'id' | 'date' | 'odometer' | 'maintenance' |
 export interface WorkItem {
   key: string; label: string; type: MaintenanceType | null
   part: PartSource; brand: string | null; model: string | null; details: string | null
+  /** Brake pads, discs and suspension: which axle. Wiper blades: rubber refill only. */
+  position?: WorkPosition | null; rubberOnly?: boolean
   sinceDays: number | null; sinceKm: number | null
 }
 export interface ServiceRow<E extends ServiceExpense = ServiceExpense> {
@@ -23,7 +25,7 @@ export type Raw = Omit<WorkItem, 'sinceDays' | 'sinceKm'>
 export function rawItems(e: ServiceExpense): Raw[] {
   if (e.work && e.work.length > 0) {
     return e.work.flatMap((w): Raw[] => {
-      if (w.type) return [{ key: w.type, label: maintenanceLabel(w.type), type: w.type, part: w.part, brand: w.brand, model: w.model, details: w.details }]
+      if (w.type) return [{ key: w.type, label: maintenanceLabel(w.type), type: w.type, part: w.part, brand: w.brand, model: w.model, details: w.details, position: w.position ?? null, rubberOnly: !!w.rubberOnly }]
       const name = w.name?.trim()
       if (!name) return []
       return [{ key: `custom:${name.toLowerCase()}`, label: name, type: null, part: w.part, brand: w.brand, model: w.model, details: w.details }]

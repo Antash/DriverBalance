@@ -1,4 +1,4 @@
-import type { Expense, MaintenanceType } from '../api/types'
+import type { Expense, MaintenanceType, MaintenanceWork } from '../api/types'
 
 export interface PreviousPart { brand: string; model: string | null }
 
@@ -8,16 +8,18 @@ export const workKey = (type: MaintenanceType | null, name: string): string =>
 
 /**
  * Other-brand products used before for the same work item, most recent first, without duplicates (brand and model
- * compared ignoring case and surrounding spaces; the latest spelling wins). `excludeId` leaves out the record being edited.
+ * compared ignoring case and surrounding spaces; the latest spelling wins). `excludeId` leaves out the record being edited;
+ * `match` narrows further (e.g. wiper rubbers vs whole blades).
  */
-export function previousParts(expenses: Expense[], key: string, excludeId?: number | null): PreviousPart[] {
+export function previousParts(expenses: Expense[], key: string, excludeId?: number | null,
+  match: (w: MaintenanceWork) => boolean = () => true): PreviousPart[] {
   const newestFirst = [...expenses].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.id - a.id))
   const seen = new Set<string>()
   const result: PreviousPart[] = []
   for (const e of newestFirst) {
     if (e.id === excludeId) continue
     for (const w of e.work ?? []) {
-      if (w.part !== 'Aftermarket' || !w.brand?.trim() || workKey(w.type, w.name ?? '') !== key) continue
+      if (w.part !== 'Aftermarket' || !w.brand?.trim() || workKey(w.type, w.name ?? '') !== key || !match(w)) continue
       const brand = w.brand.trim(), model = w.model?.trim() || null
       const id = `${brand.toLowerCase()}|${(model ?? '').toLowerCase()}`
       if (seen.has(id)) continue

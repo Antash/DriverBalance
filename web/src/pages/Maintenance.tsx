@@ -108,7 +108,6 @@ export default function MaintenancePage() {
   return (
     <section>
       <h1>Maintenance</h1>
-      <p className="muted">Every service visit. Oil changes also have their own page, Oil intervals, which compares engine stats between changes.</p>
       <div className="toolbar">
         <span className="spacer" />
         <button className="btn primary" onClick={() => setAdding(true)}>Add maintenance</button>
@@ -139,6 +138,8 @@ export default function MaintenancePage() {
                         return (
                           <div key={`${w.key}-${i}`}>
                             {w.label}
+                            {w.position && <span className="muted"> · {w.position === 'Both' ? 'front and rear' : w.position.toLowerCase()}</span>}
+                            {w.rubberOnly && <span className="muted"> · rubber only</span>}
                             {(w.type === 'TyreSwap' || w.type === 'NewTyres') && (
                               <span className="muted"> · {fittedName(s.expense.tyreSetId)}</span>
                             )}

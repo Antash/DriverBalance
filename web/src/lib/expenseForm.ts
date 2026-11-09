@@ -1,5 +1,5 @@
 import { iso } from './dates'
-import type { Expense, ExpenseCategory, MaintenanceType, MaintenanceWork, PartSource, TyreSeason } from '../api/types'
+import type { Expense, ExpenseCategory, MaintenanceType, MaintenanceWork, PartSource, TyreSeason, WorkPosition } from '../api/types'
 
 export interface WorkDraft {
   id: string
@@ -9,7 +9,13 @@ export interface WorkDraft {
   brand: string
   model: string
   details: string
+  position?: WorkPosition | null
+  rubberOnly?: boolean
 }
+
+/** Work types that take a front / rear / both choice, and the wiper types that can be a rubber-only change. */
+export const POSITION_TYPES: MaintenanceType[] = ['BrakePads', 'BrakeDiscs', 'Suspension']
+export const WIPER_TYPES: MaintenanceType[] = ['WiperBladesFront', 'WiperBladesRear']
 
 export interface TyreDraft {
   mode: 'existing' | 'owned' | 'new'
@@ -91,11 +97,13 @@ export function usesTyreSet(category: ExpenseCategory, maintenance: readonly Mai
 }
 
 function toWork(w: WorkDraft): MaintenanceWork {
-  if (w.type === 'TyreSwap') return { type: w.type, name: null, part: 'None', brand: null, model: null, details: emptyToNull(w.details) }
+  if (w.type === 'TyreSwap') return { type: w.type, name: null, part: 'None', brand: null, model: null, details: emptyToNull(w.details), position: null, rubberOnly: false }
   const after = w.part === 'Aftermarket'
   return {
     type: w.type, name: w.type === null ? w.name.trim() : null, part: w.part,
     brand: after ? emptyToNull(w.brand) : null, model: after ? emptyToNull(w.model) : null, details: emptyToNull(w.details),
+    position: w.type && POSITION_TYPES.includes(w.type) ? (w.position ?? null) : null,
+    rubberOnly: !!w.type && WIPER_TYPES.includes(w.type) && !!w.rubberOnly,
   }
 }
 
@@ -141,7 +149,8 @@ export function toFormState(e: Expense): ExpenseFormState {
     work: e.work.length > 0
       ? e.work.map((w) => w.type === 'TyreSwap'
         ? { id: newWorkId(), type: w.type, name: '', part: 'None' as const, brand: '', model: '', details: w.details ?? '' }
-        : { id: newWorkId(), type: w.type, name: w.name ?? '', part: w.part, brand: w.brand ?? '', model: w.model ?? '', details: w.details ?? '' })
+        : { id: newWorkId(), type: w.type, name: w.name ?? '', part: w.part, brand: w.brand ?? '', model: w.model ?? '', details: w.details ?? '',
+          position: w.position ?? null, rubberOnly: w.rubberOnly ?? false })
       : e.maintenance.map((t) => ({ id: newWorkId(), type: t, name: '', part: 'None' as const, brand: '', model: '', details: '' })),
     maintenanceDescription: e.maintenanceDescription ?? '',
     tyreSetId: e.tyreSetId == null ? '' : String(e.tyreSetId), tyres: emptyTyres(),

@@ -184,9 +184,9 @@ describe('toFormState -> buildExpensePayload round trip', () => {
     ['Fuel', { ...common, category: 'Fuel', litres: 40.2, fullTank: true, station: 'Shell' }],
     ['Maintenance with tyre set', { ...common, category: 'Maintenance', maintenance: ['TyreSwap', 'OilChange'], maintenanceDescription: 'd', tyreSetId: 3,
       work: [
-        { type: 'TyreSwap', name: null, part: 'None', brand: null, model: null, details: null },
-        { type: 'OilChange', name: null, part: 'Aftermarket', brand: 'Castrol', model: '5W30', details: 'x' },
-        { type: null, name: 'Mudflaps', part: 'Original', brand: null, model: null, details: null },
+        { type: 'TyreSwap', name: null, part: 'None', brand: null, model: null, details: null, position: null, rubberOnly: false },
+        { type: 'OilChange', name: null, part: 'Aftermarket', brand: 'Castrol', model: '5W30', details: 'x', position: null, rubberOnly: false },
+        { type: null, name: 'Mudflaps', part: 'Original', brand: null, model: null, details: null, position: null, rubberOnly: false },
       ] }],
     ['Insurance with covers', { ...common, category: 'Insurance', coversFrom: '2026-01-01', coversTo: '2026-12-31' }],
     ['foreign currency', { ...common, category: 'Parking', currency: 'EUR', homeAmount: 250.5 }],
@@ -207,3 +207,32 @@ describe('place', () => {
     expect(toFormState({ ...e, place: null }).place).toBe('')
   })
 })
+
+describe('position and rubber-only', () => {
+  const maint = (work: WorkDraft[]): ExpenseFormState => ({ ...base, category: 'Maintenance', work })
+  const d = (p: Partial<WorkDraft>): WorkDraft => ({ id: 'x', type: null, name: '', part: 'None', brand: '', model: '', details: '', ...p })
+
+  it('sends the position for brake pads and suspension and rubber-only for wipers', () => {
+    const p = buildExpensePayload(maint([
+      d({ id: 'a', type: 'BrakePads', position: 'Front' }),
+      d({ id: 'b', type: 'WiperBladesFront', rubberOnly: true }),
+      d({ id: 'c', type: 'OilChange', position: 'Rear', rubberOnly: true }),
+    ]), 'CZK')
+    expect(p.work.map((w) => [w.type, w.position, w.rubberOnly])).toEqual([
+      ['BrakePads', 'Front', false], ['WiperBladesFront', null, true], ['OilChange', null, false],
+    ])
+  })
+
+  it('reads them back from a saved record', () => {
+    const e = { ...toFormStateFixture(), work: [{ type: 'Suspension', name: null, part: 'None', brand: null, model: null, details: null, position: 'Both', rubberOnly: false },
+      { type: 'WiperBladesRear', name: null, part: 'None', brand: null, model: null, details: null, position: null, rubberOnly: true }] } as unknown as Expense
+    const f = toFormState(e)
+    expect(f.work.map((w) => [w.type, w.position ?? null, w.rubberOnly ?? false])).toEqual([['Suspension', 'Both', false], ['WiperBladesRear', null, true]])
+  })
+})
+
+function toFormStateFixture() {
+  return { id: 1, date: '2026-05-01', category: 'Maintenance', amount: 1, currency: 'CZK', homeAmount: null, odometer: null, note: null,
+    coversFrom: null, coversTo: null, litres: null, fullTank: null, station: null, place: null, maintenance: [], maintenanceDescription: null,
+    tyreSetId: null, source: 'Web', documents: [] }
+}

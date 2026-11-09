@@ -28,3 +28,14 @@ describe('previousParts', () => {
     expect(previousParts(history, workKey('Coolant', ''))).toEqual([])
   })
 })
+
+describe('previousParts for wipers', () => {
+  const wipers = [
+    exp(10, '2025-01-01', [{ type: 'WiperBladesFront', part: 'Aftermarket', brand: 'Bosch', model: 'Aerotwin AR601S' }]),
+    exp(11, '2025-09-01', [{ type: 'WiperBladesFront', part: 'Aftermarket', brand: 'Bosch', model: 'AP600U refill', rubberOnly: true }]),
+  ]
+  it('offers only rubbers for a rubber-only change and only whole blades otherwise', () => {
+    expect(previousParts(wipers, workKey('WiperBladesFront', ''), null, (w) => !!w.rubberOnly)).toEqual([{ brand: 'Bosch', model: 'AP600U refill' }])
+    expect(previousParts(wipers, workKey('WiperBladesFront', ''), null, (w) => !w.rubberOnly)).toEqual([{ brand: 'Bosch', model: 'Aerotwin AR601S' }])
+  })
+})

@@ -5,6 +5,9 @@ namespace DriverBalance.Core;
 
 public enum PartSource { None, Original, Aftermarket }
 
+/// <summary>Which axle or end of the car: brake pads, brake discs and suspension only.</summary>
+public enum WorkPosition { Front, Rear, Both }
+
 /// <summary>One piece of work done at a maintenance visit. Type is null for a free-text (custom) item named by Name.</summary>
 public sealed record MaintenanceWork
 {
@@ -16,6 +19,11 @@ public sealed record MaintenanceWork
     public string? Brand { get; init; }
     public string? Model { get; init; }
     public string? Details { get; init; }
+    /// <summary>Front, rear or both: brake pads, brake discs and suspension only; null otherwise.</summary>
+    [JsonConverter(typeof(JsonStringEnumConverter<WorkPosition>))]
+    public WorkPosition? Position { get; init; }
+    /// <summary>Wiper blades only: just the rubber refill was changed, not the whole blade.</summary>
+    public bool RubberOnly { get; init; }
 }
 
 /// <summary>

@@ -31,6 +31,7 @@ public static class ExpenseRules
         return e with { Place = place, Currency = e.Currency!.ToUpperInvariant(), Work = work, Maintenance = flags };
     }
 
+    private static readonly HashSet<MaintenanceType> PositionTypes = [MaintenanceType.BrakePads, MaintenanceType.BrakeDiscs, MaintenanceType.Suspension];
     private const int MaxWorkItems = 50, MaxNameLength = 100, MaxBrandLength = 100, MaxDetailsLength = 200, MaxPlaceLength = 100;
 
     private static string? Clean(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
@@ -66,6 +67,10 @@ public static class ExpenseRules
             if (brand is { Length: > MaxBrandLength }) errors.Add($"{n}: brand must be at most {MaxBrandLength} characters.");
             if (model is { Length: > MaxBrandLength }) errors.Add($"{n}: model must be at most {MaxBrandLength} characters.");
             if (details is { Length: > MaxDetailsLength }) errors.Add($"{n}: details must be at most {MaxDetailsLength} characters.");
+            if (w.Position is { } pos && (!Enum.IsDefined(pos) || w.Type is not { } pt || !PositionTypes.Contains(pt)))
+                errors.Add($"{n}: front/rear only applies to brake pads, brake discs and suspension.");
+            if (w.RubberOnly && w.Type is not (MaintenanceType.WiperBladesFront or MaintenanceType.WiperBladesRear))
+                errors.Add($"{n}: rubber only applies to wiper blades.");
             result.Add(w with { Name = name, Brand = brand, Model = model, Details = details });
         }
         return result;

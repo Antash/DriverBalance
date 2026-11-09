@@ -20,7 +20,13 @@ export interface MaintenanceWork {
   brand: string | null
   model: string | null
   details: string | null
+  /** Brake pads, brake discs and suspension only. */
+  position?: WorkPosition | null
+  /** Wiper blades only: just the rubber refill. */
+  rubberOnly?: boolean
 }
+
+export type WorkPosition = 'Front' | 'Rear' | 'Both'
 
 export interface LatestOdometer {
   odometer: number
