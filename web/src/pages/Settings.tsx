@@ -75,13 +75,6 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
           <div><button className="btn small" type="button" onClick={() => setF({ ...f, purchaseDate: firstTrip })}>Use first trip ({fmtDate(firstTrip)})</button></div>
         )}
         <p className="muted">Your first day with the car; earlier records belong to the previous owner.</p>
-        <label>Estimated resale value ({f.homeCurrency})
-          <input type="number" min={0} step="any" value={f.estimatedResaleValue ?? ''}
-            onChange={(e) => setF({ ...f, estimatedResaleValue: e.target.value === '' ? null : Math.max(0, Number(e.target.value)) })} />
-        </label>
-        <label>Estimated on
-          <DateInput value={f.resaleEstimateDate ?? ''} onChange={(v) => setF({ ...f, resaleEstimateDate: v || null })} />
-        </label>
         <PurchaseCosts vehicleId={vehicle.id} currency={vehicle.homeCurrency} />
         <FinancingFields value={f} currency={vehicle.homeCurrency} onChange={(v) => setF({ ...f, ...v })} />
         <fieldset className="group"><legend>Car details</legend>
@@ -115,6 +108,13 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
             </label>
           </div>
         </fieldset>
+        <label>Estimated resale value ({f.homeCurrency})
+          <input type="number" min={0} step="any" value={f.estimatedResaleValue ?? ''}
+            onChange={(e) => setF({ ...f, estimatedResaleValue: e.target.value === '' ? null : Math.max(0, Number(e.target.value)) })} />
+        </label>
+        <label>Estimated on
+          <DateInput value={f.resaleEstimateDate ?? ''} onChange={(v) => setF({ ...f, resaleEstimateDate: v || null })} />
+        </label>
         <label className="check"><input type="checkbox" checked={f.isDefault} onChange={(e) => setF({ ...f, isDefault: e.target.checked })} /> Default vehicle</label>
         {save.isError && <ul className="errors">{errorLines(save.error).map((m) => <li key={m}>{m}</li>)}</ul>}
         <div className="row">
