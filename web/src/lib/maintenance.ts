@@ -58,6 +58,8 @@ export function maintenanceHistory<E extends ServiceExpense>(expenses: E[]): { s
     }),
   }))
   const typed = ALL_TYPES.filter((t) => firstLabel.has(t)).map((t) => maintenanceLabel(t))
+  const seen = new Set(typed.map((l) => l.toLowerCase()))
   const custom = [...firstLabel].filter(([k]) => k.startsWith('custom:')).map(([, l]) => l)
+    .filter((l) => !seen.has(l.toLowerCase()) && seen.add(l.toLowerCase()))
   return { services: services.reverse(), lanes: [...typed, ...custom] }
 }

@@ -1,16 +1,21 @@
-import { useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMemo, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { EChartsOption } from 'echarts'
 import { api } from '../api/client'
-import type { Expense } from '../api/types'
+import type { Expense, LatestOdometer, TyreSeason, TyreSet, TyreSummaryResponse } from '../api/types'
 import { Chart } from '../components/Chart'
 import { ChartCard } from '../components/ChartCard'
 import { axisStyle, chartTheme } from '../components/chartTheme'
-import { fmtMoney, fmtNum } from '../lib/format'
+import { ExpenseForm } from '../components/ExpenseForm'
+import { Modal } from '../components/Modal'
+import { errorLines, fmtKm, fmtMoney, fmtNum, invalidateVehicleData } from '../lib/format'
 import { maintenanceHistory, type ServiceRow, type WorkItem } from '../lib/maintenance'
+import { partLine, seasonLabel, tyreRows } from '../lib/tyreSummary'
 import { useParams } from '../state/ParamsContext'
+import { useTyreSets, useVehicle } from '../state/useVehicle'
 
 const cost = (e: Expense) => fmtMoney(e.amount, e.currency)
+const SEASONS: TyreSeason[] = ['Summer', 'Winter', 'AllSeason']
 
 /** One lane per maintenance type, a marker each time it was done. */
 function timelineOption(services: ServiceRow<Expense>[], lanes: string[]): () => EChartsOption {
@@ -33,7 +38,7 @@ function timelineOption(services: ServiceRow<Expense>[], lanes: string[]): () =>
       series: lanes.map((lane, i) => ({
         name: lane, type: 'scatter' as const, symbol: 'diamond', symbolSize: 14,
         itemStyle: { color: t.series[i % t.series.length], borderColor: t.surface, borderWidth: 1.5 },
-        data: services.filter((s) => s.work.some((w) => w.label === lane))
+        data: services.filter((s) => s.work.some((w) => w.label.toLowerCase() === lane.toLowerCase()))
           .map((s) => ({ value: [s.date, lane], service: s })),
       })),
     } as EChartsOption
@@ -45,21 +50,78 @@ function Since({ w }: { w: WorkItem }) {
   return <span>{fmtNum(w.sinceDays, 0)} days{w.sinceKm != null ? ` · ${fmtNum(w.sinceKm, 0)} km` : ''}</span>
 }
 
+function TyreSetEditor({ vehicleId, set, onDone }: { vehicleId: number; set: TyreSet; onDone(): void }) {
+  const qc = useQueryClient()
+  const [f, setF] = useState({
+    brand: set.brand ?? '', model: set.model ?? '', size: set.size ?? '', season: set.season, retired: set.retired,
+  })
+  const save = useMutation({
+    mutationFn: () => api.put<TyreSet>(`/vehicles/${vehicleId}/tyres/${set.id}`, {
+      ...set, brand: f.brand.trim() || null, model: f.model.trim() || null, size: f.size.trim() || null,
+      season: f.season, retired: f.retired,
+    }),
+    onSuccess: async () => { await invalidateVehicleData(qc, vehicleId); onDone() },
+  })
+  return (
+    <form className="form-grid" onSubmit={(e) => { e.preventDefault(); save.mutate() }}>
+      <label>Brand<input value={f.brand} onChange={(e) => setF({ ...f, brand: e.target.value })} /></label>
+      <label>Model<input value={f.model} onChange={(e) => setF({ ...f, model: e.target.value })} /></label>
+      <label>Size<input value={f.size} onChange={(e) => setF({ ...f, size: e.target.value })} /></label>
+      <label>Season
+        <select value={f.season} onChange={(e) => setF({ ...f, season: e.target.value as TyreSeason })}>
+          {SEASONS.map((s) => <option key={s} value={s}>{seasonLabel(s)}</option>)}
+        </select>
+      </label>
+      <label className="check wide"><input type="checkbox" checked={f.retired} onChange={(e) => setF({ ...f, retired: e.target.checked })} /> Retired</label>
+      {save.isError && <ul className="errors wide">{errorLines(save.error).map((m) => <li key={m}>{m}</li>)}</ul>}
+      <div className="wide row">
+        <button className="btn primary" type="submit" disabled={save.isPending}>Save</button>
+        <button className="btn" type="button" onClick={onDone}>Cancel</button>
+      </div>
+    </form>
+  )
+}
+
 export default function MaintenancePage() {
   const { vehicleId } = useParams()
+  const vehicle = useVehicle()
+  const qc = useQueryClient()
+  const [adding, setAdding] = useState(false)
+  const [editing, setEditing] = useState<Expense | null>(null)
+  const [editingSet, setEditingSet] = useState<TyreSet | null>(null)
+
   const { data: expenses, isLoading, isError } = useQuery({
     queryKey: ['expenses', vehicleId, 'maintenance'],
     queryFn: () => api.get<Expense[]>(`/vehicles/${vehicleId}/expenses?category=Maintenance`),
   })
+  const { data: latest } = useQuery({
+    queryKey: ['expenses', vehicleId, 'latest-odometer'],
+    queryFn: async () => (await api.get<LatestOdometer | undefined>(`/vehicles/${vehicleId}/odometer/latest`)) ?? null,
+  })
+  const { data: tyreSets = [] } = useTyreSets()
+  const { data: tyreSummary } = useQuery({
+    queryKey: ['tyres', vehicleId, 'summary'],
+    queryFn: () => api.get<TyreSummaryResponse>(`/vehicles/${vehicleId}/tyres/summary`),
+  })
+  const remove = useMutation({
+    mutationFn: (e: Expense) => api.del<void>(`/vehicles/${vehicleId}/expenses/${e.id}`),
+    onSuccess: async () => { await invalidateVehicleData(qc, vehicleId); setEditing(null) },
+  })
+
   const { services, lanes } = useMemo(() => maintenanceHistory(expenses ?? []), [expenses])
   const opt = useMemo(() => (services.length ? timelineOption(services, lanes) : undefined), [services, lanes])
+  const rows = useMemo(() => tyreRows(tyreSummary?.summaries ?? []), [tyreSummary])
   const empty = !!expenses && services.length === 0
-  const emptyText = 'No maintenance other than oil changes yet. Add a maintenance expense with the work done.'
+  const emptyText = 'No maintenance recorded yet. Use Add maintenance to log a service.'
 
   return (
     <section>
       <h1>Maintenance</h1>
-      <p className="muted">Everything except oil changes, which have their own page under Oil intervals.</p>
+      <p className="muted">Every service visit. Oil changes also have their own page, Oil intervals, which compares engine stats between changes.</p>
+      <div className="toolbar">
+        <span className="spacer" />
+        <button className="btn primary" onClick={() => setAdding(true)}>Add maintenance</button>
+      </div>
       <ChartCard title="Maintenance timeline" loading={isLoading} error={isError} empty={empty} emptyText={emptyText}
         hint="One lane per kind of work; hover a marker for the date, odometer and cost.">
         {opt && <Chart option={opt} height={Math.max(140, 48 + lanes.length * 44)} />}
@@ -74,21 +136,86 @@ export default function MaintenancePage() {
                 <tr><th>Date</th><th className="num">Odometer</th><th>Work done</th><th>Since last time</th><th className="num">Cost</th><th>Note</th></tr>
               </thead>
               <tbody>
-                {services.map((s) => (
-                  <tr key={s.id}>
-                    <td>{s.date}</td>
-                    <td className="num">{s.odometer != null ? `${fmtNum(s.odometer, 0)} km` : '—'}</td>
-                    <td>{s.work.map((w) => <div key={w.key}>{w.label}</div>)}</td>
-                    <td>{s.work.map((w) => <div key={w.key}><Since w={w} /></div>)}</td>
-                    <td className="num">{cost(s.expense)}</td>
-                    <td>{s.expense.note ?? ''}</td>
+                {services.map((s) => {
+                  const open = () => setEditing(s.expense)
+                  const legacy = s.expense.work.length === 0 ? s.expense.maintenanceDescription : null
+                  return (
+                    <tr key={s.id} className="clickable" tabIndex={0} onClick={open}
+                      onKeyDown={(e) => { if (e.key === 'Enter') open() }}>
+                      <td>{s.date}</td>
+                      <td className="num">{s.odometer != null ? `${fmtNum(s.odometer, 0)} km` : '—'}</td>
+                      <td>{s.work.map((w, i) => {
+                        const part = partLine(w)
+                        return (
+                          <div key={`${w.key}-${i}`}>
+                            {w.label}
+                            {part && <span className="muted"> · {part}</span>}
+                            {w.details && <span className="muted"> · {w.details}</span>}
+                          </div>
+                        )
+                      })}</td>
+                      <td>{s.work.map((w, i) => <div key={`${w.key}-${i}`}><Since w={w} /></div>)}</td>
+                      <td className="num">{cost(s.expense)}</td>
+                      <td>{s.expense.note ?? ''}{legacy && <span className="muted">{s.expense.note ? ' · ' : ''}{legacy}</span>}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="muted">The cost is the whole visit.</p>
+        </section>
+      )}
+
+      {rows.length > 0 && (
+        <section className="card">
+          <h2>Tyres</h2>
+          <div className="table-wrap">
+            <table className="data">
+              <thead>
+                <tr><th>Tyres</th><th>Size</th><th>Season</th><th>Status</th><th className="num">Km</th><th>Fitted since</th></tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.set.id} className="clickable" tabIndex={0} onClick={() => setEditingSet(r.set)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') setEditingSet(r.set) }}>
+                    <td>{r.name}</td>
+                    <td>{r.size ?? '—'}</td>
+                    <td>{seasonLabel(r.season)}</td>
+                    <td>{r.status}</td>
+                    <td className="num">{fmtKm(r.km)}</td>
+                    <td>{r.fittedSince ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <p className="muted">The cost is the whole service, including any oil change done at the same visit.</p>
+          {tyreSummary?.unassignedSpans.map((sp) => (
+            <p key={`${sp.from}-${sp.to}`} className="muted">
+              Unrecorded tyres: {sp.from} → {sp.to ?? 'now'}{sp.km != null ? `, ${fmtNum(sp.km, 0)} km` : ''}
+            </p>
+          ))}
         </section>
+      )}
+
+      {adding && (
+        <Modal title="Add maintenance" onClose={() => setAdding(false)}>
+          <ExpenseForm vehicle={vehicle} tyreSets={tyreSets} lockCategory="Maintenance" defaultOdometer={latest?.odometer}
+            onDone={() => setAdding(false)} />
+        </Modal>
+      )}
+      {editing && (
+        <Modal title="Edit maintenance" onClose={() => setEditing(null)}>
+          <ExpenseForm key={editing.id} vehicle={vehicle} tyreSets={tyreSets} initial={editing} lockCategory="Maintenance"
+            onDone={() => setEditing(null)}
+            onDelete={() => { if (window.confirm(`Delete this maintenance record from ${editing.date}?`)) remove.mutate(editing) }} />
+          {remove.isError && <ul className="errors">{errorLines(remove.error).map((m) => <li key={m}>{m}</li>)}</ul>}
+        </Modal>
+      )}
+      {editingSet && (
+        <Modal title="Edit tyre set" onClose={() => setEditingSet(null)}>
+          <TyreSetEditor vehicleId={vehicleId} set={editingSet} onDone={() => setEditingSet(null)} />
+        </Modal>
       )}
     </section>
   )

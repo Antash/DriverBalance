@@ -62,3 +62,10 @@ describe('maintenanceHistory', () => {
     expect(h.lanes).toEqual(['Coolant', 'Headlight polish'])
   })
 })
+
+describe('lane dedupe', () => {
+  it('does not duplicate a lane when a custom work is named like a typed label', () => {
+    const h = maintenanceHistory([e(1, '2025-01-01', 1, ['OilChange'], [w('OilChange'), w(null, 'engine OIL')])])
+    expect(h.lanes).toEqual(['Engine oil'])
+  })
+})

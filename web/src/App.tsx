@@ -13,11 +13,10 @@ import Overview from './pages/Overview'
 import Settings from './pages/Settings'
 import Statistics from './pages/Statistics'
 import Trips from './pages/Trips'
-import Tyres from './pages/Tyres'
 
 const NAV: [string, string][] = [
   ['/', 'Overview'], ['/trips', 'Trips'], ['/statistics', 'Statistics'], ['/intervals', 'Oil intervals'], ['/maintenance', 'Maintenance'],
-  ['/tyres', 'Tyres'], ['/expenses', 'Expenses'], ['/import', 'Import'], ['/settings', 'Settings'],
+  ['/expenses', 'Expenses'], ['/import', 'Import'], ['/settings', 'Settings'],
 ]
 
 const STORE_KEY = 'driverbalance.vehicleId'
@@ -55,7 +54,7 @@ function Shell({ vehicles, vehicleId, setVehicleId }: {
           <Route path="/statistics" element={<Statistics />} />
           <Route path="/intervals" element={<Intervals />} />
           <Route path="/maintenance" element={<Maintenance />} />
-          <Route path="/tyres" element={<Tyres />} />
+          <Route path="/tyres" element={<Navigate to="/maintenance" replace />} />
           <Route path="/expenses" element={<Expenses />} />
           <Route path="/import" element={<Import />} />
           <Route path="/settings" element={<Settings />} />
