@@ -1,7 +1,19 @@
 # DriverBalance — working notes (read first)
 
-Last updated: 2026-11-09. Branch `feat/web-app` (over `master` c1c16dc), **not merged**.
-Tests: Core 108, Web 118, web (vitest) 154, all green; `dotnet build` 0 warnings.
+Last updated: 2026-11-09 (evening). Branch `feat/web-app` (over `master` c1c16dc), **not merged**, HEAD a296644.
+Tests: Core 112, Web 129, VolvoSync 28, web (vitest) 200, all green; `dotnet build` 0 warnings.
+
+## PAUSED HERE: public web service (design written, awaiting owner approval)
+- Design: `docs/superpowers/specs/2026-11-09-public-service-design.md` (committed). Invite-only Google sign-in, per-user
+  profiles and analysis parameters, Admin page (invites, users), export my data / delete my account, privacy page,
+  Azure App Service **F1 Linux**, SQLite at `/home/data` (no WAL), documents + daily DB backup in Blob Storage,
+  GitHub Actions deploy, `DriverBalance:Mode = Local | Hosted`. Its "Calls made by Claude" section lists 7 decisions for
+  the owner to confirm (access re-checked every 5 min; admin can't self-delete; 200 MB docs per user; hosted becomes the
+  source of truth; API tokens re-issued; two-user isolation tests).
+- Owner said: invite-only for now; Google only for now; shared cars not needed; other users import trips by hand (only
+  the owner has the sync tool / bot); parameters belong to the user, defaults = current values (= code defaults).
+- Next step once approved: superpowers:writing-plans → plan in `docs/superpowers/plans/`, then subagent-driven build.
+  The owner does Google console / Azure portal steps; never handle the secrets.
 
 ## Where things are
 - Spec (binding): `docs/superpowers/specs/2026-11-08-driverbalance-web-design.md` (see "Rulings")
@@ -36,14 +48,37 @@ Tests: Core 108, Web 118, web (vitest) 154, all green; `dotnet build` 0 warnings
 - **Volvo sync tool** (`tools/DriverBalance.VolvoSync`, spec `docs/superpowers/specs/2026-11-09-volvo-sync-design.md`):
   `dotnet run --project tools/DriverBalance.VolvoSync -- sync` opens a visible Edge window (headless is blocked by Volvo's
   Akamai bot protection; we do not disguise it), exports the journal from the app's last trip − 2 days and posts it to
-  `/api/vehicles/1/import/csv`. Session lives in `%LOCALAPPDATA%\DriverBalanceolvo-browser`. Volvo asks for an e-mailed
+  `/api/vehicles/1/import/csv`. Session lives in `%LOCALAPPDATA%\DriverBalance\volvo-browser`. Volvo asks for an e-mailed
   6-digit code at new sessions: typed on the console, or `--code-file <path>` (Claude fills it from Gmail). Scheduling and
   reading the code from Gmail automatically are not built yet. Odometer chart shows no import/expense markers now.
 - Owner's two old tyre swaps have no tyre set yet — they can edit them to attach sets.
 
+## 2026-11-09 evening session
+- Expenses page: period switch (Total / Last 12 months / each year), treemap of category shares (amount on hover),
+  total spent, smoothed weekly cost per km, records at the bottom. Same period switch on Trips (+ group/trip switch);
+  Oil intervals views: All / Current vs average / Current vs last.
+- 2026 sheet imported (1 Jan – 7 Nov, one record per category). Car details (Volvo V90 B4 Momentum MY2024, equipment,
+  Crystal White, black leather), resale estimate 1 100 000 CZK on 09/11/2026.
+- Categories: Purchase is hidden (API refuses new ones; only Cost of ownership uses it); Financing removed; Road tax
+  merged into Road tolls (TollsVignette). The old JSON-data migration feature was removed entirely.
+- **Dates are dd/mm/yyyy everywhere** (owner: "don't use American date style"); `DateInput` replaces native date
+  pickers; `fmtDate`/`fmtDateTime` in `web/src/lib/format.ts`; server interval labels dd/MM/yyyy. MCP text keeps ISO.
+  Month labels like "2026-11" are still yyyy-MM (owner not asked yet).
+- **Fuel type** (Settings): Diesel, Diesel MHEV, Petrol, Petrol MHEV, Petrol PHEV, Electric (no plain hybrid — owner).
+  DPF health/index/charts/parameters only for the diesels (or unset). Car details also have Transmission and AWD;
+  the owner's car is set in Settings.
+- Statistics tables: Days used, Km / day used, Driving hours columns; periods newest first.
+- Overview order: car card, This month/This year, odometer chart, DPF health (no sparkline), Reminders (only if any),
+  Cost of ownership last. Recent expenses removed.
+- DPF health explained to the owner: a long drive = Excellent (≥40 min, ≥50 km/h avg) or Good (≥30 min, ≥35 km/h),
+  single trip or back-to-back trips; "needs a long drive" after 14 days; it is an estimate from trips only.
+- DB backups this session: `pre-categories.db`, `pre-fuel-type.db` (all next to the real DB).
+
 ## State
 - Published app: `%LOCALAPPDATA%\DriverBalance\app\DriverBalance.Web.exe` (serves on http://localhost:5180).
-- Real DB: `%LOCALAPPDATA%\DriverBalance\driverbalance.db`. It holds the owner's migrated data: 1 500 trips and 4 services.
+- Real DB: `%LOCALAPPDATA%\DriverBalance\driverbalance.db`: the owner's trips through 2026-11-08, services, tyres, 2025 + 2026 costs.
+- Scratch testing: run the published exe with `--urls http://localhost:5182 --DriverBalance:DatabasePath=<copy> --DriverBalance:DocumentsPath=<dir>`;
+  POST/PUT/DELETE need header `Origin: http://localhost:5180` (CrossSiteGuard). PUT /vehicles replaces fields: GET, change, PUT back.
 - Parity: the old console and the new engine agree exactly on the real data (900 cold starts, 30 000.00 km, 6.90 L/100, DPF 70.00 %).
 - `DriverBalance/bin/Debug/net10.0/*.json` is the old console's data and the only original copy. It is git-ignored and intentionally kept. Back it up before deleting.
 - Autostart is NOT registered. The owner decides.
