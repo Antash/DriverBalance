@@ -8,7 +8,7 @@ public class OwnershipTests
     private static Trip T(DateTime start, int startOdo, int endOdo) =>
         new("Private", start, startOdo, "", start.AddMinutes(30), endOdo, "", TimeSpan.FromMinutes(30), 10, 1, "");
 
-    private static AnalysisContext Ctx(DateOnly? purchase, decimal? resale = 600000m, DateOnly? resaleDate = null)
+    private static AnalysisContext Ctx(DateOnly? purchase, decimal? resale = 600000m, DateOnly? resaleDate = null, Financing? financing = null)
     {
         var expenses = new[]
         {
@@ -23,7 +23,7 @@ public class OwnershipTests
             T(new DateTime(2025, 12, 30, 9, 0, 0), 19990, 20000),
         };
         var data = new VehicleData(trips, expenses, [], "CZK", Today, PurchaseDate: purchase,
-            EstimatedResaleValue: resale, ResaleEstimateDate: resaleDate);
+            EstimatedResaleValue: resale, ResaleEstimateDate: resaleDate, Financing: financing);
         return AnalysisContext.Create(data, new AnalysisParameters());
     }
 
@@ -89,5 +89,61 @@ public class OwnershipTests
         Assert.Null(o.NetCostPerKm);
         Assert.Null(o.NetCostPerMonth);
         Assert.Equal(1030000m, o.PurchaseTotal);
+    }
+
+    private static readonly Financing Loan = new(new DateOnly(2025, 5, 1), 9500m, FinancingFrequency.Monthly, 36, 200000m);
+
+    [Fact]
+    public void Compute_Financing_WholeContractCountsInPurchaseTotalAndNet()
+    {
+        var o = Ownership.Compute(Ctx(Purchase, 600000m, null, Loan));
+        Assert.Equal(36 * 9500m + 200000m, o.Financing!.Total);
+        Assert.Equal(1030000m, o.LumpSumTotal);
+        Assert.Equal(1030000m + 542000m, o.PurchaseTotal);
+        Assert.Equal(1030000m + 542000m + 894.25m - 600000m, o.NetCost);
+        Assert.Equal(new DateOnly(2028, 4, 1), o.Financing.EndDate);
+        Assert.Equal(36, o.Financing.Payments);
+    }
+
+    [Fact]
+    public void Compute_Financing_WithoutBalloon()
+    {
+        var o = Ownership.Compute(Ctx(Purchase, null, null, Loan with { Balloon = 0m }));
+        Assert.Equal(342000m, o.Financing!.Total);
+        Assert.Equal(1030000m + 342000m, o.PurchaseTotal);
+    }
+
+    [Theory]
+    [InlineData(FinancingFrequency.Monthly, 11)]
+    [InlineData(FinancingFrequency.Quarterly, 33)]
+    [InlineData(FinancingFrequency.Yearly, 132)]
+    public void Financing_FrequencyChangesEndDateNotTotal(FinancingFrequency f, int monthsToLast)
+    {
+        var fin = Loan with { Frequency = f, Payments = 12 };
+        Assert.Equal(12 * 9500m + 200000m, fin.Total);
+        Assert.Equal(Loan.Start.AddMonths(monthsToLast), fin.EndDate);
+    }
+
+    [Fact]
+    public void Compute_NoFinancing_Null_AndLumpSumEqualsTotal()
+    {
+        var o = Ownership.Compute(Ctx(Purchase));
+        Assert.Null(o.Financing);
+        Assert.Equal(o.PurchaseTotal, o.LumpSumTotal);
+    }
+
+    [Fact]
+    public void Compute_Financing_WithoutPurchaseDate_StillInPurchaseTotal()
+    {
+        var o = Ownership.Compute(Ctx(null, 600000m, null, Loan));
+        Assert.Equal(1030000m + 542000m, o.PurchaseTotal);
+        Assert.Null(o.NetCost);
+    }
+
+    [Fact]
+    public void Compute_PurchaseCostsCarryExpenseId()
+    {
+        var o = Ownership.Compute(Ctx(Purchase));
+        Assert.Equal([1L, 2L], o.PurchaseCosts.Select(x => x.Id).ToArray());
     }
 }

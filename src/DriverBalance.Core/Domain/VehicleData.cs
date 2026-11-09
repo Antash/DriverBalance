@@ -11,4 +11,5 @@ public sealed record VehicleData(
     int? HistoryStartOdometer = null,
     DateOnly? PurchaseDate = null,
     decimal? EstimatedResaleValue = null,
-    DateOnly? ResaleEstimateDate = null);
+    DateOnly? ResaleEstimateDate = null,
+    Financing? Financing = null);
