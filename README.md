@@ -49,7 +49,7 @@ Because there is no console, startup failures and unhandled server errors (HTTP 
 
 ## Syncing trips from Volvo
 
-`tools/DriverBalance.VolvoSync` exports the journal from volvocars.com (headless Edge, no browser download; Edge must be installed) and imports the CSV into the running app. The Volvo session is kept in a persistent browser profile in `%LOCALAPPDATA%\DriverBalanceolvo-browser`; exports and failure screenshots go to `%LOCALAPPDATA%\DriverBalanceolvo-exports`.
+`tools/DriverBalance.VolvoSync` exports the journal from volvocars.com (headless Edge, no browser download; Edge must be installed) and imports the CSV into the running app. The Volvo session is kept in a persistent browser profile in `%LOCALAPPDATA%\DriverBalance\volvo-browser`; exports and failure screenshots go to `%LOCALAPPDATA%\DriverBalance\volvo-exports`.
 
 ```powershell
 # one time: sign in by hand (tick "Pamatovat si me"), or store credentials for unattended sign-in
