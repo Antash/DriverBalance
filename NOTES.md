@@ -82,6 +82,7 @@ Tests: Core 112, Web 129, VolvoSync 28, web (vitest) 200, all green; `dotnet bui
 - Fuel trend y axis is a "focus scale" (`web/src/lib/fuelScale.ts`): 3rd-90th percentile band linear (5-11 L on real
   data), tails log-compressed and shaded, ticks in real litres; chart 420 px high.
 - When you drive: legend on top, "Trip start hour" axis title, same grid/hint layout as Gaps between trips.
+- Driving calendar follows the period switch (no year dropdown): one calendar strip, stepped year delimiter + year labels (commit c232812).
 - Republished to the live app on :5180 (same evening).
 
 ## State
