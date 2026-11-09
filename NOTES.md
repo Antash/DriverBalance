@@ -28,6 +28,11 @@ Tests: Core 108, Web 118, web (vitest) 154, all green; `dotnet build` 0 warnings
   calendar periods count from it, km in the gap before the first real reading is interpolated linearly in time.
   Pre-documents DB backup: `driverbalance.pre-documents.db`.
 - Odometer chart only on Maintenance (removed from Oil intervals; Overview still has "Last 12 months").
+- **Ownership:** vehicle has Bought on (2025-04-14 = first recorded trip; earlier records are tagged "previous owner"),
+  estimated resale value + date. Expense category **Purchase** (car 1 250 000, warranty 35 000, registration transfer 2 500)
+  is excluded from all period money stats and used only by the Overview "Cost of ownership" card (`GET /ownership`).
+- 2025 running costs imported from the owner's sheet as one record per category, spread 2025-04-14 → 2025-12-31
+  (2025 total 100 000 = sheet total). Backup before: `driverbalance.pre-ownership.db`.
 - Owner's two old tyre swaps have no tyre set yet — they can edit them to attach sets.
 
 ## State
