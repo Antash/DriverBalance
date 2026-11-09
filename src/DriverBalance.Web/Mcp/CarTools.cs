@@ -24,7 +24,7 @@ public sealed class CarTools(DriverBalanceDbContext db, VehicleDataLoader loader
     private static readonly string CategoryNames = string.Join(", ", Enum.GetNames<ExpenseCategory>());
 
     [McpServerTool(Name = "add_expense"), Description(
-        "Record any car expense. Returns the stored expense plus a one-line summary and needsConversion. " +
+        "Record any car expense. Defaults to the owner's default car; don't ask which car. Returns the stored expense plus a one-line summary and needsConversion. " +
         "If the currency is not the vehicle's home currency and neither homeAmount nor rate is given, the expense is still saved " +
         "and needsConversion is true (it is excluded from totals until a home amount is set).")]
     public Task<CallToolResult> AddExpense(
@@ -38,6 +38,7 @@ public sealed class CarTools(DriverBalanceDbContext db, VehicleDataLoader loader
         [Description("Exchange rate to the home currency. Optional; homeAmount = amount * rate when homeAmount is not given.")] decimal? rate = null,
         [Description("For period costs such as insurance: first covered day, yyyy-MM-dd. Optional.")] string? coversFrom = null,
         [Description("For period costs such as insurance: last covered day, yyyy-MM-dd. Optional.")] string? coversTo = null,
+        [Description("Where it happened (garage, car park, shop), max 100 characters. Optional.")] string? place = null,
         [Description(VehicleIdDoc)] long? vehicleId = null,
         CancellationToken ct = default) => Run(async () =>
     {
@@ -45,20 +46,19 @@ public sealed class CarTools(DriverBalanceDbContext db, VehicleDataLoader loader
         var cat = ParseCategory(category);
         var cur = ResolveCurrency(currency, v);
         var home = homeAmount;
+        if (rate is <= 0) throw new ApiValidationException("rate must be greater than 0.");
         if (home is null && rate is { } r)
-        {
-            if (r <= 0) throw new ApiValidationException("rate must be greater than 0.");
             home = Math.Round(amount * r, 2, MidpointRounding.AwayFromZero);
-        }
         return await SaveAsync(v, new Expense
         {
             Date = ParseDate(date, "date") ?? loader.TodayFor(v), Category = cat, Amount = amount, Currency = cur, HomeAmount = home,
             Odometer = odometer, Note = note, CoversFrom = ParseDate(coversFrom, "coversFrom"), CoversTo = ParseDate(coversTo, "coversTo"),
+            Place = place,
         }, ct);
     });
 
     [McpServerTool(Name = "log_fuel"), Description(
-        "Record a fuel purchase. Returns the stored expense plus a one-line summary. " +
+        "Record a fuel purchase. Defaults to the owner's default car; don't ask which car. Returns the stored expense plus a one-line summary. " +
         "Optional: fullTank (default true), odometer, date (default today), station, currency (default the vehicle's home currency).")]
     public Task<CallToolResult> LogFuel(
         [Description("Litres filled, greater than 0.")] double litres,
@@ -80,7 +80,7 @@ public sealed class CarTools(DriverBalanceDbContext db, VehicleDataLoader loader
     });
 
     [McpServerTool(Name = "log_maintenance"), Description(
-        "Record a service or maintenance job. Returns the stored expense plus a one-line summary. " +
+        "Record a service or maintenance job. Defaults to the owner's default car; don't ask which car. Returns the stored expense plus a one-line summary. " +
         "Optional: odometer, date (default today), description. Cost is in the vehicle's home currency.")]
     public Task<CallToolResult> LogMaintenance(
         [Description("What was done, any of: " + MaintenanceNames + ", Custom. An empty list means Custom.")] string[] types,
@@ -104,7 +104,7 @@ public sealed class CarTools(DriverBalanceDbContext db, VehicleDataLoader loader
     });
 
     [McpServerTool(Name = "swap_tyres"), Description(
-        "Record mounting a tyre set (a tyre swap). Returns the stored expense plus a one-line summary. " +
+        "Record mounting a tyre set (a tyre swap). Defaults to the owner's default car; don't ask which car. Returns the stored expense plus a one-line summary. " +
         "Optional: odometer, date (default today), cost (default 0, in the vehicle's home currency). Use list_tyre_sets for ids.")]
     public Task<CallToolResult> SwapTyres(
         [Description("Id of the tyre set being mounted (from list_tyre_sets).")] long tyreSetId,
@@ -164,16 +164,16 @@ public sealed class CarTools(DriverBalanceDbContext db, VehicleDataLoader loader
     });
 
     [McpServerTool(Name = "get_stats", ReadOnly = true), Description(
-        "Driving, fuel and cost statistics for one period, computed with the vehicle's saved analysis parameters (returned as `parameters`). " +
+        "Driving, fuel and cost statistics for one period (defaults to the owner's default car; don't ask which car), computed with the vehicle's saved analysis parameters (returned as `parameters`). " +
         "kind \"interval\": a service interval for maintenanceType (e.g. OilChange); intervalIndex 0 = current, 1 = the one before, and so on. " +
-        "kind \"range\": from (inclusive) and to (exclusive), yyyy-MM-dd; either may be omitted for all data. " +
+        "kind \"range\": from and to, both inclusive, yyyy-MM-dd (to = the last day included: from 2026-10-01 to 2026-10-31 is all of October); either may be omitted for all data. " +
         "kind \"calendar\": year (default this year) and optionally month 1-12 (omit for the whole year).")]
     public Task<CallToolResult> GetStats(
         [Description("\"interval\", \"range\" or \"calendar\".")] string kind,
         [Description("For interval: one of " + MaintenanceNames + ".")] string? maintenanceType = null,
         [Description("For interval: 0 = current interval (default), 1 = previous, ...")] int intervalIndex = 0,
         [Description("For range: first day (inclusive), yyyy-MM-dd. Optional.")] string? from = null,
-        [Description("For range: day after the last day (exclusive), yyyy-MM-dd. Optional.")] string? to = null,
+        [Description("For range: last day, INCLUSIVE, yyyy-MM-dd. Optional.")] string? to = null,
         [Description("For calendar: year. Optional, default this year.")] int? year = null,
         [Description("For calendar: month 1-12. Optional; omit for the whole year.")] int? month = null,
         [Description(VehicleIdDoc)] long? vehicleId = null,
@@ -199,7 +199,9 @@ public sealed class CarTools(DriverBalanceDbContext db, VehicleDataLoader loader
             {
                 var f = ParseDate(from, "from");
                 var t = ParseDate(to, "to");
-                period = s.Range(f, t, f is not null && t is not null ? $"{f:yyyy-MM-dd}..{t:yyyy-MM-dd}" : "All time");
+                if (f is not null && t is not null && t < f) throw new ApiValidationException("'from' must not be after 'to'.");
+                // `to` is inclusive for callers; the analysis periods are end-exclusive.
+                period = s.Range(f, t?.AddDays(1), f is not null && t is not null ? $"{f:yyyy-MM-dd}..{t:yyyy-MM-dd}" : "All time");
                 break;
             }
             case "calendar":
@@ -216,7 +218,7 @@ public sealed class CarTools(DriverBalanceDbContext db, VehicleDataLoader loader
 
         var stats = s.Context.Stats(period);
         var summary = string.Create(CultureInfo.InvariantCulture,
-            $"{period.Label} ({period.From:yyyy-MM-dd} to {period.To:yyyy-MM-dd}, end exclusive): {stats.Usage.TripCount} trips, {stats.Usage.TripKm:0.#} km, total cost {stats.Money.Total} {v.HomeCurrency}.");
+            $"{period.Label} ({period.From:dd/MM/yyyy} – {period.To.AddDays(-1):dd/MM/yyyy}): {stats.Usage.TripCount} trips, {stats.Usage.TripKm:0.#} km, total cost {stats.Money.Total} {v.HomeCurrency}.");
         return Ok(new { stats, parameters = s.Parameters }, summary);
     });
 

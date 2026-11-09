@@ -42,20 +42,24 @@ Generic MCP client config (`.mcp.json` style):
 
 ## Tools
 
-Every tool takes an optional `vehicleId` (default: your default vehicle, else the first). Dates are `yyyy-MM-dd` and default to today in the vehicle's time zone. Results are JSON of the stored entity plus a one-line `summary`; problems (validation, unknown vehicle or expense id) come back as an MCP error result with a readable message.
+Every tool takes an optional `vehicleId` (default: the owner's default vehicle, else the first; callers should not ask which car). Dates are `yyyy-MM-dd` and default to today in the vehicle's time zone. Results are JSON of the stored entity plus a one-line `summary`; problems (validation, unknown vehicle or expense id) come back as an MCP error result with a readable message.
 
 | Tool | Arguments (optional marked ?) |
 | --- | --- |
-| `add_expense` | category, amount, currency? ("home"), date?, odometer?, note?, homeAmount?, rate?, coversFrom?, coversTo? |
+| `add_expense` | category, amount, currency? ("home"), date?, odometer?, note?, homeAmount?, rate?, coversFrom?, coversTo?, place? (max 100) |
 | `log_fuel` | litres, totalPrice, fullTank? (true), odometer?, date?, station?, currency? |
 | `log_maintenance` | types (e.g. `["OilChange","AirFilter"]`), cost, odometer?, date?, description? |
 | `swap_tyres` | tyreSetId, odometer?, date?, cost? (0) |
 | `list_tyre_sets` | none |
 | `list_recent_expenses` | count? (10, max 100) |
 | `delete_expense` | id |
-| `get_stats` | kind (`interval`, `range` or `calendar`), maintenanceType?, intervalIndex? (0), from?, to? (exclusive), year?, month? |
+| `get_stats` | kind (`interval`, `range` or `calendar`), maintenanceType?, intervalIndex? (0), from?, to? (inclusive), year?, month? |
 | `import_trips_csv` | csvText |
 
 A foreign currency with neither `homeAmount` nor `rate` is saved and the result has `needsConversion: true`; it stays out of totals until a home amount is set. With `rate`, `homeAmount = amount * rate`.
+
+For `kind: "range"`, both `from` and `to` are inclusive: `from=2026-10-01, to=2026-10-31` is all of October (31 days, the same numbers as REST stats for `[2026-10-01, 2026-11-01)`). A `to` before `from` is an error. The summary line prints the range as `01/10/2026 – 31/10/2026`.
+
+`place` on `add_expense` is where it happened (garage, car park, shop). `log_fuel` keeps its location in `station` (the app shows `station` for fuel and `place` for everything else, and a `place` on a Fuel expense is dropped by the shared rules).
 
 `get_stats` returns `{ stats, parameters, summary }`: the same numbers as the REST API, computed with the vehicle's saved analysis parameters.

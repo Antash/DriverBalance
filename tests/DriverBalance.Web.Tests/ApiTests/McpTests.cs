@@ -258,6 +258,55 @@ public sealed class McpTests(ApiFactory f) : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task Mcp_AddExpense_RateMustBePositive_PlaceStored_PlaceTooLongRejected()
+    {
+        var c = f.ClientFor(1);
+        var vid = await Api.NewVehicleAsync(c);
+        await using var mcp = await McpHelpers.ConnectAsync(f, (await McpHelpers.CreateTokenAsync(c)).Token);
+
+        foreach (var rate in new[] { 0, -1.5 })
+        {
+            var bad = await McpHelpers.CallAsync(mcp, "add_expense", new { vehicleId = vid, category = "Parking", amount = 10, currency = "EUR", rate });
+            Assert.True(bad.IsError);
+            Assert.Contains("rate", McpHelpers.TextOf(bad));
+        }
+
+        var ok = McpHelpers.JsonOf(await McpHelpers.CallAsync(mcp, "add_expense", new { vehicleId = vid, category = "Parking", amount = 10, place = "  Garage X " }));
+        Assert.Equal("Garage X", (string)ok["place"]!);
+
+        var tooLong = await McpHelpers.CallAsync(mcp, "add_expense", new { vehicleId = vid, category = "Parking", amount = 10, place = new string('x', 101) });
+        Assert.True(tooLong.IsError);
+        Assert.Contains("Place", McpHelpers.TextOf(tooLong));
+    }
+
+    [Fact]
+    public async Task Mcp_GetStats_RangeToIsInclusive_31Days()
+    {
+        var c = f.ClientFor(1);
+        var vid = await Api.NewVehicleAsync(c);
+        await Api.PostAsync(c, $"/api/vehicles/{vid}/expenses", new { date = "2026-10-01", category = "Parking", amount = 10, currency = "CZK" });
+        await Api.PostAsync(c, $"/api/vehicles/{vid}/expenses", new { date = "2026-10-31", category = "Parking", amount = 20, currency = "CZK" });
+        await Api.PostAsync(c, $"/api/vehicles/{vid}/expenses", new { date = "2026-11-01", category = "Parking", amount = 40, currency = "CZK" });
+        await using var mcp = await McpHelpers.ConnectAsync(f, (await McpHelpers.CreateTokenAsync(c)).Token);
+
+        var viaMcp = McpHelpers.JsonOf(await McpHelpers.CallAsync(mcp, "get_stats", new { vehicleId = vid, kind = "range", from = "2026-10-01", to = "2026-10-31" }));
+        var viaApi = (await Api.ReadAsync<JsonNode>(await Api.PostAsync(c, $"/api/vehicles/{vid}/analytics/stats",
+            new { periods = new[] { new { from = "2026-10-01", to = "2026-11-01", label = "2026-10-01..2026-10-31" } } })))[0]!;
+        Assert.True(JsonNode.DeepEquals(viaApi, viaMcp["stats"]));
+        Assert.Equal(30m, (decimal)viaMcp["stats"]!["money"]!["total"]!);
+        Assert.Contains("01/10/2026 – 31/10/2026", (string)viaMcp["summary"]!);
+    }
+
+    [Fact]
+    public async Task Mcp_GetStats_RangeToBeforeFrom_IsError()
+    {
+        var c = f.ClientFor(1);
+        var vid = await Api.NewVehicleAsync(c);
+        await using var mcp = await McpHelpers.ConnectAsync(f, (await McpHelpers.CreateTokenAsync(c)).Token);
+        Assert.True((await McpHelpers.CallAsync(mcp, "get_stats", new { vehicleId = vid, kind = "range", from = "2026-10-31", to = "2026-10-01" })).IsError);
+    }
+
+    [Fact]
     public async Task Mcp_GetStats_EqualsApiStats()
     {
         var c = f.ClientFor(1);
@@ -268,12 +317,13 @@ public sealed class McpTests(ApiFactory f) : IClassFixture<ApiFactory>
         await using var mcp = await McpHelpers.ConnectAsync(f, (await McpHelpers.CreateTokenAsync(c)).Token);
 
         // range
-        var viaMcp = McpHelpers.JsonOf(await McpHelpers.CallAsync(mcp, "get_stats", new { vehicleId = vid, kind = "range", from = "2025-01-01", to = "2025-02-01" }));
+        var viaMcp = McpHelpers.JsonOf(await McpHelpers.CallAsync(mcp, "get_stats", new { vehicleId = vid, kind = "range", from = "2025-01-01", to = "2025-01-31" }));
         var viaApi = (await Api.ReadAsync<JsonNode>(await Api.PostAsync(c, $"/api/vehicles/{vid}/analytics/stats",
-            new { periods = new[] { new { from = "2025-01-01", to = "2025-02-01" } } })))[0]!;
+            new { periods = new[] { new { from = "2025-01-01", to = "2025-02-01", label = "2025-01-01..2025-01-31" } } })))[0]!;
         Assert.True(JsonNode.DeepEquals(viaApi, viaMcp["stats"]), $"range differs:\nAPI {viaApi}\nMCP {viaMcp["stats"]}");
         Assert.NotNull(viaMcp["parameters"]);
         Assert.False(string.IsNullOrWhiteSpace((string?)viaMcp["summary"]));
+        Assert.Contains("01/01/2025 – 31/01/2025", (string)viaMcp["summary"]!);
 
         // calendar month
         var cal = McpHelpers.JsonOf(await McpHelpers.CallAsync(mcp, "get_stats", new { vehicleId = vid, kind = "calendar", year = 2025, month = 1 }));
