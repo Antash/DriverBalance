@@ -162,10 +162,10 @@ export function ExpenseForm({ vehicle, tyreSets, initial, onDone, lockCategory, 
       {uploadErrors.length > 0 && (
         <ul className="errors wide" role="alert">
           <li>The expense was saved, but the files were not uploaded:</li>
-          {uploadErrors.map((m) => <li key={m}>{m}</li>)}
+          {uploadErrors.map((m, i) => <li key={i}>{m}</li>)}
         </ul>
       )}
-      {save.isError && <ul className="errors wide">{errorLines(save.error).map((m) => <li key={m}>{m}</li>)}</ul>}
+      {save.isError && <ul className="errors wide">{errorLines(save.error).map((m, i) => <li key={i}>{m}</li>)}</ul>}
       <div className="wide row">
         <button className="btn primary" type="submit" disabled={save.isPending}>{savedId != null ? 'Save' : lockCategory === 'Maintenance' ? 'Add maintenance' : 'Add expense'}</button>
         <button className="btn" type="button" onClick={onDone}>Cancel</button>
