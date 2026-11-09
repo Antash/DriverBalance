@@ -1,6 +1,8 @@
 namespace DriverBalance.Core;
 
-public enum ExpenseCategory { Fuel, Parking, TollsVignette, Wash, Maintenance, Repair, Tyres, Accessories, Insurance, RoadTax, Fines, Financing, Other, Purchase }
+/// <summary>TollsVignette covers road tolls, vignettes and road tax. Purchase is hidden: it holds the car's purchase costs
+/// (kept out of running-cost stats, used for cost of ownership) and cannot be added as a new expense.</summary>
+public enum ExpenseCategory { Fuel, Parking, TollsVignette, Wash, Maintenance, Repair, Tyres, Accessories, Insurance, Fines, Other, Purchase }
 
 public sealed record ExpenseDocumentInfo(long Id, string FileName, string ContentType, long SizeBytes);
 

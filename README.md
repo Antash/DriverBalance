@@ -10,7 +10,7 @@ A local web app for analysing how you drive and what your car costs. It imports 
 - **Intervals**: per-maintenance-type periods (oil change, brake fluid, tyre swap, ...) compared side by side.
 - **Tyres**: tyre sets, mounts and cost per km.
 - **Expenses**: maintenance and other costs in the vehicle's home currency.
-- **Import**: Volvo trip CSV import with duplicate skipping and import history (migrated legacy trips appear there too), plus one-off migration from the old console app's JSON files.
+- **Import**: Volvo trip CSV import with duplicate skipping and import history.
 - **Settings**: vehicle, analysis parameters, API tokens, data export.
 
 ## Development
@@ -77,8 +77,6 @@ Thresholds (cold-start gap, short/medium/long drive limits, heavy-traffic, city 
 
 The app exposes an MCP server at `http://localhost:5180/mcp`, authenticated with an API token. Setup is in [docs/mcp.md](docs/mcp.md).
 
-## Migrating from the old console app
+## The old console app
 
-The console app has been removed from the repository (history keeps it). To bring its data over, open **Import** and upload `triprecords.json` and `maintenancerecords.json` in the legacy migration section (API: `POST /api/vehicles/{id}/import/legacy`). The originals are only read, never changed.
-
-Note: the local, git-ignored folder `DriverBalance/bin/` (old console app build output) may still hold those JSON files, because the old app wrote them next to its executable. Keep a backup copy of both JSON files somewhere safe before deleting that folder; once the data is migrated and backed up, you may archive or delete it.
+The old console app and its JSON-data migration have been removed (git history keeps them).

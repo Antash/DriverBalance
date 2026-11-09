@@ -24,6 +24,9 @@ public sealed class ExpenseApiTests(ApiFactory f) : IClassFixture<ApiFactory>
             ["zero litres"] = new { date = "2026-05-01", category = "Fuel", amount = 5, currency = "CZK", litres = 0 },
             ["covers reversed"] = new { date = "2026-05-01", category = "Insurance", amount = 5, currency = "CZK", coversFrom = "2026-06-01", coversTo = "2026-05-01" },
             ["unknown tyre set"] = new { date = "2026-05-01", category = "Tyres", amount = 5, currency = "CZK", tyreSetId = 99999 },
+            ["purchase is hidden"] = new { date = "2026-05-01", category = "Purchase", amount = 5, currency = "CZK" },
+            ["road tax merged"] = new { date = "2026-05-01", category = "RoadTax", amount = 5, currency = "CZK" },
+            ["financing removed"] = new { date = "2026-05-01", category = "Financing", amount = 5, currency = "CZK" },
         };
         foreach (var (name, body) in bad)
         {
@@ -149,31 +152,7 @@ public sealed class ExpenseApiTests(ApiFactory f) : IClassFixture<ApiFactory>
     }
 
     [Fact]
-    public async Task ImportLegacy_AcceptsBothFiles_AndIsIdempotent()
-    {
-        var c = f.CreateClient();
-        var vid = await Api.NewVehicleAsync(c);
-
-        async Task<JsonElement> Run()
-        {
-            using var form = new MultipartFormDataContent();
-            form.Add(new StreamContent(File.OpenRead(Data.TestDb.Fixture("synthetic-triprecords.json"))), "trips", "triprecords.json");
-            form.Add(new StreamContent(File.OpenRead(Data.TestDb.Fixture("synthetic-maintenance.json"))), "maintenance", "maintenance.json");
-            var r = await c.PostAsync($"/api/vehicles/{vid}/import/legacy", form);
-            Assert.Equal(HttpStatusCode.OK, r.StatusCode);
-            return await Api.ReadAsync<JsonElement>(r);
-        }
-
-        var first = await Run();
-        Assert.True(first.GetProperty("tripsImported").GetInt32() > 0);
-        Assert.True(first.GetProperty("expensesImported").GetInt32() > 0);
-        var second = await Run();
-        Assert.Equal(0, second.GetProperty("tripsImported").GetInt32());
-        Assert.Equal(0, second.GetProperty("expensesImported").GetInt32());
-    }
-
-    [Fact]
-    public async Task ImportLastTrip_UsesTrips_AndLegacyMigrationShowsInBatches()
+    public async Task ImportLastTrip_UsesTrips_AndImportShowsInBatches()
     {
         var c = f.CreateClient();
         var vid = await Api.NewVehicleAsync(c);
@@ -181,8 +160,8 @@ public sealed class ExpenseApiTests(ApiFactory f) : IClassFixture<ApiFactory>
         Assert.Equal(JsonValueKind.Null, empty.GetProperty("lastTrip").ValueKind);
 
         using var form = new MultipartFormDataContent();
-        form.Add(new StreamContent(File.OpenRead(Data.TestDb.Fixture("synthetic-triprecords.json"))), "trips", "triprecords.json");
-        Assert.Equal(HttpStatusCode.OK, (await c.PostAsync($"/api/vehicles/{vid}/import/legacy", form)).StatusCode);
+        form.Add(new StreamContent(File.OpenRead(Data.TestDb.Fixture("synthetic-trips.csv"))), "file", "synthetic-trips.csv");
+        Assert.Equal(HttpStatusCode.OK, (await c.PostAsync($"/api/vehicles/{vid}/import/csv", form)).StatusCode);
 
         var last = await Api.ReadAsync<JsonElement>(await c.GetAsync($"/api/vehicles/{vid}/import/last-trip"));
         Assert.Equal(JsonValueKind.String, last.GetProperty("lastTrip").ValueKind);

@@ -77,7 +77,7 @@ public static class ExpenseEndpoints
         var (input, tyres) = TyreFitting.ReadBody(body);
         if (tyres is not null && row.TyreSetId is not null)
             throw new ApiValidationException("This record already has a tyre set; pick a set instead, or edit the set's details from the tyre summary.");
-        var e = await ExpenseRules.ValidateAsync(vid, input, db, ct);
+        var e = await ExpenseRules.ValidateAsync(vid, input, db, ct, row.Category);
         var set = tyres is null ? null : TyreFitting.Check(e, tyres);
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         row.Date = e.Date; row.Category = e.Category; row.Amount = e.Amount; row.Currency = e.Currency; row.HomeAmount = e.HomeAmount;

@@ -12,9 +12,12 @@ public static class ExpenseRules
     /// Amount must be greater than 0, except that Maintenance may be exactly 0 (free or unknown-cost services, free tyre swaps,
     /// migrated records); negatives are always rejected.
     /// </summary>
-    public static async Task<Expense> ValidateAsync(long vid, Expense e, DriverBalanceDbContext db, CancellationToken ct)
+    /// <param name="existingCategory">The stored category when updating; null when creating.</param>
+    public static async Task<Expense> ValidateAsync(long vid, Expense e, DriverBalanceDbContext db, CancellationToken ct, ExpenseCategory? existingCategory = null)
     {
         var errors = new List<string>();
+        if (e.Category == ExpenseCategory.Purchase && existingCategory != ExpenseCategory.Purchase)
+            errors.Add("Purchase costs are entered with the car, not as expenses.");
         if (e.Amount < 0) errors.Add("Amount must not be negative.");
         else if (e.Amount == 0 && e.Category != ExpenseCategory.Maintenance) errors.Add("Amount must be greater than 0.");
         if (!VehicleEndpoints.IsCurrency(e.Currency ?? "")) errors.Add("Currency must be a 3-letter code.");

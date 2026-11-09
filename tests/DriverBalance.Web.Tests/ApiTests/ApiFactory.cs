@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using DriverBalance.Core;
 using DriverBalance.Data;
 using DriverBalance.Web.Tests.Data;
 using Microsoft.AspNetCore.Authentication;
@@ -77,6 +78,16 @@ public class ApiFactory : WebApplicationFactory<Program>
         var c = CreateClient();
         c.DefaultRequestHeaders.Add("X-Test-User", userId.ToString());
         return c;
+    }
+
+    /// <summary>Inserts an expense straight into the database, for categories the API refuses to create (Purchase).</summary>
+    public void SeedExpense(long vehicleId, DateOnly date, ExpenseCategory category, decimal amount, string? note = null, long userId = 1)
+    {
+        using var scope = Services.CreateScope();
+        var options = scope.ServiceProvider.GetRequiredService<DbContextOptions<DriverBalanceDbContext>>();
+        using var db = new DriverBalanceDbContext(options, new FixedUser(userId));
+        db.Expenses.Add(new ExpenseRow { VehicleId = vehicleId, Date = date, Category = category, Amount = amount, Currency = "CZK", Note = note, CreatedAt = DateTime.UtcNow });
+        db.SaveChanges();
     }
 
     /// <summary>Inserts the user row (the API only seeds user 1).</summary>

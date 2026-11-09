@@ -19,7 +19,6 @@ builder.Services.AddDbContext<DriverBalanceDbContext>((sp, o) =>
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<DocumentStore>();
 builder.Services.AddScoped<ImportService>();
-builder.Services.AddScoped<LegacyMigrationService>();
 builder.Services.AddScoped<VehicleDataLoader>();
 builder.Services.AddScoped<AnalysisSessionFactory>();
 

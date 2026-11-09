@@ -66,7 +66,7 @@ export function relativeChange(a: number | null, b: number | null): number | nul
   return (b - a) / a
 }
 
-const CATEGORY_LABEL: Record<string, string> = { TollsVignette: 'Tolls & vignette', RoadTax: 'Road tax' }
+const CATEGORY_LABEL: Record<string, string> = { TollsVignette: 'Road tolls' }
 const categoryLabel = (c: string) => CATEGORY_LABEL[c] ?? c.replace(/([a-z])([A-Z])/g, '$1 $2')
 
 /**

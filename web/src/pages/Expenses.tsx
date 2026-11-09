@@ -15,7 +15,7 @@ import { useParams, useAnalytics } from '../state/ParamsContext'
 import { useTyreSets, useVehicle } from '../state/useVehicle'
 
 /** Category name for tables and charts: the purchase category without its long hint. */
-const shortLabel = (c: ExpenseCategory) => (c === 'Purchase' ? 'Purchase' : label(c))
+const shortLabel = (c: ExpenseCategory) => label(c)
 
 type CategoryShare = { category: ExpenseCategory; amount: number; share: number; color: string; opacity: number }
 
@@ -96,7 +96,8 @@ export default function ExpensesPage() {
     onSuccess: () => invalidateVehicleData(qc, vehicleId),
   })
 
-  const rows = useMemo(() => (expenses ?? []).filter((e) => cats.length === 0 || cats.includes(e.category)), [expenses, cats])
+  // Purchase records are hidden here: they belong to the car and are shown in Cost of ownership on Overview.
+  const rows = useMemo(() => (expenses ?? []).filter((e) => e.category !== 'Purchase' && (cats.length === 0 || cats.includes(e.category))), [expenses, cats])
   const cur = vehicle.homeCurrency
   const foreignShown = rows.some((e) => e.currency !== cur)
   const shares = useMemo(() => (totals.data ? categoryShares(totals.data, chartTheme()) : null), [totals.data])

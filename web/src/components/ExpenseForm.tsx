@@ -9,14 +9,16 @@ import { DocumentList, DOCUMENT_ACCEPT } from './DocumentList'
 import { MaintenanceWorkEditor } from './MaintenanceWorkEditor'
 import { errorLines, fmtMoney, invalidateVehicleData } from '../lib/format'
 
+/** Categories you can pick. Purchase is hidden: purchase costs come with the car and only feed Cost of ownership. */
 export const CATEGORIES: ExpenseCategory[] = [
-  'Fuel', 'Parking', 'TollsVignette', 'Wash', 'Maintenance', 'Repair', 'Tyres', 'Accessories', 'Insurance',
-  'RoadTax', 'Fines', 'Financing', 'Other', 'Purchase',
+  'Fuel', 'Parking', 'TollsVignette', 'Wash', 'Maintenance', 'Repair', 'Tyres', 'Accessories', 'Insurance', 'Fines', 'Other',
 ]
+
+const CATEGORY_NAMES: Partial<Record<string, string>> = { TollsVignette: 'Road tolls', Purchase: 'Purchase' }
 
 export { MAINTENANCE_TYPES }
 
-export const label = (s: string) => s === 'Purchase' ? 'Purchase (car, warranty, transfer)' : s.replace(/([a-z])([A-Z])/g, '$1 $2')
+export const label = (s: string) => CATEGORY_NAMES[s] ?? s.replace(/([a-z])([A-Z])/g, '$1 $2')
 
 export function TyreSetSelect({ sets, value, onChange }: { sets: TyreSet[]; value: string; onChange(v: string): void }) {
   return (

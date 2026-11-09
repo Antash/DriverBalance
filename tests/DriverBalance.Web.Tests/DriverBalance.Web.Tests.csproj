@@ -22,7 +22,6 @@
   <ItemGroup>
     <None Include="..\fixtures\synthetic-trips.csv" Link="fixtures\synthetic-trips.csv" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\fixtures\synthetic-maintenance.json" Link="fixtures\synthetic-maintenance.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\fixtures\synthetic-triprecords.json" Link="fixtures\synthetic-triprecords.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

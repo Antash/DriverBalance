@@ -1,3 +1,4 @@
+using DriverBalance.Core;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -55,9 +56,12 @@ public sealed class OwnershipApiTests(ApiFactory f) : IClassFixture<ApiFactory>
         var c = f.CreateClient();
         var vid = await Api.NewVehicleAsync(c);
         await Put(c, vid, new { name = "Car", purchaseDate = "2025-04-14", estimatedResaleValue = 600000 });
+        // Purchase costs are not accepted through the API (they come with the car), so seed them directly.
+        f.SeedExpense(vid, new DateOnly(2025, 4, 14), ExpenseCategory.Purchase, 1000000m, "Car purchase price");
+        f.SeedExpense(vid, new DateOnly(2025, 4, 14), ExpenseCategory.Purchase, 30000m, "Warranty");
         foreach (var (date, cat, amount, odo) in new[]
         {
-            ("2025-04-14", "Purchase", 1000000, (int?)null), ("2025-04-14", "Purchase", 30000, null), ("2025-04-14", "Parking", 500, 10000), ("2025-06-01", "Parking", 700, 20000),
+            ("2025-04-14", "Parking", 500, (int?)10000), ("2025-06-01", "Parking", 700, 20000),
         })
             (await Api.PostAsync(c, $"/api/vehicles/{vid}/expenses", new { date, category = cat, amount, currency = "CZK", odometer = odo })).EnsureSuccessStatusCode();
 

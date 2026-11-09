@@ -15,7 +15,6 @@ public static class ImportEndpoints
     {
         var i = api.MapGroup("/vehicles/{vid:long}/import");
         i.MapPost("/csv", ImportCsv);
-        i.MapPost("/legacy", ImportLegacy);
         i.MapGet("/batches", Batches);
         i.MapGet("/last-trip", LastTrip);
     }
@@ -32,26 +31,6 @@ public static class ImportEndpoints
         var file = (await FilesAsync(request, ct)).GetFile("file") ?? throw new ApiValidationException("Missing form file 'file'.");
         using var reader = new StreamReader(file.OpenReadStream(), System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
         return Results.Ok(await import.ImportCsvAsync(vid, file.FileName, reader, ct));
-    }
-
-    private static async Task<IResult> ImportLegacy(long vid, HttpRequest request, VehicleDataLoader loader, LegacyMigrationService migration, CancellationToken ct)
-    {
-        await loader.GetVehicleAsync(vid, ct);
-        var files = await FilesAsync(request, ct);
-        var trips = files.GetFile("trips");
-        var maintenance = files.GetFile("maintenance");
-        if (trips is null && maintenance is null) throw new ApiValidationException("Provide a 'trips' and/or 'maintenance' file.");
-
-        try
-        {
-            await using var tripsStream = trips?.OpenReadStream();
-            await using var maintenanceStream = maintenance?.OpenReadStream();
-            return Results.Ok(await migration.MigrateAsync(vid, tripsStream, maintenanceStream, ct));
-        }
-        catch (JsonException e)
-        {
-            throw new ApiValidationException($"Invalid JSON file: {e.Message}");
-        }
     }
 
     private static async Task<IResult> Batches(long vid, VehicleDataLoader loader, DriverBalanceDbContext db, CancellationToken ct)

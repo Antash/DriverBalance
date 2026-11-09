@@ -1,7 +1,7 @@
 import { useRef, useState, type DragEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
-import type { ImportBatch, ImportResult, LegacyMigrationResult } from '../api/types'
+import type { ImportBatch, ImportResult } from '../api/types'
 import { daysAgo, errorLines, invalidateVehicleData } from '../lib/format'
 import { useParams } from '../state/ParamsContext'
 
@@ -48,43 +48,13 @@ function CsvCard({ vehicleId }: { vehicleId: number }) {
   )
 }
 
-function LegacyCard({ vehicleId }: { vehicleId: number }) {
-  const qc = useQueryClient()
-  const [trips, setTrips] = useState<File | null>(null)
-  const [maintenance, setMaintenance] = useState<File | null>(null)
-  const migrate = useMutation({
-    mutationFn: () => {
-      const form = new FormData()
-      if (trips) form.append('trips', trips)
-      if (maintenance) form.append('maintenance', maintenance)
-      return api.upload<LegacyMigrationResult>(`/vehicles/${vehicleId}/import/legacy`, form)
-    },
-    onSuccess: () => invalidateVehicleData(qc, vehicleId),
-  })
-  const r = migrate.data
-  return (
-    <section className="card">
-      <h2>Migrate old DriverBalance data</h2>
-      <div className="stack">
-        <label>Trips JSON<input type="file" accept=".json,application/json" onChange={(e) => setTrips(e.target.files?.[0] ?? null)} /></label>
-        <label>Maintenance JSON<input type="file" accept=".json,application/json" onChange={(e) => setMaintenance(e.target.files?.[0] ?? null)} /></label>
-        <div><button className="btn primary" disabled={(!trips && !maintenance) || migrate.isPending} onClick={() => migrate.mutate()}>Migrate</button></div>
-      </div>
-      {migrate.isError && <ul className="errors">{errorLines(migrate.error).map((m) => <li key={m}>{m}</li>)}</ul>}
-      {r && (
-        <p role="status">Trips: {r.tripsImported} imported, {r.tripsSkipped} skipped. Expenses: {r.expensesImported} imported, {r.expensesSkipped} skipped.</p>
-      )}
-    </section>
-  )
-}
-
 export default function ImportPage() {
   const { vehicleId, saved } = useParams()
   const { data: batches } = useQuery({
     queryKey: ['import-batches', vehicleId],
     queryFn: () => api.get<ImportBatch[]>(`/vehicles/${vehicleId}/import/batches`),
   })
-  // Newest trip overall (not newest batch), so legacy-migrated and manually added trips count too.
+  // Newest trip overall (not newest batch), so trips from earlier imports count too.
   const { data: last } = useQuery({
     queryKey: ['import-batches', vehicleId, 'last-trip'],
     queryFn: () => api.get<{ lastTrip: string | null }>(`/vehicles/${vehicleId}/import/last-trip`),
@@ -101,7 +71,6 @@ export default function ImportPage() {
         </p>
       )}
       <CsvCard vehicleId={vehicleId} />
-      <LegacyCard vehicleId={vehicleId} />
       <section className="card">
         <h2>Import history</h2>
         <div className="table-wrap">

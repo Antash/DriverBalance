@@ -35,7 +35,9 @@ export interface LatestOdometer {
 
 export type ExpenseCategory =
   | 'Fuel' | 'Parking' | 'TollsVignette' | 'Wash' | 'Maintenance' | 'Repair' | 'Tyres'
-  | 'Accessories' | 'Insurance' | 'RoadTax' | 'Fines' | 'Financing' | 'Other' | 'Purchase'
+  | 'Accessories' | 'Insurance' | 'Fines' | 'Other'
+  /** Hidden: the car's purchase costs, shown only in Cost of ownership; never offered for new expenses. */
+  | 'Purchase'
 
 export type TyreSeason = 'Summer' | 'Winter' | 'AllSeason'
 
@@ -184,13 +186,6 @@ export interface ImportResult {
   firstTrip: DateOnly | null
   lastTrip: DateOnly | null
   warnings: string[]
-}
-
-export interface LegacyMigrationResult {
-  tripsImported: number
-  tripsSkipped: number
-  expensesImported: number
-  expensesSkipped: number
 }
 
 export interface ImportBatch {
