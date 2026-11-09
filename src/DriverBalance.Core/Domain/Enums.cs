@@ -28,4 +28,5 @@ public enum MaintenanceType
     Battery = 1 << 19,
     WiperBladesFront = 1 << 20,
     WiperBladesRear = 1 << 21,
+    Suspension = 1 << 22,
 }

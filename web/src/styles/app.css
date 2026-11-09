@@ -125,3 +125,19 @@ table.data td.cell-worst { background: color-mix(in srgb, var(--score-bad) 18%, 
 table.data thead th { vertical-align: bottom; }
 .work-item { margin: 4px 0 10px 22px; display: flex; flex-direction: column; gap: 6px; }
 .work-item .row label:not(.check) { display: flex; flex-direction: column; gap: 2px; }
+/* Compact maintenance work editor */
+.work-editor { display: flex; flex-direction: column; gap: 6px; }
+.work-group-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-2); margin-top: 4px; }
+.work-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 2px 12px; }
+.work-grid label.check { font-size: 13px; }
+.work-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.work-row-title { flex: 0 0 170px; font-size: 13px; font-weight: 600; color: var(--text); }
+.work-row input, .work-row select { padding: 3px 6px; font-size: 13px; min-width: 0; }
+.work-row input:not(.grow) { width: 130px; }
+.work-row .grow { flex: 1 1 140px; }
+.work-custom-name { display: flex; align-items: center; gap: 4px; }
+.work-custom-name input { width: 140px; }
+.amount-row { display: flex; gap: 8px; }
+.amount-row label:first-child { flex: 1; }
+.amount-row label:last-child { width: 70px; }
+.work-editor > .btn { align-self: flex-start; }

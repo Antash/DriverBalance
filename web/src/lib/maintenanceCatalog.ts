@@ -1,12 +1,12 @@
 import type { MaintenanceType } from '../api/types'
 
+/** Regular consumables (fluids, filters, wipers), longer-lasting engine/transmission/chassis parts, and tyres. */
 export const MAINTENANCE_GROUPS: { title: string; types: MaintenanceType[] }[] = [
-  { title: 'Fluids', types: ['OilChange', 'TransmissionOil', 'HaldexOil', 'BrakeFluid', 'Coolant'] },
-  { title: 'Filters', types: ['OilFilter', 'AirFilter', 'CabinFilter', 'FuelFilter'] },
-  { title: 'Brakes', types: ['BrakePads', 'BrakeDiscs'] },
+  { title: 'Consumables', types: ['OilChange', 'OilFilter', 'AirFilter', 'CabinFilter', 'FuelFilter', 'BrakeFluid',
+    'Coolant', 'TransmissionOil', 'HaldexOil', 'WiperBladesFront', 'WiperBladesRear', 'ACCleaning'] },
+  { title: 'Engine, transmission & chassis', types: ['BrakePads', 'BrakeDiscs', 'Suspension', 'TimingBelt', 'AuxiliaryBelt',
+    'GlowPlugs', 'DpfService', 'Battery'] },
   { title: 'Tyres & wheels', types: ['TyreSwap', 'WheelAlignment'] },
-  { title: 'Engine & belts', types: ['TimingBelt', 'AuxiliaryBelt', 'GlowPlugs', 'DpfService'] },
-  { title: 'Electrical & other', types: ['Battery', 'WiperBladesFront', 'WiperBladesRear', 'ACCleaning'] },
 ]
 
 /** Checklist types in catalogue order (NewTyres is legacy and not offered). */
@@ -19,6 +19,7 @@ const LABELS: Record<MaintenanceType, string> = {
   NewTyres: 'New tyres', WheelAlignment: 'Wheel alignment', TimingBelt: 'Timing belt (+ water pump)',
   AuxiliaryBelt: 'Auxiliary belt', GlowPlugs: 'Glow plugs', DpfService: 'DPF service', Battery: 'Battery',
   WiperBladesFront: 'Wiper blades (front)', WiperBladesRear: 'Wiper blades (rear)', ACCleaning: 'AC service',
+  Suspension: 'Suspension (shocks, arms, bushings)',
 }
 
 export const maintenanceLabel = (t: MaintenanceType): string => LABELS[t]

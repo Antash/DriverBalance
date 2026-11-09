@@ -95,22 +95,31 @@ export function ExpenseForm({ vehicle, tyreSets, initial, onDone, lockCategory, 
 
   return (
     <form className="form-grid" onSubmit={(e) => { e.preventDefault(); setSubmitted(true); if (Object.keys(errors).length === 0) save.mutate() }}>
-      <label>Date<input type="date" required value={f.date} onChange={(e) => set('date', e.target.value)} /></label>
       {!lockCategory && (
-        <label>Category
+        <label className="wide">Category
           <select value={f.category} onChange={(e) => set('category', e.target.value as ExpenseCategory)}>
             {CATEGORIES.map((c) => <option key={c} value={c}>{label(c)}</option>)}
           </select>
         </label>
       )}
-      <label>Amount<input inputMode="decimal" value={f.amount} onChange={(e) => set('amount', e.target.value)} />{err('amount')}</label>
-      <label>Currency<input maxLength={3} value={f.currency} onChange={(e) => set('currency', e.target.value)} /></label>
-      {foreign && (
+      {f.category !== 'Fuel' && (
+        <label className="wide">Where
+          <input list="expense-places" maxLength={100} value={f.place} placeholder="Garage or place" onChange={(e) => set('place', e.target.value)} />
+          <datalist id="expense-places">{places.map((p) => <option key={p} value={p} />)}</datalist>
+        </label>
+      )}
+      <label>Date<input type="date" required value={f.date} onChange={(e) => set('date', e.target.value)} /></label>
+      <label>Odometer (km)<input inputMode="numeric" value={f.odometer} onChange={(e) => set('odometer', e.target.value)} />{err('odometer')}</label>
+      <div className="amount-row">
+        <label>Amount<input inputMode="decimal" value={f.amount} onChange={(e) => set('amount', e.target.value)} />{err('amount')}</label>
+        <label>Currency<input maxLength={3} value={f.currency} onChange={(e) => set('currency', e.target.value)} /></label>
+      </div>
+      {foreign ? (
         <label>Amount in {vehicle.homeCurrency} (optional)
           <input inputMode="decimal" value={f.homeAmount} onChange={(e) => set('homeAmount', e.target.value)} />{err('homeAmount')}
         </label>
-      )}
-      <label>Odometer (km)<input inputMode="numeric" value={f.odometer} onChange={(e) => set('odometer', e.target.value)} />{err('odometer')}</label>
+      ) : <span />}
+      <label className="wide">Note<input value={f.note} onChange={(e) => set('note', e.target.value)} /></label>
 
       {f.category === 'Fuel' && (
         <>
@@ -142,21 +151,14 @@ export function ExpenseForm({ vehicle, tyreSets, initial, onDone, lockCategory, 
         <label className="wide">Tyre set<TyreSetSelect sets={tyreSets} value={f.tyreSetId} onChange={(v) => set('tyreSetId', v)} /></label>
       )}
 
-      {f.category !== 'Fuel' && (
-        <label className="wide">Where
-          <input list="expense-places" maxLength={100} value={f.place} onChange={(e) => set('place', e.target.value)} />
-          <datalist id="expense-places">{places.map((p) => <option key={p} value={p} />)}</datalist>
-        </label>
-      )}
 
-      <label className="wide">Note<input value={f.note} onChange={(e) => set('note', e.target.value)} /></label>
-
-      <fieldset className="group wide"><legend>Spread cost over a period</legend>
+      <details className="wide" open={!!(f.coversFrom || f.coversTo) || undefined}>
+        <summary className="muted">Spread cost over a period</summary>
         <div className="row">
           <label>Covers from<input type="date" value={f.coversFrom} onChange={(e) => set('coversFrom', e.target.value)} /></label>
           <label>Covers to<input type="date" value={f.coversTo} onChange={(e) => set('coversTo', e.target.value)} /></label>
         </div>
-      </fieldset>
+      </details>
 
       <label className="wide">Attach files
         <input type="file" multiple accept={DOCUMENT_ACCEPT} key={pending.length}
