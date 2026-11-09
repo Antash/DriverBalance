@@ -40,14 +40,18 @@ public static class ScoreCharts
         return new MonthlyScoreChart(months, weeks);
     }
 
-    public static IReadOnlyList<HeatmapDay> Heatmap(AnalysisContext c, int year)
+    public static IReadOnlyList<HeatmapDay> Heatmap(AnalysisContext c, int year) =>
+        Heatmap(c, new Period(new DateOnly(year, 1, 1), new DateOnly(year + 1, 1, 1), year.ToString()));
+
+    /// <summary>Daily km and best group score for every day of the period with trips.</summary>
+    public static IReadOnlyList<HeatmapDay> Heatmap(AnalysisContext c, Period period)
     {
         var days = new Dictionary<DateOnly, (DrivingScore Best, double Km)>();
         foreach (var g in c.Groups)
         {
             foreach (var day in g.Trips.GroupBy(t => DateOnly.FromDateTime(t.Start)))
             {
-                if (day.Key.Year != year) continue;
+                if (!period.Contains(day.Key)) continue;
                 double km = day.Sum(t => t.DistanceKm);
                 days[day.Key] = days.TryGetValue(day.Key, out var cur)
                     ? (g.Score < cur.Best ? g.Score : cur.Best, cur.Km + km)

@@ -73,6 +73,17 @@ public class ScoreChartsTests
     }
 
     [Fact]
+    public void Heatmap_Range_CrossesYears_ToExclusive()
+    {
+        var ctx = Ctx(
+            T(new DateTime(2024, 12, 30, 8, 0, 0), 30, 10),
+            T(new DateTime(2025, 1, 2, 8, 0, 0), 30, 20),
+            T(new DateTime(2025, 1, 10, 8, 0, 0), 30, 30));
+        var days = ScoreCharts.Heatmap(ctx, new Period(new DateOnly(2024, 12, 1), new DateOnly(2025, 1, 10), "r"));
+        Assert.Equal([new DateOnly(2024, 12, 30), new DateOnly(2025, 1, 2)], days.Select(d => d.Date));
+    }
+
+    [Fact]
     public void ScoreMap_TripLevel_OnePointPerTripScoredIndividually()
     {
         var d = new DateTime(2025, 2, 1, 8, 0, 0);

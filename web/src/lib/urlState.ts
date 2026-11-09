@@ -60,10 +60,9 @@ export interface TripsUrlState {
   /** 'total' (since purchase), 'last12' (past 365 days) or a calendar year such as '2025'. */
   period: string
   /** Year shown by the calendar heatmap. */
-  heatYear: number | null
 }
 
-export const defaultTripsState: TripsUrlState = { tab: 'overview', level: 'Group', period: 'total', heatYear: null }
+export const defaultTripsState: TripsUrlState = { tab: 'overview', level: 'Group', period: 'total' }
 
 export function parseTripsState(p: URLSearchParams): TripsUrlState {
   const tab = p.get('tab') as TripsTab
@@ -72,7 +71,6 @@ export function parseTripsState(p: URLSearchParams): TripsUrlState {
     tab: TRIPS_TABS.includes(tab) ? tab : 'overview',
     level: p.get('level') === 'Trip' ? 'Trip' : 'Group',
     period: /^(total|last12|\d{4})$/.test(period) ? period : 'total',
-    heatYear: intIn(p.get('hy'), 1, 9998),
   }
 }
 
@@ -81,6 +79,5 @@ export function tripsStateToParams(s: TripsUrlState): URLSearchParams {
   if (s.tab !== 'overview') p.set('tab', s.tab)
   if (s.level !== 'Group') p.set('level', s.level)
   if (s.period !== 'total') p.set('period', s.period)
-  if (s.heatYear != null) p.set('hy', String(s.heatYear))
   return p
 }

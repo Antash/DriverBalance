@@ -11,15 +11,16 @@ describe('heatmapOption', () => {
   it('gives every series the score colour so legend swatches match the cells', () => {
     const tokens = { excellent: '#0a0', good: '#fa1', fair: '#e85', bad: '#d33' }
     for (const [k, v] of Object.entries(tokens)) document.documentElement.style.setProperty(`--score-${k}`, v)
-    const o = heatmapOption(days, 2025)() as { series: { name: 'Excellent' | 'Good' | 'Fair' | 'Bad'; itemStyle: { color: string } }[] }
-    expect(o.series).toHaveLength(4)
-    for (const s of o.series) {
+    const o = heatmapOption(days, '2025-01-01', '2026-01-01')() as { series: { name: 'Excellent' | 'Good' | 'Fair' | 'Bad'; itemStyle: { color: string } }[] }
+    const scored = o.series.filter((s) => s.name !== ('Years' as string))
+    expect(scored).toHaveLength(4)
+    for (const s of scored) {
       expect(s.itemStyle.color).toBe(scoreColor(s.name))
       expect(s.itemStyle.color).not.toBe('')
     }
   })
   it('encodes best score as colour and intensity as opacity, without a visualMap over the score string', () => {
-    const o = heatmapOption(days, 2025)() as { visualMap?: unknown; series: { name: string; data: { value: unknown[]; itemStyle: { opacity: number } }[] }[] }
+    const o = heatmapOption(days, '2025-01-01', '2026-01-01')() as { visualMap?: unknown; series: { name: string; data: { value: unknown[]; itemStyle: { opacity: number } }[] }[] }
     expect(o.visualMap).toBeUndefined()
     const ex = o.series.find((s) => s.name === 'Excellent')!
     const bad = o.series.find((s) => s.name === 'Bad')!

@@ -71,7 +71,7 @@ public static class AnalyticsEndpoints
         object chart = name switch
         {
             "monthly-score" => ScoreCharts.Monthly(c, p),
-            "heatmap" => ScoreCharts.Heatmap(c, options?.Year ?? p.To.AddDays(-1).Year),
+            "heatmap" => options?.Year is { } y ? ScoreCharts.Heatmap(c, y) : ScoreCharts.Heatmap(c, p),
             "fuel-trend" => FuelCharts.Trend(c, p, options?.Level ?? TrendLevel.Group),
             "score-map" => new ScoreMapChart(ScoreCharts.ScoreMap(c, p, options?.Level ?? TrendLevel.Group), ScoreZones.From(s.Parameters)),
             "gap-histogram" => HabitCharts.Gaps(c, p),

@@ -32,7 +32,7 @@ describe('statistics url state', () => {
 
 describe('trips url state', () => {
   it('round-trips and defaults to the overview', () => {
-    const s: TripsUrlState = { tab: 'style', level: 'Trip', period: '2025', heatYear: 2023 }
+    const s: TripsUrlState = { tab: 'style', level: 'Trip', period: '2025' }
     expect(parseTripsState(tripsStateToParams(s))).toEqual(s)
     expect(parseTripsState(tripsStateToParams({ ...s, period: 'last12' })).period).toBe('last12')
     expect(tripsStateToParams(defaultTripsState).toString()).toBe('')

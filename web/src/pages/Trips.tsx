@@ -29,10 +29,6 @@ export default function TripsPage() {
   const [tripId, setTripId] = useState<number | null>(null)
 
   const { data: yearRows } = useAnalytics<PeriodWithStats[]>('calendar', { level: 'years' })
-  const years = useMemo(
-    () => (yearRows ?? []).map((r) => Number(r.period.from.slice(0, 4))).sort((a, b) => b - a),
-    [yearRows],
-  )
   const vehicle = useVehicle()
   const [today] = useState(() => iso(new Date()))
   // Same switch as Expenses: Total (since purchase), last 12 months, then every year with trips.
@@ -41,8 +37,6 @@ export default function TripsPage() {
   const periods = useMemo(() => expensePeriods(vehicle.purchaseDate ?? null, today, firstTripYear), [vehicle.purchaseDate, today, firstTripYear])
   const current = periods.find((p) => p.key === state.period) ?? periods[0]
   const range = { from: current.from, to: current.to }
-  const [thisYear] = useState(() => new Date().getFullYear())
-  const heatYear = state.heatYear ?? (/^\d{4}$/.test(current.key) ? Number(current.key) : null) ?? years[0] ?? thisYear
 
   return (
     <section>
@@ -76,7 +70,7 @@ export default function TripsPage() {
               <TripInsights {...range} kind="overview" />
               <MonthlyScore {...range} />
               <DpfIndexChart {...range} />
-              <Heatmap year={heatYear} years={years} onYear={(y) => update({ heatYear: y })} />
+              <Heatmap from={range.from} to={range.to} />
             </>
           )}
           {state.tab === 'fuel' && (
