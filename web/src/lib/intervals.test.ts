@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Period } from '../api/types'
-import { defaultType, intervalWindow, pickDefaultIntervals, presentTypes, weeklyLPer100 } from './intervals'
+import { allIntervalsWindow, intervalWindow, pickDefaultIntervals, weeklyLPer100 } from './intervals'
 
 describe('pickDefaultIntervals', () => {
   it('returns [current, previous] from a newest-first list', () => {
@@ -11,18 +11,6 @@ describe('pickDefaultIntervals', () => {
   })
   it('returns [null, null] with none', () => {
     expect(pickDefaultIntervals([])).toEqual([null, null])
-  })
-})
-
-describe('maintenance types', () => {
-  it('offers only types that occur, in catalogue order, and defaults to OilChange', () => {
-    const types = presentTypes([{ maintenance: ['BrakePads'] }, { maintenance: ['OilChange', 'AirFilter'] }, { maintenance: [] }])
-    expect(types).toEqual(['OilChange', 'BrakePads', 'AirFilter'])
-    expect(defaultType(types)).toBe('OilChange')
-  })
-  it('falls back to the first type when there is no oil change, null when empty', () => {
-    expect(defaultType(['Coolant', 'BrakePads'])).toBe('Coolant')
-    expect(defaultType([])).toBeNull()
   })
 })
 
@@ -50,5 +38,17 @@ describe('weeklyLPer100', () => {
       { weekStart: '2026-03-02', lPer100: 6.5 },
       { weekStart: '2026-03-09', lPer100: 6 },
     ])
+  })
+})
+
+describe('allIntervalsWindow', () => {
+  const p = (from: string, to: string): Period => ({ from, to, label: from })
+  it('spans every interval and marks each service after the oldest start', () => {
+    const newestFirst = [p('2026-03-14', '2026-11-09'), p('2025-08-01', '2026-03-14'), p('2025-02-02', '2025-08-01')]
+    expect(allIntervalsWindow(newestFirst)).toEqual({ from: '2025-02-02', to: '2026-11-09', serviceDates: ['2025-08-01', '2026-03-14'] })
+  })
+  it('has no markers for a single interval and null for none', () => {
+    expect(allIntervalsWindow([p('2026-03-14', '2026-11-09')])).toEqual({ from: '2026-03-14', to: '2026-11-09', serviceDates: [] })
+    expect(allIntervalsWindow([])).toBeNull()
   })
 })

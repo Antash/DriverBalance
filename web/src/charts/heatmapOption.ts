@@ -18,11 +18,11 @@ export function heatmapOption(days: HeatmapDay[], year: number): () => EChartsOp
         },
       },
       calendar: {
-        range: String(year), top: 40, left: 36, right: 12, bottom: 8, cellSize: ['auto', 14],
+        range: String(year), top: 64, left: 44, right: 12, bottom: 8, cellSize: ['auto', 14],
         itemStyle: { color: t.grid, borderColor: t.surface, borderWidth: 2 },
         splitLine: { show: false },
         yearLabel: { show: false },
-        dayLabel: { firstDay: 1, color: t.muted },
+        dayLabel: { firstDay: 1, color: t.muted, nameMap: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] },
         monthLabel: { color: t.muted },
       },
       series: SCORES.map((s) => ({

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PeriodStats } from '../api/types'
-import { compareStats, comparisonRequest, type MetricKey } from './compare'
+import { compareMany, compareStats, comparisonRequest, type MetricKey } from './compare'
 
 interface Over {
   dpf?: number | null; coldPer100?: number | null; kmPerDay?: number | null; city?: number; mixed?: number; highway?: number
@@ -119,5 +119,44 @@ describe('compareStats', () => {
     const dpf = row(rows, 'dpfIndex')
     expect(dpf.change).toBeGreaterThan(0)
     expect((dpf.change! > 0) === (dpf.better === 'up')).toBe(true)
+  })
+})
+
+describe('compareMany', () => {
+  const many = (rows: ReturnType<typeof compareMany>, k: MetricKey) => rows.find((r) => r.key === k)!
+
+  it('lists one value per period in the given order', () => {
+    const rows = compareMany([stats({ kmPerDay: 10 }), stats({ kmPerDay: 20 }), stats({ kmPerDay: 30 })])
+    expect(many(rows, 'kmPerDay').values).toEqual([10, 20, 30])
+  })
+
+  it('marks best and worst by the metric direction', () => {
+    const rows = compareMany([stats({ coldPer100: 4 }), stats({ coldPer100: 2 }), stats({ coldPer100: 6 })])
+    const r = many(rows, 'coldStartsPer100Km')
+    expect(r.best).toEqual([1])
+    expect(r.worst).toEqual([2])
+    const dpf = many(compareMany([stats({ dpf: 0.4 }), stats({ dpf: 0.9 })]), 'dpfIndex')
+    expect(dpf.best).toEqual([1])
+    expect(dpf.worst).toEqual([0])
+  })
+
+  it('marks every tied period and ignores nulls', () => {
+    const r = many(compareMany([stats({ tripL: 6 }), stats({ tripL: null }), stats({ tripL: 6 }), stats({ tripL: 7 })]), 'tripLPer100')
+    expect(r.best).toEqual([0, 2])
+    expect(r.worst).toEqual([3])
+  })
+
+  it('marks nothing for metrics without a direction, all-equal values or a single value', () => {
+    expect(many(compareMany([stats({ tripKm: 1 }), stats({ tripKm: 2 })]), 'tripKm').best).toEqual([])
+    expect(many(compareMany([stats({ dpf: 0.5 }), stats({ dpf: 0.5 })]), 'dpfIndex').best).toEqual([])
+    const single = many(compareMany([stats({ dpf: 0.5 }), stats({ dpf: null })]), 'dpfIndex')
+    expect(single.best).toEqual([])
+    expect(single.worst).toEqual([])
+  })
+
+  it('adds a row for every expense category seen in any period', () => {
+    const rows = compareMany([stats({ byCategory: { Fuel: 10 } }), stats({ byCategory: { Maintenance: 5 } })])
+    expect(many(rows, 'cat:Fuel').values).toEqual([10, null])
+    expect(many(rows, 'cat:Maintenance').values).toEqual([null, 5])
   })
 })

@@ -100,3 +100,33 @@ export function comparisonRequest(range: Range, comparison: Range | null): { per
   if (comparison) periods.unshift({ ...comparison, label: 'Compare' })
   return { periods }
 }
+
+export interface MultiMetricRow {
+  key: MetricKey; label: string; group: MetricGroup; better: 'up' | 'down' | null
+  /** One value per period, in the order given. */
+  values: (number | null)[]
+  /** Indices of the best and worst periods (all ties); empty without a good direction or with fewer than two distinct values. */
+  best: number[]; worst: number[]
+}
+
+function extremes(values: (number | null)[], better: 'up' | 'down' | null): { best: number[]; worst: number[] } {
+  const present = values.filter((v): v is number => v != null)
+  if (better == null || present.length < 2) return { best: [], worst: [] }
+  const hi = Math.max(...present), lo = Math.min(...present)
+  if (hi === lo) return { best: [], worst: [] }
+  const at = (target: number) => values.flatMap((v, i) => (v === target ? [i] : []))
+  return better === 'up' ? { best: at(hi), worst: at(lo) } : { best: at(lo), worst: at(hi) }
+}
+
+/** Any number of periods side by side, with the best and worst marked on metrics that have a good direction. */
+export function compareMany(list: PeriodStats[]): MultiMetricRow[] {
+  const make = (key: MetricKey, label: string, group: MetricGroup, better: 'up' | 'down' | null, values: (number | null)[]): MultiMetricRow =>
+    ({ key, label, group, better, values, ...extremes(values, better) })
+
+  const rows = METRICS.map((m) => make(m.key, m.label, m.group, m.better, list.map((s) => m.read(s))))
+  const categories = new Set(list.flatMap((s) => Object.keys(s.money.byCategory)) as ExpenseCategory[])
+  for (const c of [...categories].sort()) {
+    rows.push(make(`cat:${c}`, categoryLabel(c), 'Money', null, list.map((s) => s.money.byCategory[c] ?? null)))
+  }
+  return rows
+}

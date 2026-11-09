@@ -8,6 +8,7 @@ import { ParamsProvider, useParams } from './state/ParamsContext'
 import Expenses from './pages/Expenses'
 import Import from './pages/Import'
 import Intervals from './pages/Intervals'
+import Maintenance from './pages/Maintenance'
 import Overview from './pages/Overview'
 import Settings from './pages/Settings'
 import Statistics from './pages/Statistics'
@@ -15,7 +16,7 @@ import Trips from './pages/Trips'
 import Tyres from './pages/Tyres'
 
 const NAV: [string, string][] = [
-  ['/', 'Overview'], ['/trips', 'Trips'], ['/statistics', 'Statistics'], ['/intervals', 'Intervals'],
+  ['/', 'Overview'], ['/trips', 'Trips'], ['/statistics', 'Statistics'], ['/intervals', 'Oil intervals'], ['/maintenance', 'Maintenance'],
   ['/tyres', 'Tyres'], ['/expenses', 'Expenses'], ['/import', 'Import'], ['/settings', 'Settings'],
 ]
 
@@ -53,6 +54,7 @@ function Shell({ vehicles, vehicleId, setVehicleId }: {
           <Route path="/trips" element={<Trips />} />
           <Route path="/statistics" element={<Statistics />} />
           <Route path="/intervals" element={<Intervals />} />
+          <Route path="/maintenance" element={<Maintenance />} />
           <Route path="/tyres" element={<Tyres />} />
           <Route path="/expenses" element={<Expenses />} />
           <Route path="/import" element={<Import />} />

@@ -10,7 +10,7 @@ import { useAnalytics } from '../state/ParamsContext'
 
 function lineOption(opts: {
   name: string; data: [string, number | null][]; color: number; unit: string; min?: number; max?: number
-  fmt(v: number): string; serviceDate: string | null
+  fmt(v: number): string; serviceDates: string[]
 }): () => EChartsOption {
   return () => {
     const t = chartTheme()
@@ -27,35 +27,36 @@ function lineOption(opts: {
         name: opts.name, type: 'line', showSymbol: opts.data.length < 60, symbolSize: 8, connectNulls: false,
         lineStyle: { width: 2 }, itemStyle: { color: t.series[opts.color], borderColor: t.surface, borderWidth: 2 },
         data: opts.data,
-        markLine: opts.serviceDate ? {
+        markLine: opts.serviceDates.length > 0 ? {
           symbol: 'none', silent: true,
           lineStyle: { color: t.text, type: 'dashed', width: 1.5 },
-          label: { formatter: `Service ${opts.serviceDate}`, color: t.textSecondary, position: 'insideEndTop' },
-          data: [{ xAxis: opts.serviceDate }],
+          label: { formatter: (p: { value?: unknown }) => `Service ${p.value as string}`, color: t.textSecondary, position: 'insideEndTop' },
+          data: opts.serviceDates.map((d) => ({ xAxis: d, value: d })),
         } : undefined,
       }],
     }
   }
 }
 
-/** Weekly L/100 km and weekly DPF index across both intervals, as two charts (never a second axis), with the service date marked. */
-export function IntervalTrend({ from, to, serviceDate }: { from: string; to: string; serviceDate: string | null }) {
+/** Weekly L/100 km and weekly DPF index across the intervals, as two charts (never a second axis), with each service date marked. */
+export function IntervalTrend({ from, to, serviceDates }: { from: string; to: string; serviceDates: string[] }) {
   const fuel = useAnalytics<FuelTrendChart>('charts/fuel-trend', { from, to, options: { level: 'Group' } })
   const score = useAnalytics<MonthlyScoreChart>('charts/monthly-score', { from, to })
   const weekly = useMemo(() => (fuel.data ? weeklyLPer100(fuel.data.points) : null), [fuel.data])
   const fuelOpt = useMemo(() => weekly && lineOption({
     name: 'Weekly L/100 km', data: weekly.map((w) => [w.weekStart, w.lPer100]), color: 0, unit: 'L/100 km',
-    fmt: (v) => fmtNum(v, 1), serviceDate,
-  }), [weekly, serviceDate])
+    fmt: (v) => fmtNum(v, 1), serviceDates,
+  }), [weekly, serviceDates])
   const dpfOpt = useMemo(() => score.data && lineOption({
     name: 'Weekly DPF index', data: score.data.weeks.map((w) => [w.weekStart, w.dpf]), color: 1, unit: 'DPF index', min: 0, max: 1,
-    fmt: (v) => fmtPct(v), serviceDate,
-  }), [score.data, serviceDate])
+    fmt: (v) => fmtPct(v), serviceDates,
+  }), [score.data, serviceDates])
   const empty = !!weekly && weekly.length === 0 && !!score.data && score.data.weeks.length === 0
   return (
     <ChartCard title="Consumption and DPF over the intervals" loading={(fuel.isLoading && !fuel.data) || (score.isLoading && !score.data)}
       error={fuel.isError || score.isError} empty={empty}
-      hint={serviceDate ? `Weekly values; the dashed line marks the service on ${serviceDate}.` : 'Weekly values.'}>
+      hint={serviceDates.length === 1 ? `Weekly values; the dashed line marks the service on ${serviceDates[0]}.`
+        : serviceDates.length > 1 ? 'Weekly values; the dashed lines mark the services.' : 'Weekly values.'}>
       {fuelOpt && <Chart option={fuelOpt} height={220} />}
       {dpfOpt && <Chart option={dpfOpt} height={200} />}
     </ChartCard>

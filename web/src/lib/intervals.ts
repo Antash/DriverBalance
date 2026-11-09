@@ -1,5 +1,4 @@
-import type { FuelTrendChart, MaintenanceType, Period } from '../api/types'
-import { MAINTENANCE_TYPES } from '../components/ExpenseForm'
+import type { FuelTrendChart, Period } from '../api/types'
 import { addDays } from './dates'
 
 /** Intervals arrive newest first: [current, previous, ..., "before first"]. */
@@ -7,21 +6,19 @@ export function pickDefaultIntervals<T>(intervals: T[]): [T | null, T | null] {
   return [intervals[0] ?? null, intervals[1] ?? null]
 }
 
-/** Maintenance types that occur in at least one expense, in catalogue order. */
-export function presentTypes(expenses: { maintenance: MaintenanceType[] }[]): MaintenanceType[] {
-  const seen = new Set(expenses.flatMap((e) => e.maintenance))
-  return MAINTENANCE_TYPES.filter((t) => seen.has(t))
-}
-
-export function defaultType(types: MaintenanceType[]): MaintenanceType | null {
-  return types.includes('OilChange') ? 'OilChange' : (types[0] ?? null)
-}
-
 /** Date range covering both intervals (to exclusive) and the service date between them. */
 export function intervalWindow(a: Period, b: Period | null): { from: string; to: string; serviceDate: string | null } {
   if (!b || b.from === a.from) return { from: a.from, to: a.to, serviceDate: null }
   const [older, newer] = a.from < b.from ? [a, b] : [b, a]
   return { from: older.from, to: newer.to > older.to ? newer.to : older.to, serviceDate: newer.from }
+}
+
+/** Date range covering every interval (to exclusive) and each service date inside it, oldest first. */
+export function allIntervalsWindow(periods: Period[]): { from: string; to: string; serviceDates: string[] } | null {
+  if (periods.length === 0) return null
+  const starts = periods.map((p) => p.from).sort()
+  const to = periods.map((p) => p.to).sort().at(-1)!
+  return { from: starts[0], to, serviceDates: starts.slice(1) }
 }
 
 const mondayOf = (date: string) => {

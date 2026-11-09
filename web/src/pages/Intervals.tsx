@@ -1,24 +1,26 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
-import type { Expense, MaintenanceType, PeriodWithStats } from '../api/types'
+import type { Expense, PeriodWithStats } from '../api/types'
 import { IntervalTrend } from '../charts/IntervalTrend'
 import { SmallMultiples } from '../charts/SmallMultiples'
 import { VehicleTimeline } from '../charts/VehicleTimeline'
 import { ChartCard } from '../components/ChartCard'
 import { CompareTable } from '../components/CompareTable'
-import { label } from '../components/ExpenseForm'
+import { MultiCompareTable } from '../components/MultiCompareTable'
 import { StatsTable } from '../components/StatsTable'
 import { addDays } from '../lib/dates'
-import { defaultType, intervalWindow, pickDefaultIntervals, presentTypes } from '../lib/intervals'
+import { allIntervalsWindow, intervalWindow, pickDefaultIntervals } from '../lib/intervals'
 import { useAnalytics, useParams } from '../state/ParamsContext'
 import { useVehicle } from '../state/useVehicle'
 
 /** Inclusive-to display of a half-open interval. */
 const describe = (p: PeriodWithStats['period']) => `${p.label} (${p.from} → ${addDays(p.to, -1)})`
 
-function Compare({ type, currency }: { type: MaintenanceType; currency: string }) {
-  const { data, isLoading, isError } = useAnalytics<PeriodWithStats[]>('intervals', { type })
+type View = 'two' | 'all'
+
+function Compare({ currency }: { currency: string }) {
+  const { data, isLoading, isError } = useAnalytics<PeriodWithStats[]>('intervals', { type: 'OilChange' })
   const intervals = data
   const [cur, prev] = useMemo(() => pickDefaultIntervals(intervals ?? []), [intervals])
   // Indices into the newest-first list; A is the earlier interval, B the later one.
@@ -26,7 +28,13 @@ function Compare({ type, currency }: { type: MaintenanceType; currency: string }
   const a = pick?.a ?? (prev ? 1 : 0)
   const b = pick ? pick.b : prev ? 0 : null
   const ia = intervals?.[a], ib = b == null ? undefined : intervals?.[b]
-  const win = ia ? intervalWindow(ia.period, ib?.period ?? null) : null
+  const canShowAll = (intervals?.length ?? 0) > 1
+  const [view, setView] = useState<View>('two')
+  const all = canShowAll && view === 'all'
+  const pair = ia ? intervalWindow(ia.period, ib?.period ?? null) : null
+  const win = !pair ? null
+    : all ? allIntervalsWindow(intervals!.map((p) => p.period))!
+    : { from: pair.from, to: pair.to, serviceDates: pair.serviceDate ? [pair.serviceDate] : [] }
 
   if (isError) return <p className="field-error">Could not load intervals.</p>
   if (isLoading && !intervals) return <p className="muted">Loading…</p>
@@ -34,6 +42,23 @@ function Compare({ type, currency }: { type: MaintenanceType; currency: string }
 
   return (
     <>
+      {canShowAll && (
+        <div className="toolbar">
+          <div className="segmented" role="group" aria-label="View">
+            {(['two', 'all'] as const).map((v) => (
+              <button key={v} className={`btn small${view === v ? ' active' : ''}`} aria-pressed={view === v}
+                onClick={() => setView(v)}>{v === 'two' ? 'Compare two' : 'All side by side'}</button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {all ? (
+        <section className="card">
+          <h2>Every oil change interval</h2>
+          <MultiCompareTable intervals={intervals} currency={currency} />
+        </section>
+      ) : (<>
       {intervals.length > 1 && (
         <div className="toolbar">
           <label className="inline">Compare
@@ -55,14 +80,16 @@ function Compare({ type, currency }: { type: MaintenanceType; currency: string }
           ? <CompareTable a={ia.stats} b={ib.stats} currency={currency} labelA={ia.period.label} labelB={ib.period.label} />
           : <StatsTable stats={ia.stats} currency={currency} />}
       </section>
+      </>)}
 
-      <IntervalTrend from={win.from} to={win.to} serviceDate={win.serviceDate} />
-      <VehicleTimeline from={win.from} to={win.to} title="Timeline across the intervals" />
+      <IntervalTrend from={win.from} to={win.to} serviceDates={win.serviceDates} />
+      <VehicleTimeline from={win.from} to={win.to} title={all ? 'Timeline across every interval' : 'Timeline across the intervals'} />
       <SmallMultiples intervals={intervals} currency={currency} />
     </>
   )
 }
 
+/** Engine oil change intervals only; other maintenance has its own page. */
 export default function IntervalsPage() {
   const { vehicleId } = useParams()
   const currency = useVehicle().homeCurrency
@@ -70,29 +97,16 @@ export default function IntervalsPage() {
     queryKey: ['expenses', vehicleId, 'maintenance'],
     queryFn: () => api.get<Expense[]>(`/vehicles/${vehicleId}/expenses?category=Maintenance`),
   })
-  const types = useMemo(() => presentTypes(expenses ?? []), [expenses])
-  const [chosen, setChosen] = useState<MaintenanceType | null>(null)
-  const type = chosen && types.includes(chosen) ? chosen : defaultType(types)
+  const hasOil = (expenses ?? []).some((e) => e.maintenance.includes('OilChange'))
 
   return (
     <section>
-      <h1>Intervals</h1>
+      <h1>Oil change intervals</h1>
       {isError ? <p className="field-error">Could not load maintenance history.</p>
         : isLoading ? <p className="muted">Loading…</p>
-        : !type ? (
-          <ChartCard title="No maintenance recorded" empty emptyText="Add a maintenance expense with the work done to compare intervals." >{null}</ChartCard>
-        ) : (
-          <>
-            <div className="toolbar">
-              <label className="inline">Maintenance type
-                <select aria-label="Maintenance type" value={type} onChange={(e) => setChosen(e.target.value as MaintenanceType)}>
-                  {types.map((t) => <option key={t} value={t}>{label(t)}</option>)}
-                </select>
-              </label>
-            </div>
-            <Compare key={type} type={type} currency={currency} />
-          </>
-        )}
+        : !hasOil ? (
+          <ChartCard title="No oil changes recorded" empty emptyText="Add a maintenance expense with Oil change ticked to compare intervals.">{null}</ChartCard>
+        ) : <Compare currency={currency} />}
     </section>
   )
 }
