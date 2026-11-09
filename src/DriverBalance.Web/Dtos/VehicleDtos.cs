@@ -5,10 +5,19 @@ namespace DriverBalance.Web;
 
 public sealed record VehicleDto(long Id, string Name, string HomeCurrency, string TimeZone, long? InitialTyreSetId, bool IsDefault,
     DateOnly? HistoryStart, int? HistoryStartOdometer,
-    DateOnly? PurchaseDate, decimal? EstimatedResaleValue, DateOnly? ResaleEstimateDate, CarDetails Details)
+    DateOnly? PurchaseDate, decimal? EstimatedResaleValue, DateOnly? ResaleEstimateDate, CarDetails Details, string? FuelType, bool HasDpf)
 {
     public static VehicleDto From(VehicleRow r) => new(r.Id, r.Name, r.HomeCurrency, r.TimeZone, r.InitialTyreSetId, r.IsDefault, r.HistoryStart, r.HistoryStartOdometer,
-        r.PurchaseDate, r.EstimatedResaleValue, r.ResaleEstimateDate, CarDetails.FromJson(r.DetailsJson));
+        r.PurchaseDate, r.EstimatedResaleValue, r.ResaleEstimateDate, CarDetails.FromJson(r.DetailsJson),
+        FuelTypes.Normalise(r.FuelType), FuelTypes.HasDpf(r.FuelType));
+}
+
+/// <summary>Allowed fuel types; the DPF only exists on diesels (or when the fuel type is not set).</summary>
+public static class FuelTypes
+{
+    public static readonly string[] Allowed = ["Diesel", "Petrol", "PetrolHybrid", "Electric"];
+    public static string? Normalise(string? s) => Allowed.FirstOrDefault(a => string.Equals(a, s?.Trim(), StringComparison.OrdinalIgnoreCase));
+    public static bool HasDpf(string? s) => Normalise(s) is null or "Diesel";
 }
 
 /// <summary>What the car is: shown on Overview and edited in Settings. Every field is optional.</summary>
@@ -42,4 +51,5 @@ public sealed record CarDetails(string? Model = null, string? Engine = null, str
 public sealed record VehicleInput(string? Name, string? HomeCurrency, string? TimeZone, long? InitialTyreSetId, bool? IsDefault,
     DateOnly? HistoryStart = null, int? HistoryStartOdometer = null,
     DateOnly? PurchaseDate = null, decimal? EstimatedResaleValue = null, DateOnly? ResaleEstimateDate = null,
-    /* Null keeps the stored details. */ CarDetails? Details = null);
+    /* Null keeps the stored details. */ CarDetails? Details = null,
+    /* Diesel, Petrol, PetrolHybrid, Electric; null or empty clears it. */ string? FuelType = null);

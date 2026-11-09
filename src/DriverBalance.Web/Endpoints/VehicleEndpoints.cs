@@ -99,6 +99,8 @@ public static class VehicleEndpoints
         if (input.EstimatedResaleValue is < 0) errors.Add("Estimated resale value must not be negative.");
         if (input.PurchaseDate is { } pd && pd > today) errors.Add("Purchase date must not be in the future.");
         if (input.ResaleEstimateDate is { } rd && rd > today) errors.Add("Resale estimate date must not be in the future.");
+        if (!string.IsNullOrWhiteSpace(input.FuelType) && FuelTypes.Normalise(input.FuelType) is null)
+            errors.Add($"Fuel type must be one of {string.Join(", ", FuelTypes.Allowed)}.");
         input.Details?.Normalise(errors, today.Year);
         return errors;
     }
@@ -112,6 +114,7 @@ public static class VehicleEndpoints
         // A date without an odometer means a new car (0 km); no date clears both.
         row.HistoryStart = input.HistoryStart;
         row.HistoryStartOdometer = input.HistoryStart is null ? null : input.HistoryStartOdometer ?? 0;
+        row.FuelType = FuelTypes.Normalise(input.FuelType) ?? "";
         row.PurchaseDate = input.PurchaseDate;
         row.EstimatedResaleValue = input.EstimatedResaleValue;
         row.ResaleEstimateDate = input.EstimatedResaleValue is null ? null : input.ResaleEstimateDate;

@@ -22,7 +22,7 @@ public sealed record ScoreMapChart(IReadOnlyList<ScoreMapPoint> Points, ScoreZon
 
 public sealed record Reminder(string Kind, string Message, string Severity);
 
-public sealed record Overview(PeriodStats ThisMonth, PeriodStats ThisYear, DpfHealthSummary DpfHealth,
+public sealed record Overview(PeriodStats ThisMonth, PeriodStats ThisYear, DpfHealthSummary? DpfHealth,
     IReadOnlyList<Expense> RecentExpenses, IReadOnlyList<Reminder> Reminders);
 
 public sealed record TripPage(int Total, int Page, int PageSize, IReadOnlyList<TripGroup> Groups);

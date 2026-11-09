@@ -112,7 +112,7 @@ public static class AnalyticsEndpoints
         return Results.Ok(new Overview(
             s.Context.Stats(CalendarPeriods.Month(s.Today.Year, s.Today.Month)),
             s.Context.Stats(CalendarPeriods.Year(s.Today.Year)),
-            DpfHealth.Compute(s.Context),
+            FuelTypes.HasDpf(s.Vehicle.FuelType) ? DpfHealth.Compute(s.Context) : null,
             recent,
             Reminders(s)));
     }

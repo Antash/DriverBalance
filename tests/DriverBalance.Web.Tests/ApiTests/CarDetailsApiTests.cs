@@ -54,3 +54,51 @@ public sealed class CarDetailsApiTests(ApiFactory f) : IClassFixture<ApiFactory>
         }
     }
 }
+
+public sealed class FuelTypeApiTests(ApiFactory f) : IClassFixture<ApiFactory>
+{
+    private static Task<HttpResponseMessage> Put(HttpClient c, long vid, object body) =>
+        c.PutAsJsonAsync($"/api/vehicles/{vid}", body, ApiJson.Options);
+
+    private static async Task<JsonElement> GetVehicle(HttpClient c, long vid) =>
+        await Api.ReadAsync<JsonElement>(await c.GetAsync($"/api/vehicles/{vid}"));
+
+    [Theory]
+    [InlineData("Diesel", true)]
+    [InlineData("Petrol", false)]
+    [InlineData("PetrolHybrid", false)]
+    [InlineData("Electric", false)]
+    [InlineData(null, true)]
+    [InlineData("", true)]
+    public async Task FuelType_RoundTrip_AndHasDpf(string? fuel, bool hasDpf)
+    {
+        var c = f.CreateClient();
+        var vid = await Api.NewVehicleAsync(c);
+        Assert.Equal(HttpStatusCode.OK, (await Put(c, vid, new { name = "Car", fuelType = fuel })).StatusCode);
+        var v = await GetVehicle(c, vid);
+        Assert.Equal(string.IsNullOrEmpty(fuel) ? JsonValueKind.Null : JsonValueKind.String, v.GetProperty("fuelType").ValueKind);
+        if (!string.IsNullOrEmpty(fuel)) Assert.Equal(fuel, v.GetProperty("fuelType").GetString());
+        Assert.Equal(hasDpf, v.GetProperty("hasDpf").GetBoolean());
+    }
+
+    [Fact]
+    public async Task FuelType_Unknown_400()
+    {
+        var c = f.CreateClient();
+        var vid = await Api.NewVehicleAsync(c);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Put(c, vid, new { name = "Car", fuelType = "Steam" })).StatusCode);
+    }
+
+    [Fact]
+    public async Task Overview_DpfHealthNull_WhenPetrol_AndPresentWhenDiesel()
+    {
+        var c = f.CreateClient();
+        var vid = await Api.NewVehicleAsync(c);
+        await Put(c, vid, new { name = "Car", fuelType = "Petrol" });
+        var o = await Api.ReadAsync<JsonElement>(await Api.PostAsync(c, $"/api/vehicles/{vid}/analytics/overview", new { }));
+        Assert.Equal(JsonValueKind.Null, o.GetProperty("dpfHealth").ValueKind);
+        await Put(c, vid, new { name = "Car", fuelType = "Diesel" });
+        o = await Api.ReadAsync<JsonElement>(await Api.PostAsync(c, $"/api/vehicles/{vid}/analytics/overview", new { }));
+        Assert.Equal(JsonValueKind.Object, o.GetProperty("dpfHealth").ValueKind);
+    }
+}
