@@ -152,3 +152,39 @@ public class TimelineTests
         Assert.Equal(month.Usage.OdometerKm!.Value, weeks.Sum(w => ctx.Stats(w).Usage.OdometerKm ?? 0), 6);
     }
 }
+
+public class HistoryStartGapTests
+{
+    private static OdometerTimeline T() => OdometerTimeline.Build(new[]
+    {
+        new OdometerReading(new DateTime(2023, 5, 1), 0, OdometerSource.HistoryStart),
+        new OdometerReading(new DateTime(2025, 2, 6), 7350, OdometerSource.Expense),
+        new OdometerReading(new DateTime(2025, 6, 1), 10000, OdometerSource.Expense),
+    });
+
+    private static Period P(DateOnly f, DateOnly t) => new(f, t, "p");
+
+    [Fact]
+    public void Gap_IsInterpolatedByDays()
+    {
+        var t = T();
+        var y23 = t.KmIn(P(new(2023, 5, 1), new(2024, 1, 1)))!.Value;
+        var y24 = t.KmIn(P(new(2024, 1, 1), new(2025, 1, 1)))!.Value;
+        var y25gap = t.KmIn(P(new(2025, 1, 1), new(2025, 2, 6)))!.Value;
+        Assert.Equal(7350.0 * 245 / 647, y23, 0);
+        Assert.Equal(7350.0 * 366 / 647, y24, 0);
+        Assert.Equal(7350.0 * 36 / 647, y25gap, 0);
+        Assert.Equal(7350, y23 + y24 + y25gap, 0);
+    }
+
+    [Fact]
+    public void PeriodSpanningGapEnd_InterpolatesOnlyItsStart()
+    {
+        var km = T().KmIn(P(new(2025, 1, 1), new(2026, 1, 1)))!.Value;
+        Assert.Equal(10000 - 7350.0 * 245 / 647 - 7350.0 * 366 / 647, km, 0);
+    }
+
+    [Fact]
+    public void PeriodAfterFirstRealReading_IsUnchanged() =>
+        Assert.Equal(10000 - 7350, T().KmIn(P(new(2025, 3, 1), new(2026, 1, 1)))!.Value, 6);
+}

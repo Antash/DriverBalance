@@ -42,17 +42,31 @@ public sealed class OdometerTimeline
         return km;
     }
 
+    /// <summary>Odometer at <paramref name="at"/>: linear in time inside the gap between a car-history start reading and the
+    /// first real reading (the car was driven steadily, we only lack the data); a step function everywhere else.</summary>
+    private double? OdometerAt(DateTime at)
+    {
+        if (Readings.Count >= 2 && Readings[0].Source == OdometerSource.HistoryStart)
+        {
+            var a = Readings[0];
+            var b = Readings[1];
+            if (at >= a.At && at <= b.At && b.At > a.At)
+                return a.Km + (b.Km - a.Km) * (at - a.At).TotalDays / (b.At - a.At).TotalDays;
+        }
+        return LastBefore(at);
+    }
+
     public double? KmIn(Period p)
     {
         var from = p.From.ToDateTime(TimeOnly.MinValue);
         var to = p.To.ToDateTime(TimeOnly.MinValue);
-        int? start = p.StartOdometer ?? LastBefore(from);
+        double? start = p.StartOdometer ?? OdometerAt(from);
         if (start is null)
         {
             var first = Readings.FirstOrDefault(r => r.At >= from && r.At < to);
             start = first?.Km;
         }
-        int? end = p.EndOdometer ?? LastBefore(to);
+        double? end = p.EndOdometer ?? OdometerAt(to);
         if (start is null || end is null || end < start) return null;
         return end.Value - start.Value;
     }
