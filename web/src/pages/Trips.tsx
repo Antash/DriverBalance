@@ -6,8 +6,6 @@ import { GapHistogram } from '../charts/GapHistogram'
 import { Heatmap } from '../charts/Heatmap'
 import { MonthlyScore } from '../charts/MonthlyScore'
 import { PenaltyCurve } from '../charts/PenaltyCurve'
-import { Places } from '../charts/Places'
-import { Routes } from '../charts/Routes'
 import { ScoreMap } from '../charts/ScoreMap'
 import { Seasonality } from '../charts/Seasonality'
 import { WhenYouDrive } from '../charts/WhenYouDrive'
@@ -18,7 +16,7 @@ import { parseTripsState, tripsStateToParams, TRIPS_TABS, type TripsTab, type Tr
 import { useAnalytics } from '../state/ParamsContext'
 
 const TAB_LABEL: Record<TripsTab, string> = {
-  overview: 'Overview', fuel: 'Fuel', style: 'Driving style', places: 'Places', list: 'List',
+  overview: 'Overview', fuel: 'Fuel', style: 'Driving style', list: 'List',
 }
 
 /** Half-open range for the charts, or undefined bounds for all data. */
@@ -108,12 +106,6 @@ export default function TripsPage() {
                 <GapHistogram {...range} />
                 <WhenYouDrive {...range} />
               </div>
-            </>
-          )}
-          {state.tab === 'places' && (
-            <>
-              <Routes {...range} />
-              <Places {...range} />
             </>
           )}
           {state.tab === 'list' && <TripList from={range.from} to={range.to} />}

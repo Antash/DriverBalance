@@ -1,49 +1,22 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { EChartsOption } from 'echarts'
 import { api } from '../api/client'
+import { VehicleTimeline } from '../charts/VehicleTimeline'
 import type { Expense, LatestOdometer, TyreSeason, TyreSet, TyreSummaryResponse } from '../api/types'
-import { Chart } from '../components/Chart'
 import { ChartCard } from '../components/ChartCard'
-import { axisStyle, chartTheme } from '../components/chartTheme'
 import { ExpenseForm } from '../components/ExpenseForm'
 import { Modal } from '../components/Modal'
+import { addDays, iso } from '../lib/dates'
 import { errorLines, fmtKm, fmtMoney, fmtNum, invalidateVehicleData } from '../lib/format'
-import { maintenanceHistory, type ServiceRow, type WorkItem } from '../lib/maintenance'
+import { maintenanceHistory, type WorkItem } from '../lib/maintenance'
 import { derivedTyreName, partLine, seasonLabel, tyreDisplayName, tyreRows } from '../lib/tyreSummary'
 import { useParams } from '../state/ParamsContext'
 import { useTyreSets, useVehicle } from '../state/useVehicle'
 
 const cost = (e: Expense) => fmtMoney(e.amount, e.currency)
 const SEASONS: TyreSeason[] = ['Summer', 'Winter', 'AllSeason']
-
-/** One lane per maintenance type, a marker each time it was done. */
-function timelineOption(services: ServiceRow<Expense>[], lanes: string[]): () => EChartsOption {
-  return () => {
-    const t = chartTheme()
-    const pad = 20 * 86_400_000
-    return {
-      legend: { show: false },
-      tooltip: {
-        trigger: 'item',
-        formatter: (p: unknown) => {
-          const s = (p as { data: { service: ServiceRow<Expense> } }).data.service
-          const odo = s.odometer != null ? `<br/>${fmtNum(s.odometer, 0)} km` : ''
-          return `${s.date}${odo}<br/>${s.work.map((w) => w.label).join(', ')}<br/>${cost(s.expense)}`
-        },
-      },
-      grid: { left: 8, right: 24, top: 16, bottom: 8, containLabel: true },
-      xAxis: { type: 'time', min: (v: { min: number }) => v.min - pad, max: (v: { max: number }) => v.max + pad, ...axisStyle() },
-      yAxis: { type: 'category', data: lanes, inverse: true, ...axisStyle(), splitLine: { show: true, lineStyle: { color: t.grid } } },
-      series: lanes.map((lane, i) => ({
-        name: lane, type: 'scatter' as const, symbol: 'diamond', symbolSize: 14,
-        itemStyle: { color: t.series[i % t.series.length], borderColor: t.surface, borderWidth: 1.5 },
-        data: services.filter((s) => s.work.some((w) => w.label.toLowerCase() === lane.toLowerCase()))
-          .map((s) => ({ value: [s.date, lane], service: s })),
-      })),
-    } as EChartsOption
-  }
-}
+/** Earlier than any data, so the milestone chart covers the whole history. */
+const ALL_TIME_FROM = '2000-01-01'
 
 function Since({ w }: { w: WorkItem }) {
   if (w.sinceDays == null) return <span className="muted">first recorded</span>
@@ -117,8 +90,8 @@ export default function MaintenancePage() {
     onSuccess: async () => { await invalidateVehicleData(qc, vehicleId); setEditing(null) },
   })
 
-  const { services, lanes } = useMemo(() => maintenanceHistory(expenses ?? []), [expenses])
-  const opt = useMemo(() => (services.length ? timelineOption(services, lanes) : undefined), [services, lanes])
+  const { services } = useMemo(() => maintenanceHistory(expenses ?? []), [expenses])
+  const [today] = useState(() => iso(new Date()))
   const rows = useMemo(() => tyreRows(tyreSummary?.summaries ?? []), [tyreSummary])
   const fittedName = (id: number | null) => {
     const t = id == null ? undefined : tyreSets.find((x) => x.id === id)
@@ -135,10 +108,9 @@ export default function MaintenancePage() {
         <span className="spacer" />
         <button className="btn primary" onClick={() => setAdding(true)}>Add maintenance</button>
       </div>
-      <ChartCard title="Maintenance timeline" loading={isLoading} error={isError} empty={empty} emptyText={emptyText}
-        hint="One lane per kind of work; hover a marker for the date, odometer and cost.">
-        {opt && <Chart option={opt} height={Math.max(140, 48 + lanes.length * 44)} />}
-      </ChartCard>
+      {services.length > 0
+        ? <VehicleTimeline from={ALL_TIME_FROM} to={addDays(today, 1)} title="Service milestones" />
+        : <ChartCard title="Service milestones" loading={isLoading} error={isError} empty={empty} emptyText={emptyText}>{null}</ChartCard>}
 
       {services.length > 0 && (
         <section className="card">

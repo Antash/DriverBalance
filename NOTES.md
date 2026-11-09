@@ -18,6 +18,9 @@ Tests: Core 97, Web 93, web (vitest) 142, all green; `dotnet build` 0 warnings.
   stored in `Expenses.WorkJson`, flags still drive analytics. Tyre swap: pick a stored set, add an owned set, or "New tyres"
   (creates the set, retires the previously fitted one). Tyres tab removed.
 - Real DB migrated on start (WorkJson, TyreSets Brand/Model/Size); pre-migration backup: `%LOCALAPPDATA%\DriverBalance\driverbalance.pre-work-items.db`.
+- Odometer chart (Overview, Oil intervals, Maintenance "Service milestones") shows maintenance visits as stacked icons:
+  engine oil, tyres, brakes, filters, other service (`web/src/lib/milestones.ts`); the Maintenance lane chart is gone.
+- Trips "Places" tab removed (Top places + routes charts; API endpoints `charts/places`, `charts/routes` left in place).
 - Owner's two old tyre swaps have no tyre set yet — they can edit them to attach sets.
 
 ## State

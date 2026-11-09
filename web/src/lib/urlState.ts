@@ -51,8 +51,8 @@ export function statsStateToParams(s: StatsUrlState): URLSearchParams {
 
 // ---- Trips page ----
 
-export type TripsTab = 'overview' | 'fuel' | 'style' | 'places' | 'list'
-export const TRIPS_TABS: TripsTab[] = ['overview', 'fuel', 'style', 'places', 'list']
+export type TripsTab = 'overview' | 'fuel' | 'style' | 'list'
+export const TRIPS_TABS: TripsTab[] = ['overview', 'fuel', 'style', 'list']
 
 export interface TripsUrlState {
   tab: TripsTab

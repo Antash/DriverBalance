@@ -1,6 +1,6 @@
 import type { DpfHealthSummary } from '../api/types'
 import { fmtNum } from '../lib/format'
-import { Sparkline } from './Routes'
+import { Sparkline } from './Sparkline'
 
 /** Days since a long drive, a callout when one is due, the series as a sparkline and the worst stretches. */
 export function DpfHealthStrip({ health }: { health: DpfHealthSummary }) {

@@ -17,9 +17,10 @@ const daysBetween = (a: string, b: string) =>
 
 const ALL_TYPES: MaintenanceType[] = [...MAINTENANCE_TYPES, 'NewTyres']
 
-type Raw = Omit<WorkItem, 'sinceDays' | 'sinceKm'>
+export type Raw = Omit<WorkItem, 'sinceDays' | 'sinceKm'>
 
-function rawItems(e: ServiceExpense): Raw[] {
+/** A record's work items: its `work` list when present, else one item per flag. */
+export function rawItems(e: ServiceExpense): Raw[] {
   if (e.work && e.work.length > 0) {
     return e.work.flatMap((w): Raw[] => {
       if (w.type) return [{ key: w.type, label: maintenanceLabel(w.type), type: w.type, part: w.part, brand: w.brand, model: w.model, details: w.details }]
