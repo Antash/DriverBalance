@@ -47,6 +47,23 @@ powershell -ExecutionPolicy Bypass -File scripts\register-autostart.ps1 -Unregis
 
 Because there is no console, startup failures and unhandled server errors (HTTP 500) go to the Windows Event Log (Application log, source `.NET Runtime`, warning level and above). ASP.NET's default host registers the Event Log provider on Windows, so nothing needs configuring. If the app does not come up after logon, look in Event Viewer, Windows Logs, Application.
 
+## Syncing trips from Volvo
+
+`tools/DriverBalance.VolvoSync` exports the journal from volvocars.com (headless Edge, no browser download; Edge must be installed) and imports the CSV into the running app. The Volvo session is kept in a persistent browser profile in `%LOCALAPPDATA%\DriverBalanceolvo-browser`; exports and failure screenshots go to `%LOCALAPPDATA%\DriverBalanceolvo-exports`.
+
+```powershell
+# one time: sign in by hand (tick "Pamatovat si me"), or store credentials for unattended sign-in
+dotnet run --project tools/DriverBalance.VolvoSync -- login
+dotnet run --project tools/DriverBalance.VolvoSync -- set-credentials      # DPAPI-encrypted, current Windows user
+
+# every time: app must be running
+dotnet run --project tools/DriverBalance.VolvoSync -- sync
+dotnet run --project tools/DriverBalance.VolvoSync -- sync --from 2026-10-01 --headed
+dotnet run --project tools/DriverBalance.VolvoSync -- clear-credentials
+```
+
+`sync` exports from 2 days before the app's last trip (or `--from`; 90 days back if there are no trips) to today. Options: `--app http://localhost:5180`, `--vehicle 1`, `--car-id <id>` (only used when the journal link is not found on the account page), `--headed`, `--keep-open`. If Volvo asks for an e-mailed code, `sync` prompts for it on the console. Duplicates are skipped by the importer, so overlapping ranges are safe.
+
 ## Data
 
 - Database: SQLite at `%LOCALAPPDATA%\DriverBalance\driverbalance.db`. Override with the `DriverBalance:DatabasePath` setting (environment variable `DriverBalance__DatabasePath`).
