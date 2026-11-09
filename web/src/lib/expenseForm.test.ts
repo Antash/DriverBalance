@@ -76,8 +76,8 @@ describe('homeAmount', () => {
 describe('toFormState -> buildExpensePayload round trip', () => {
   const common: Expense = { id: 1, date: '2026-02-03', amount: 1234.5, currency: 'CZK', homeAmount: null, odometer: 45678, note: 'n',
     coversFrom: null, coversTo: null, litres: null, fullTank: null, station: null, maintenance: [], maintenanceDescription: null,
-    tyreSetId: null, source: 'Web', category: 'Other' }
-  const strip = ({ id: _id, source: _s, ...rest }: Expense) => rest
+    tyreSetId: null, source: 'Web', category: 'Other', work: [] }
+  const strip = ({ id: _id, source: _s, work: _w, ...rest }: Expense) => rest
   it.each([
     ['Fuel', { ...common, category: 'Fuel', litres: 40.2, fullTank: true, station: 'Shell' }],
     ['Maintenance with tyre set', { ...common, category: 'Maintenance', maintenance: ['TyreSwap', 'OilChange'], maintenanceDescription: 'd', tyreSetId: 3 }],

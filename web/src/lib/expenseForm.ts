@@ -19,7 +19,7 @@ export interface ExpenseFormState {
   tyreSetId: string
 }
 
-export type ExpensePayload = Omit<Expense, 'id' | 'source'>
+export type ExpensePayload = Omit<Expense, 'id' | 'source' | 'work'>
 
 export const MOUNT_TYPES: MaintenanceType[] = ['TyreSwap', 'NewTyres']
 

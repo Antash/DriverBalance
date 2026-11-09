@@ -8,6 +8,24 @@ export type DrivingScore = 'Excellent' | 'Good' | 'Fair' | 'Bad'
 export type MaintenanceType =
   | 'OilChange' | 'BrakeFluid' | 'TyreSwap' | 'BrakePads' | 'TransmissionOil' | 'HaldexOil'
   | 'Coolant' | 'CabinFilter' | 'AirFilter' | 'FuelFilter' | 'ACCleaning' | 'NewTyres'
+  | 'OilFilter' | 'BrakeDiscs' | 'WheelAlignment' | 'TimingBelt' | 'AuxiliaryBelt' | 'GlowPlugs' | 'DpfService'
+  | 'Battery' | 'WiperBladesFront' | 'WiperBladesRear'
+
+export type PartSource = 'None' | 'Original' | 'Aftermarket'
+
+export interface MaintenanceWork {
+  type: MaintenanceType | null
+  name: string | null
+  part: PartSource
+  brand: string | null
+  model: string | null
+  details: string | null
+}
+
+export interface LatestOdometer {
+  odometer: number
+  date: DateOnly
+}
 
 export type ExpenseCategory =
   | 'Fuel' | 'Parking' | 'TollsVignette' | 'Wash' | 'Maintenance' | 'Repair' | 'Tyres'
@@ -84,6 +102,7 @@ export interface Expense {
   fullTank: boolean | null
   station: string | null
   maintenance: MaintenanceType[]
+  work: MaintenanceWork[]
   maintenanceDescription: string | null
   tyreSetId: number | null
   source: ExpenseSource
@@ -96,6 +115,9 @@ export interface TyreSet {
   description: string | null
   purchaseDate: DateOnly | null
   retired: boolean
+  brand: string | null
+  model: string | null
+  size: string | null
 }
 
 export interface TyreMountSpan {

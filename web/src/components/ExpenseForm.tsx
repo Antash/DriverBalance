@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { Expense, ExpenseCategory, MaintenanceType, TyreSet, Vehicle } from '../api/types'
 import { buildExpensePayload, parseDecimal, validateExpenseForm, emptyFormState, pricePerLitre, toFormState, usesTyreSet, type ExpenseFormState } from '../lib/expenseForm'
+import { MAINTENANCE_TYPES, maintenanceLabel } from '../lib/maintenanceCatalog'
 import { errorLines, fmtMoney, invalidateVehicleData } from '../lib/format'
 
 export const CATEGORIES: ExpenseCategory[] = [
@@ -10,10 +11,7 @@ export const CATEGORIES: ExpenseCategory[] = [
   'RoadTax', 'Fines', 'Financing', 'Other',
 ]
 
-export const MAINTENANCE_TYPES: MaintenanceType[] = [
-  'OilChange', 'BrakeFluid', 'TyreSwap', 'BrakePads', 'TransmissionOil', 'HaldexOil', 'Coolant', 'CabinFilter',
-  'AirFilter', 'FuelFilter', 'ACCleaning', 'NewTyres',
-]
+export { MAINTENANCE_TYPES }
 
 export const label = (s: string) => s.replace(/([a-z])([A-Z])/g, '$1 $2')
 
@@ -89,7 +87,7 @@ export function ExpenseForm({ vehicle, tyreSets, initial, onDone }: {
             <div className="chips">
               {MAINTENANCE_TYPES.map((t) => (
                 <label key={t} className="check">
-                  <input type="checkbox" checked={f.maintenance.includes(t)} onChange={() => toggle(t)} /> {label(t)}
+                  <input type="checkbox" checked={f.maintenance.includes(t)} onChange={() => toggle(t)} /> {maintenanceLabel(t)}
                 </label>
               ))}
             </div>
