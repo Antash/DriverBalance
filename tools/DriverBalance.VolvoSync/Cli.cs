@@ -111,7 +111,9 @@ internal static class Cli
             Console.WriteLine($"Saved {file}");
 
             var r = await app.ImportCsvAsync(file, CancellationToken.None);
-            Console.WriteLine($"Imported {r.Imported}, skipped {r.Skipped} duplicates. Trips {r.FirstTrip:yyyy-MM-dd} to {r.LastTrip:yyyy-MM-dd}.");
+            Console.WriteLine(r.Imported > 0
+                ? $"Imported {r.Imported}, skipped {r.Skipped} duplicates. Trips {r.FirstTrip:yyyy-MM-dd} to {r.LastTrip:yyyy-MM-dd}."
+                : $"No new trips ({r.Skipped} already imported).");
             foreach (var w in r.Warnings) Console.WriteLine("Warning: " + w);
             if (options.KeepOpen) { Console.WriteLine("--keep-open: press Enter to close the browser."); Console.ReadLine(); }
             return 0;

@@ -33,6 +33,12 @@ Tests: Core 108, Web 118, web (vitest) 154, all green; `dotnet build` 0 warnings
   is excluded from all period money stats and used only by the Overview "Cost of ownership" card (`GET /ownership`).
 - 2025 running costs imported from the owner's sheet as one record per category, spread 2025-04-14 → 2025-12-31
   (2025 total 100 000 = sheet total). Backup before: `driverbalance.pre-ownership.db`.
+- **Volvo sync tool** (`tools/DriverBalance.VolvoSync`, spec `docs/superpowers/specs/2026-11-09-volvo-sync-design.md`):
+  `dotnet run --project tools/DriverBalance.VolvoSync -- sync` opens a visible Edge window (headless is blocked by Volvo's
+  Akamai bot protection; we do not disguise it), exports the journal from the app's last trip − 2 days and posts it to
+  `/api/vehicles/1/import/csv`. Session lives in `%LOCALAPPDATA%\DriverBalanceolvo-browser`. Volvo asks for an e-mailed
+  6-digit code at new sessions: typed on the console, or `--code-file <path>` (Claude fills it from Gmail). Scheduling and
+  reading the code from Gmail automatically are not built yet. Odometer chart shows no import/expense markers now.
 - Owner's two old tyre swaps have no tyre set yet — they can edit them to attach sets.
 
 ## State

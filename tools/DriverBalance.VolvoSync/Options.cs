@@ -13,6 +13,8 @@ internal sealed record Options
     public bool Headless { get; init; }
     public bool KeepOpen { get; init; }
     public string? CarId { get; init; }
+    /// <summary>Wait for the e-mailed code in this file instead of asking on the console.</summary>
+    public string? CodeFile { get; init; }
     public bool Help { get; init; }
 
     private static readonly string[] Commands = ["sync", "login", "set-credentials", "clear-credentials"];
@@ -46,6 +48,7 @@ internal sealed record Options
                 case "--headless": o = o with { Headless = true }; break;
                 case "--keep-open": o = o with { KeepOpen = true }; break;
                 case "--car-id": o = o with { CarId = Value() }; break;
+                case "--code-file": o = o with { CodeFile = Value() }; break;
                 default:
                     if (a.StartsWith('-')) throw new UsageException($"Unknown option {a}.");
                     if (commandSeen || !Commands.Contains(a)) throw new UsageException($"Unknown command '{a}'. Commands: {string.Join(", ", Commands)}.");
@@ -73,6 +76,7 @@ internal sealed record Options
           --vehicle <id>      vehicle id (default 1)
           --from <yyyy-MM-dd> first day to export (default: last trip - 2 days, else today - 90 days)
           --car-id <id>       Volvo car id, only used if it cannot be found on the account page
+          --code-file <path>  wait for the e-mailed sign-in code in this file instead of asking on the console
           --headless          run sync without a visible window (usually blocked by Volvo's bot protection)
           --keep-open         debug: wait for Enter before closing the browser
           -h, --help          this text

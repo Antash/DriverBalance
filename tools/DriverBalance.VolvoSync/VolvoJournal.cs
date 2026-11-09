@@ -108,6 +108,10 @@ internal sealed class VolvoJournal : IAsyncDisposable
                     u => !u.Contains(AuthHost, StringComparison.OrdinalIgnoreCase), new PageWaitForURLOptions { Timeout = 600_000 }));
                 await SettleAsync();
             }
+            else if (await WaitForCodeOrPasswordAsync() == "code")
+            {
+                await RunStep("enter e-mailed code", () => EnterCodeAsync(CodeInput));
+            }
             else
             {
                 var creds = _credentials.Load()
@@ -148,7 +152,7 @@ internal sealed class VolvoJournal : IAsyncDisposable
         await Page.Locator(Submit).First.ClickAsync();
 
         // Either we leave the auth host, or a one-time code is requested.
-        var code = Page.Locator("input[autocomplete=one-time-code], input[name*=otp i], input[name*=code i], input[id*=otp i]").First;
+        var code = CodeInput;
         var deadline = DateTime.UtcNow.AddSeconds(60);
         while (DateTime.UtcNow < deadline)
         {
@@ -161,13 +165,25 @@ internal sealed class VolvoJournal : IAsyncDisposable
         throw new TimeoutException();
     });
 
+    /// <summary>The code field on Volvo's "Zkontrolujte svůj e-mail" (check your e-mail) page.</summary>
+    private ILocator CodeInput => Page.Locator("input[autocomplete=one-time-code], input[name*=otp i], input[name*=code i], input[id*=otp i], input[id*=code i], input[inputmode=numeric]").First;
+
+    /// <summary>On the sign-in host, wait until either the password form or the e-mailed-code form is shown.</summary>
+    private async Task<string> WaitForCodeOrPasswordAsync()
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(20);
+        while (DateTime.UtcNow < deadline)
+        {
+            if (await CodeInput.IsVisibleAsync()) return "code";
+            if (await Page.Locator("input[type=password]").First.IsVisibleAsync()) return "password";
+            await Page.WaitForTimeoutAsync(500);
+        }
+        return "password";
+    }
+
     private async Task EnterCodeAsync(ILocator code)
     {
-        if (Console.IsInputRedirected)
-            throw new SyncException("Volvo asked for an e-mail code, but there is no console to type it into. Run `login`.");
-        Console.Write("Volvo sent a one-time code by e-mail. Enter it: ");
-        var value = Console.ReadLine()?.Trim();
-        if (string.IsNullOrEmpty(value)) throw new SyncException("No code entered.");
+        var value = await CodeSource.GetAsync(_options.CodeFile, TimeSpan.FromMinutes(5));
         await code.FillAsync(value);
         await Page.Locator(Submit).First.ClickAsync();
         await Page.WaitForURLAsync(u => !u.Contains(AuthHost, StringComparison.OrdinalIgnoreCase), new PageWaitForURLOptions { Timeout = 60_000 });
@@ -185,8 +201,12 @@ internal sealed class VolvoJournal : IAsyncDisposable
         await SetDateAsync("filter-end-date", range.To);
         await RunStep("wait for list reload", async () =>
         {
-            await Page.WaitForURLAsync(u => u.Contains($"startDate={range.From:yyyy-MM-dd}") && u.Contains($"endDate={range.To:yyyy-MM-dd}"),
-                new PageWaitForURLOptions { Timeout = 30_000 });
+            // The page swaps its address without a full navigation (sometimes before we start waiting), so poll for it.
+            var deadline = DateTime.UtcNow.AddSeconds(30);
+            while (!Page.Url.Contains($"startDate={range.From:yyyy-MM-dd}") && DateTime.UtcNow < deadline)
+                await Page.WaitForTimeoutAsync(500);
+            if (!Page.Url.Contains($"startDate={range.From:yyyy-MM-dd}"))
+                Console.WriteLine("Note: the page address did not pick up the new range; the export step checks the date fields instead.");
             await SettleAsync();
         });
     });
@@ -229,9 +249,11 @@ internal sealed class VolvoJournal : IAsyncDisposable
 
     private async Task CheckIntervalAsync(DateRange range)
     {
-        var url = Page.Url;
-        if (!url.Contains($"startDate={range.From:yyyy-MM-dd}") || !url.Contains($"endDate={range.To:yyyy-MM-dd}"))
-            throw new SyncException("The journal page interval does not match the requested range; refusing to export.");
+        // The page's filter inputs hold the active range (the URL only gains ?startDate= after a change, not for the default range).
+        var start = await Page.Locator("input[name=filter-start-date]").First.InputValueAsync();
+        var end = await Page.Locator("input[name=filter-end-date]").First.InputValueAsync();
+        if (start != $"{range.From:yyyy-MM-dd}" || end != $"{range.To:yyyy-MM-dd}")
+            throw new SyncException($"The journal page shows {start} to {end}, not the requested {range.From:yyyy-MM-dd} to {range.To:yyyy-MM-dd}; refusing to export.");
 
         // Best effort on the dialog itself: its text or inputs should mention the start date in some format.
         var dialog = Page.Locator(Dialog).First;

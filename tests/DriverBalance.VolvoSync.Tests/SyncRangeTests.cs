@@ -76,6 +76,23 @@ public class OptionsTests
         Assert.True(o.Headless);
         Assert.True(o.KeepOpen);
         Assert.Equal("abc", o.CarId);
+        Assert.Null(o.CodeFile);
+    }
+
+    [Fact]
+    public void Parses_code_file()
+    {
+        var o = Options.Parse(["sync", "--code-file", @"C:\tmp\volvo-code.txt"]);
+        Assert.Equal(@"C:\tmp\volvo-code.txt", o.CodeFile);
+    }
+
+    [Fact]
+    public void Reads_a_six_digit_code_from_the_text()
+    {
+        Assert.Equal("123456", CodeSource.Extract(" 123456\r\n"));
+        Assert.Equal("654321", CodeSource.Extract("Your code: 654321"));
+        Assert.Null(CodeSource.Extract("12345"));
+        Assert.Null(CodeSource.Extract(""));
     }
 
     [Theory]

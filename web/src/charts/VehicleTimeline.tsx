@@ -2,22 +2,17 @@ import { useEffect, useMemo, useRef } from 'react'
 import type { EChartsOption } from 'echarts'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
-import type { Expense, TimelineChart, TimelineEventKind, TyreSet } from '../api/types'
+import type { Expense, TimelineChart, TyreSet } from '../api/types'
 import { axisStyle, chartTheme } from '../components/chartTheme'
 import { Chart } from '../components/Chart'
 import { ChartCard } from '../components/ChartCard'
 import { fmtMoney, fmtNum } from '../lib/format'
 import { timelineWidthPercent } from '../lib/timelineWidth'
-import { MILESTONE_GROUPS, odometerAt, serviceMilestones, type MilestoneGroupKey, type ServiceMilestone } from '../lib/milestones'
+import { MILESTONE_GROUPS, serviceMilestones, type MilestoneGroupKey, type ServiceMilestone } from '../lib/milestones'
 import { partLine, tyreDisplayName } from '../lib/tyreSummary'
 import { useAnalytics, useParams } from '../state/ParamsContext'
 import { useTyreSets } from '../state/useVehicle'
 
-/** Non-maintenance events keep plain markers; maintenance visits are drawn as service milestones below. */
-const KINDS: { kind: TimelineEventKind; name: string; symbol: string; color: number }[] = [
-  { kind: 'Expense', name: 'Expense', symbol: 'circle', color: 3 },
-  { kind: 'Import', name: 'Import', symbol: 'rect', color: -1 },
-]
 
 /** 24x24 silhouettes for the service icons. */
 const ICONS: Record<MilestoneGroupKey, { path: string; color: number }> = {
@@ -50,14 +45,13 @@ function timelineOption(d: TimelineChart, sets: TyreSet[], maintenance: Expense[
     const setIds = [...new Set(d.tyreBands.map((b) => b.tyreSetId))]
     const milestones = serviceMilestones(maintenance, from, end, line)
     const groupsShown = MILESTONE_GROUPS.filter((g) => milestones.some((m) => m.groups.includes(g.key)))
-    const kindsShown = KINDS.filter((k) => d.events.some((e) => e.kind === k.kind))
     const colorOf = (c: number) => (c < 0 ? t.muted : t.series[c])
     const tallestStack = Math.max(0, ...milestones.map((m) => m.groups.length))
     const headroom = Math.min(0.6, tallestStack === 0 ? 0 : (tallestStack * (ICON_SIZE + 2) + 8) / PLOT_HEIGHT)
     return {
       legend: {
         top: 0,
-        data: ['Odometer', ...groupsShown.map((g) => ({ name: g.name, icon: ICONS[g.key].path })), ...kindsShown.map((k) => k.name)],
+        data: ['Odometer', ...groupsShown.map((g) => ({ name: g.name, icon: ICONS[g.key].path }))],
       },
       tooltip: { trigger: 'item' },
       grid: { left: 8, right: 16, top: 40, bottom: 8, containLabel: true },
@@ -99,20 +93,6 @@ function timelineOption(d: TimelineChart, sets: TyreSet[], maintenance: Expense[
             milestone: m,
           })),
           tooltip: { formatter: (p: unknown) => milestoneTooltip((p as { data: { milestone: ServiceMilestone } }).data.milestone, sets) },
-        })),
-        ...kindsShown.map((k) => ({
-          name: k.name, type: 'scatter' as const, symbol: k.symbol, symbolSize: 11, z: 4,
-          itemStyle: { color: colorOf(k.color), borderColor: t.surface, borderWidth: 1.5 },
-          data: d.events.filter((e) => e.kind === k.kind).map((e) => ({
-            value: [e.date, e.odometer ?? odometerAt(line, e.date)],
-            label: e.label,
-          })),
-          tooltip: {
-            formatter: (p: unknown) => {
-              const x = p as { data: { value: [string, number | null]; label: string } }
-              return `${x.data.value[0]}<br/>${x.data.label}${x.data.value[1] != null ? `<br/>${fmtNum(x.data.value[1], 0)} km` : ''}`
-            },
-          },
         })),
       ],
     } as EChartsOption
