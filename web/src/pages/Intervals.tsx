@@ -4,7 +4,6 @@ import { api } from '../api/client'
 import type { Expense, PeriodWithStats } from '../api/types'
 import { IntervalTrend } from '../charts/IntervalTrend'
 import { SmallMultiples } from '../charts/SmallMultiples'
-import { VehicleTimeline } from '../charts/VehicleTimeline'
 import { ChartCard } from '../components/ChartCard'
 import { CompareTable } from '../components/CompareTable'
 import { MultiCompareTable } from '../components/MultiCompareTable'
@@ -83,7 +82,6 @@ function Compare({ currency }: { currency: string }) {
       </>)}
 
       <IntervalTrend from={win.from} to={win.to} serviceDates={win.serviceDates} />
-      <VehicleTimeline from={win.from} to={win.to} title={all ? 'Timeline across every interval' : 'Timeline across the intervals'} />
       <SmallMultiples intervals={intervals} currency={currency} />
     </>
   )
