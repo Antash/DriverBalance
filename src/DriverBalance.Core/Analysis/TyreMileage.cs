@@ -20,7 +20,7 @@ public static class TyreMileage
         if (initialSetId is not null && t.Readings.Count > 0)
             starts.Add((initialSetId, DateOnly.FromDateTime(t.Readings[0].At), t.Readings[0].Km));
         foreach (var m in mounts)
-            starts.Add((m.TyreSetId, m.Date, m.Odometer is > 0 ? m.Odometer : t.AtEndOfDay(m.Date)));
+            starts.Add((m.TyreSetId, m.Date, m.Odometer is > 0 ? m.Odometer : t.AtEndOfDay(m.Date, ignoreHistoryStart: true)));
 
         var spans = new List<TyreMountSpan>();
         for (int i = 0; i < starts.Count; i++)

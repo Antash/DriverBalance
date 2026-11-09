@@ -11,7 +11,7 @@ public static class FuelEconomy
         {
             int? odo = e.Odometer is > 0 ? e.Odometer : null;
             bool inferred = odo is null;
-            odo ??= t.AtEndOfDay(e.Date);
+            odo ??= t.AtEndOfDay(e.Date, ignoreHistoryStart: true);
             if (odo is null) continue;
             fills.Add((e.Date, odo.Value, inferred, e.Litres, e.FullTank == true));
         }

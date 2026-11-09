@@ -40,7 +40,7 @@ public sealed class HistoryStartApiTests(ApiFactory f) : IClassFixture<ApiFactor
         var vid = await Api.NewVehicleAsync(c);
         var bad = new Dictionary<string, object>
         {
-            ["future date"] = new { name = "Car", historyStart = "2026-11-09" },
+            ["future date"] = new { name = "Car", historyStart = DateOnly.FromDateTime(ApiFactory.Now.UtcDateTime).AddDays(1).ToString("yyyy-MM-dd") },
             ["negative odometer"] = new { name = "Car", historyStart = "2023-05-01", historyStartOdometer = -1 },
         };
         foreach (var (name, body) in bad)
@@ -49,7 +49,7 @@ public sealed class HistoryStartApiTests(ApiFactory f) : IClassFixture<ApiFactor
             Assert.True(r.StatusCode == HttpStatusCode.BadRequest, $"{name}: {(int)r.StatusCode}");
             Assert.NotEmpty((await Api.ReadAsync<Api.ErrorsBody>(r)).Errors);
         }
-        Assert.Equal(HttpStatusCode.OK, (await Put(c, vid, new { name = "Car", historyStart = "2026-11-08" })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await Put(c, vid, new { name = "Car", historyStart = DateOnly.FromDateTime(ApiFactory.Now.UtcDateTime).ToString("yyyy-MM-dd") })).StatusCode);
     }
 
     [Fact]

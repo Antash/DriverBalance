@@ -26,14 +26,17 @@ public sealed class OdometerTimeline
         return new OdometerTimeline(kept, dropped);
     }
 
-    public int? AtEndOfDay(DateOnly d) => LastBefore(d.AddDays(1).ToDateTime(TimeOnly.MinValue));
+    /// <summary>Last known odometer by the end of <paramref name="d"/>. Inference for undated-odometer records should pass
+    /// <paramref name="ignoreHistoryStart"/> so a car-history start does not invent an anchor before the first real reading.</summary>
+    public int? AtEndOfDay(DateOnly d, bool ignoreHistoryStart = false) => LastBefore(d.AddDays(1).ToDateTime(TimeOnly.MinValue), ignoreHistoryStart);
 
-    private int? LastBefore(DateTime at)
+    private int? LastBefore(DateTime at, bool ignoreHistoryStart = false)
     {
         int? km = null;
         foreach (var r in Readings)
         {
             if (r.At >= at) break;
+            if (ignoreHistoryStart && r.Source == OdometerSource.HistoryStart) continue;
             km = r.Km;
         }
         return km;

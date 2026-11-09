@@ -80,4 +80,29 @@ public class HistoryStartTests
         var ctx = AnalysisContext.Create(Data(null), new AnalysisParameters());
         Assert.DoesNotContain(ctx.Timeline.Readings, r => r.Source == OdometerSource.HistoryStart);
     }
+
+    [Fact]
+    public void Timeline_HistoryOdometerAboveRealReadings_Ignored()
+    {
+        var withHistory = AnalysisContext.Create(Data(HistoryStart, 50000), new AnalysisParameters());
+        var without = AnalysisContext.Create(Data(null), new AnalysisParameters());
+        Assert.DoesNotContain(withHistory.Timeline.Readings, r => r.Source == OdometerSource.HistoryStart);
+        Assert.Empty(withHistory.Timeline.Dropped);
+        Assert.Equal(without.Timeline.Latest, withHistory.Timeline.Latest);
+        Assert.Equal(without.Timeline.Readings.Count, withHistory.Timeline.Readings.Count);
+    }
+
+    [Fact]
+    public void Fuel_FillBeforeFirstRealReading_NotAnchoredByHistoryStart()
+    {
+        Expense Fill(DateOnly d, int? odo) => new()
+        {
+            Date = d, Category = ExpenseCategory.Fuel, Litres = 40, FullTank = true, Odometer = odo,
+        };
+        var fills = new[] { Fill(new DateOnly(2024, 1, 10), null), Fill(new DateOnly(2025, 4, 1), 9500) };
+        var with = AnalysisContext.Create(Data(HistoryStart, 0), new AnalysisParameters()).Timeline;
+        var without = AnalysisContext.Create(Data(null), new AnalysisParameters()).Timeline;
+        Assert.Equal(FuelEconomy.Segments(fills, without).Count, FuelEconomy.Segments(fills, with).Count);
+        Assert.Empty(FuelEconomy.Segments(fills, with));
+    }
 }

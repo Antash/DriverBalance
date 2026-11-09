@@ -30,7 +30,7 @@ public sealed class AnalysisContext
         if (data.HistoryStart is { } hs)
         {
             var at = hs.ToDateTime(TimeOnly.MinValue);
-            if (readings.All(r => r.At > at))
+            if (readings.All(r => r.At > at && r.Km >= (data.HistoryStartOdometer ?? 0)))
                 readings.Add(new OdometerReading(at, data.HistoryStartOdometer ?? 0, OdometerSource.HistoryStart));
         }
         return OdometerTimeline.Build(readings);
