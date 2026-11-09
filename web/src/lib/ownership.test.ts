@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { Ownership } from '../api/types'
-import { isPreviousOwner, isPreviousOwnerInterval, ownershipRows } from './ownership'
+import { fmtMoney } from './format'
+import { financingSchedule, isPreviousOwner, isPreviousOwnerInterval, ownershipRows } from './ownership'
 
 const own = (extra: Partial<Ownership> = {}): Ownership => ({
-  purchaseDate: '2025-04-14', purchaseCosts: [{ date: '2025-04-14', amount: 1000000, note: 'Car' }, { date: '2025-04-10', amount: 30000, note: null }],
-  purchaseTotal: 1030000, runningCosts: 1000, kmDriven: 10000, months: 12,
+  purchaseDate: '2025-04-14', purchaseCosts: [{ id: 1, date: '2025-04-14', amount: 1000000, note: 'Car' }, { id: 2, date: '2025-04-10', amount: 30000, note: null }],
+  purchaseTotal: 1030000, lumpSumTotal: 1030000, financing: null, runningCosts: 1000, kmDriven: 10000, months: 12,
   estimatedResaleValue: 600000, resaleEstimateDate: '2026-11-01',
   netCost: 431000, netCostPerKm: 43.1, netCostPerMonth: 35916.67, ...extra,
 })
@@ -48,5 +49,30 @@ describe('ownershipRows', () => {
     const r = ownershipRows(own({ estimatedResaleValue: null, resaleEstimateDate: null, netCost: null, netCostPerKm: null, netCostPerMonth: null }), 'CZK')!
     expect(r[4].value).toBe('not set')
     expect(r[5].value).toBe('—')
+  })
+})
+
+const fin = { start: '2025-05-01', amountPerPayment: 9500, frequency: 'Monthly', payments: 36, balloon: 200000, total: 542000, endDate: '2028-04-01' } as const
+
+describe('financing in the card', () => {
+  it('has no Financing row without financing', () => {
+    expect(ownershipRows(own(), 'CZK')!.some((r) => r.label === 'Financing')).toBe(false)
+  })
+  it('adds a Financing row after Purchase costs; Purchase costs shows lump sums only', () => {
+    const r = ownershipRows(own({ financing: fin, purchaseTotal: 1572000 }), 'CZK')!
+    expect(r.map((x) => x.label).slice(0, 3)).toEqual(['Bought on', 'Purchase costs', 'Financing'])
+    expect(r[1].value).toBe(fmtMoney(1030000, 'CZK'))
+    expect(r[2].value).toBe(fmtMoney(542000, 'CZK'))
+    expect(r[2].note).toBe(financingSchedule(fin, 'CZK'))
+  })
+})
+
+describe('financingSchedule', () => {
+  it('describes payments, frequency, start and balloon', () => {
+    expect(financingSchedule(fin, 'CZK')).toBe(`36 × ${fmtMoney(9500, 'CZK')} monthly from 01/05/2025 + balloon ${fmtMoney(200000, 'CZK')}`)
+  })
+  it('omits a zero balloon and uses the frequency word', () => {
+    expect(financingSchedule({ ...fin, frequency: 'Quarterly', balloon: 0 }, 'CZK')).toBe(`36 × ${fmtMoney(9500, 'CZK')} quarterly from 01/05/2025`)
+    expect(financingSchedule({ ...fin, frequency: 'Yearly' }, 'CZK')).toContain('yearly')
   })
 })

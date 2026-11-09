@@ -1,7 +1,7 @@
 # DriverBalance — working notes (read first)
 
 Last updated: 2026-11-09 (evening). Branch `feat/web-app` (over `master` c1c16dc), **not merged**, HEAD a296644.
-Tests: Core 112, Web 129, VolvoSync 28, web (vitest) 200, all green; `dotnet build` 0 warnings.
+Tests: Core 125, Web 140, VolvoSync 28, web (vitest) 216, all green; `dotnet build` 0 warnings.
 
 ## PAUSED HERE: public web service (design written, awaiting owner approval)
 - Design: `docs/superpowers/specs/2026-11-09-public-service-design.md` (committed). Invite-only Google sign-in, per-user
@@ -14,6 +14,15 @@ Tests: Core 112, Web 129, VolvoSync 28, web (vitest) 200, all green; `dotnet bui
   the owner has the sync tool / bot); parameters belong to the user, defaults = current values (= code defaults).
 - Next step once approved: superpowers:writing-plans → plan in `docs/superpowers/plans/`, then subagent-driven build.
   The owner does Google console / Azure portal steps; never handle the secrets.
+
+## Purchase costs & financing (branch `feat/purchase-costs`, not merged)
+- Settings has a **Purchase costs** list (add / edit / delete, saved at once) and a **Financing** block (saved with the vehicle PUT).
+  Endpoints `GET/POST /vehicles/{vid}/purchase-costs`, `PUT/DELETE .../{id}` body `{date, amount, note}` (amount > 0, note <= 200);
+  stored as Purchase expenses in the home currency. General expense endpoints still refuse new Purchase ones; Expenses page hides them.
+- Financing = nullable vehicle columns `FinancingStart/Amount/Frequency/Payments/Balloon` (migration `VehicleFinancing`); all of start,
+  amount, payments or none; frequency Monthly (default) / Quarterly / Yearly. Whole contract (payments x amount + balloon) counts.
+  Ownership: `purchaseTotal` = `lumpSumTotal` + `financing.total`; `financing` null when none; `purchaseCosts[].id` = expense id.
+  No interest, no generated expenses, never in running-cost stats. Overview card shows a Financing line with a schedule text.
 
 ## Where things are
 - Spec (binding): `docs/superpowers/specs/2026-11-08-driverbalance-web-design.md` (see "Rulings")

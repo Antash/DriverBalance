@@ -74,7 +74,19 @@ export interface Vehicle {
   fuelType: FuelType | null
   /** Diesel or fuel type not set: DPF health and index are shown. */
   hasDpf: boolean
+  /** Optional financing contract; all null = none. Amounts are in the home currency. */
+  financingStart: DateOnly | null
+  financingAmount: number | null
+  financingFrequency: FinancingFrequency | null
+  financingPayments: number | null
+  financingBalloon: number | null
 }
+
+export type FinancingFrequency = 'Monthly' | 'Quarterly' | 'Yearly'
+
+/** A lump-sum purchase cost (stored as a Purchase expense in the home currency). */
+export interface PurchaseCost { id: number; date: DateOnly; amount: number; note: string | null }
+export interface PurchaseCostInput { date: DateOnly; amount: number; note: string | null }
 
 export type FuelType = 'Diesel' | 'DieselMhev' | 'Petrol' | 'PetrolMhev' | 'PetrolPhev' | 'Electric'
 
@@ -232,6 +244,12 @@ export interface VehicleInput {
   /** Omitted or null keeps the stored details. */
   details?: CarDetails | null
   fuelType: FuelType | null
+  /** All of start, amount and payments, or none (clears the financing). */
+  financingStart: DateOnly | null
+  financingAmount: number | null
+  financingFrequency: FinancingFrequency | null
+  financingPayments: number | null
+  financingBalloon: number | null
 }
 
 export interface MonthlyCost {
@@ -384,10 +402,26 @@ export interface TimelineChart {
   tyreBands: TyreMountSpan[]
 }
 
+export interface OwnershipFinancing {
+  start: DateOnly
+  amountPerPayment: number
+  frequency: FinancingFrequency
+  payments: number
+  balloon: number
+  /** payments x amount + balloon */
+  total: number
+  /** Date of the last regular payment. */
+  endDate: DateOnly
+}
+
 export interface Ownership {
   purchaseDate: DateOnly | null
-  purchaseCosts: { date: DateOnly; amount: number; note: string | null }[]
+  purchaseCosts: PurchaseCost[]
+  /** Lump sums plus the whole financing contract. */
   purchaseTotal: number | null
+  /** Lump sums only. */
+  lumpSumTotal: number
+  financing: OwnershipFinancing | null
   runningCosts: number | null
   kmDriven: number | null
   months: number | null

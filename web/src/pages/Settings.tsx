@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { FuelType, TokenCreated, TokenInfo, TripPage, Vehicle, VehicleInput } from '../api/types'
 import { DateInput } from '../components/DateInput'
+import { PurchaseCosts } from '../components/PurchaseCosts'
+import { FinancingFields } from '../components/FinancingFields'
 import { ParamsPanel } from '../components/ParamsPanel'
 import { errorLines, fmtDate, fmtInstant } from '../lib/format'
 import { useTyreSets, useVehicle } from '../state/useVehicle'
@@ -20,6 +22,8 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
     resaleEstimateDate: vehicle.resaleEstimateDate,
     details: vehicle.details,
     fuelType: vehicle.fuelType,
+    financingStart: vehicle.financingStart, financingAmount: vehicle.financingAmount, financingFrequency: vehicle.financingFrequency,
+    financingPayments: vehicle.financingPayments, financingBalloon: vehicle.financingBalloon,
   })
   const d = f.details ?? { model: null, engine: null, trim: null, modelYear: null, exteriorColour: null, interior: null, equipment: [], transmission: null, awd: false }
   const setD = (p: Partial<typeof d>) => setF({ ...f, details: { ...d, ...p } })
@@ -78,6 +82,8 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
         <label>Estimated on
           <DateInput value={f.resaleEstimateDate ?? ''} onChange={(v) => setF({ ...f, resaleEstimateDate: v || null })} />
         </label>
+        <PurchaseCosts vehicleId={vehicle.id} currency={vehicle.homeCurrency} />
+        <FinancingFields value={f} currency={f.homeCurrency} onChange={(v) => setF({ ...f, ...v })} />
         <fieldset className="group"><legend>Car details</legend>
           <div className="stack">
             <label>Fuel type

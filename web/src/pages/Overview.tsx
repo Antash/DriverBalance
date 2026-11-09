@@ -51,7 +51,8 @@ function OwnershipCard({ currency }: { currency: string }) {
                   <td>{r.strong ? <strong>{r.label}</strong> : r.label}</td>
                   <td className="num">
                     {r.strong ? <strong>{r.value}</strong> : r.value}
-                    {r.note && <span className="muted"> ({r.note})</span>}
+                    {r.note && r.label === 'Financing' && <div className="th-sub muted">{r.note}</div>}
+                    {r.note && r.label !== 'Financing' && <span className="muted"> ({r.note})</span>}
                     {r.label === 'Purchase costs' && data.purchaseCosts.length > 0 && (
                       <div className="th-sub muted">
                         {data.purchaseCosts.map((c, i) => <div key={i}>{fmtDate(c.date)} · {fmtMoney(c.amount, currency)}{c.note ? ` · ${c.note}` : ''}</div>)}
