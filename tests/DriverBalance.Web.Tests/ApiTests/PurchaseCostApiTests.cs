@@ -172,4 +172,43 @@ public sealed class PurchaseCostApiTests(ApiFactory f) : IClassFixture<ApiFactor
         }
         Assert.Equal(HttpStatusCode.OK, (await Put(c, vid, new { name = "Car", financingStart = "2025-05-01", financingAmount = 1, financingPayments = 1, financingBalloon = 0 })).StatusCode);
     }
+
+    [Fact]
+    public async Task ForeignCurrency_KeptAsStored_HomeAmountNullWhenUnknown_AndCurrencyValidated()
+    {
+        var c = f.CreateClient();
+        var vid = await Api.NewVehicleAsync(c);
+        var r = await Api.PostAsync(c, Url(vid), new { date = "2025-04-14", amount = 100, currency = "eur" });
+        Assert.Equal(HttpStatusCode.Created, r.StatusCode);
+        var created = await Api.ReadAsync<JsonElement>(r);
+        var id = created.GetProperty("id").GetInt64();
+        Assert.Equal("EUR", created.GetProperty("currency").GetString());
+        Assert.Equal(100, created.GetProperty("amount").GetDecimal());
+        Assert.Equal(JsonValueKind.Null, created.GetProperty("homeAmount").ValueKind);
+
+        // Editing without a currency keeps the row's currency.
+        var u = await Api.ReadAsync<JsonElement>(await c.PutAsJsonAsync(Url(vid, id), new { date = "2025-04-14", amount = 120 }, ApiJson.Options));
+        Assert.Equal("EUR", u.GetProperty("currency").GetString());
+
+        var home = await Api.ReadAsync<JsonElement>(await Api.PostAsync(c, Url(vid), new { date = "2025-04-14", amount = 5 }));
+        Assert.Equal("CZK", home.GetProperty("currency").GetString());
+        Assert.Equal(5, home.GetProperty("homeAmount").GetDecimal());
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await Api.PostAsync(c, Url(vid), new { date = "2025-04-14", amount = 1, currency = "EURO" })).StatusCode);
+        // The foreign row without a home amount is not counted in ownership, like before.
+        var o = await Api.ReadAsync<JsonElement>(await c.GetAsync($"/api/vehicles/{vid}/ownership"));
+        Assert.Equal(5, o.GetProperty("purchaseTotal").GetDecimal());
+    }
+
+    [Fact]
+    public async Task Amounts_AreCapped_SoOwnershipCannotOverflow()
+    {
+        var c = f.CreateClient();
+        var vid = await Api.NewVehicleAsync(c);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Api.PostAsync(c, Url(vid), new { date = "2025-04-14", amount = 2e12 })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Put(c, vid, new { name = "Car", financingStart = "2025-05-01", financingAmount = 2e12, financingPayments = 600 })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Put(c, vid, new { name = "Car", financingStart = "2025-05-01", financingAmount = 1, financingPayments = 1, financingBalloon = 2e12 })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await Put(c, vid, new { name = "Car", financingStart = "2025-05-01", financingAmount = 1e12, financingPayments = 600, financingBalloon = 1e12 })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await c.GetAsync($"/api/vehicles/{vid}/ownership")).StatusCode);
+    }
 }

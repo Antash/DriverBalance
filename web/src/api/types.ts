@@ -86,7 +86,9 @@ export type FinancingFrequency = 'Monthly' | 'Quarterly' | 'Yearly'
 
 /** A lump-sum purchase cost (stored as a Purchase expense in the home currency). */
 export interface PurchaseCost { id: number; date: DateOnly; amount: number; note: string | null }
-export interface PurchaseCostInput { date: DateOnly; amount: number; note: string | null }
+/** A cost as listed in Settings: amount in its stored currency; homeAmount is what Cost of ownership counts (null when unknown). */
+export interface PurchaseCostRow extends PurchaseCost { currency: string; homeAmount: number | null }
+export interface PurchaseCostInput { date: DateOnly; amount: number; note: string | null; currency?: string }
 
 export type FuelType = 'Diesel' | 'DieselMhev' | 'Petrol' | 'PetrolMhev' | 'PetrolPhev' | 'Electric'
 

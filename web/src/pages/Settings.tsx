@@ -83,7 +83,7 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
           <DateInput value={f.resaleEstimateDate ?? ''} onChange={(v) => setF({ ...f, resaleEstimateDate: v || null })} />
         </label>
         <PurchaseCosts vehicleId={vehicle.id} currency={vehicle.homeCurrency} />
-        <FinancingFields value={f} currency={f.homeCurrency} onChange={(v) => setF({ ...f, ...v })} />
+        <FinancingFields value={f} currency={vehicle.homeCurrency} onChange={(v) => setF({ ...f, ...v })} />
         <fieldset className="group"><legend>Car details</legend>
           <div className="stack">
             <label>Fuel type

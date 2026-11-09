@@ -1,7 +1,7 @@
 # DriverBalance — working notes (read first)
 
 Last updated: 2026-11-09 (evening). Branch `feat/web-app` (over `master` c1c16dc), **not merged**, HEAD a296644.
-Tests: Core 125, Web 140, VolvoSync 28, web (vitest) 216, all green; `dotnet build` 0 warnings.
+Tests: Core 125, Web 142, VolvoSync 28, web (vitest) 219, all green; `dotnet build` 0 warnings.
 
 ## PAUSED HERE: public web service (design written, awaiting owner approval)
 - Design: `docs/superpowers/specs/2026-11-09-public-service-design.md` (committed). Invite-only Google sign-in, per-user

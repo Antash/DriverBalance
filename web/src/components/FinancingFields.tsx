@@ -31,6 +31,10 @@ export function FinancingFields({ value: v, currency, onChange }: { value: Finan
         <label>Final (balloon) payment ({currency}, optional)
           <input type="number" min={0} step="any" value={v.financingBalloon ?? ''} onChange={(e) => set({ financingBalloon: num(e.target.value) })} />
         </label>
+        {Object.values(v).some((x) => x != null) && (
+          <div><button className="btn small danger" type="button"
+            onClick={() => onChange({ financingStart: null, financingAmount: null, financingFrequency: null, financingPayments: null, financingBalloon: null })}>Remove financing</button></div>
+        )}
         <p className="muted">The whole contract (payments × amount + final payment) counts as a purchase cost. No interest is calculated.</p>
       </div>
     </fieldset>

@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
-import type { PurchaseCost, PurchaseCostInput } from '../api/types'
+import type { PurchaseCostInput, PurchaseCostRow } from '../api/types'
 import { errorLines, fmtDate, fmtMoney, invalidateVehicleData } from '../lib/format'
 import { DateInput } from './DateInput'
 
-interface Draft { id: number | null; date: string; amount: string; note: string }
+/** currency is set when editing a stored cost (kept as is); a new cost uses the home currency. */
+interface Draft { id: number | null; date: string; amount: string; note: string; currency?: string }
 const EMPTY: Draft = { id: null, date: '', amount: '', note: '' }
 
 /**
@@ -17,15 +18,15 @@ export function PurchaseCosts({ vehicleId, currency }: { vehicleId: number; curr
   const [draft, setDraft] = useState<Draft | null>(null)
   const { data: costs = [] } = useQuery({
     queryKey: ['purchase-costs', vehicleId],
-    queryFn: () => api.get<PurchaseCost[]>(`/vehicles/${vehicleId}/purchase-costs`),
+    queryFn: () => api.get<PurchaseCostRow[]>(`/vehicles/${vehicleId}/purchase-costs`),
   })
   const refresh = () => Promise.all([qc.invalidateQueries({ queryKey: ['purchase-costs', vehicleId] }), invalidateVehicleData(qc, vehicleId)])
   const save = useMutation({
     mutationFn: (d: Draft) => {
-      const body: PurchaseCostInput = { date: d.date, amount: Number(d.amount), note: d.note.trim() || null }
+      const body: PurchaseCostInput = { date: d.date, amount: Number(d.amount), note: d.note.trim() || null, ...(d.currency ? { currency: d.currency } : {}) }
       return d.id === null
-        ? api.post<PurchaseCost>(`/vehicles/${vehicleId}/purchase-costs`, body)
-        : api.put<PurchaseCost>(`/vehicles/${vehicleId}/purchase-costs/${d.id}`, body)
+        ? api.post<PurchaseCostRow>(`/vehicles/${vehicleId}/purchase-costs`, body)
+        : api.put<PurchaseCostRow>(`/vehicles/${vehicleId}/purchase-costs/${d.id}`, body)
     },
     onSuccess: async () => { setDraft(null); await refresh() },
   })
@@ -36,6 +37,7 @@ export function PurchaseCosts({ vehicleId, currency }: { vehicleId: number; curr
   const canSave = !!draft && draft.date !== '' && Number(draft.amount) > 0 && !save.isPending
   const submit = () => { if (draft && canSave) save.mutate(draft) }
   const keys = (e: React.KeyboardEvent) => {
+    if (!(e.target instanceof HTMLInputElement)) return
     if (e.key === 'Enter') { e.preventDefault(); submit() }
     else if (e.key === 'Escape') setDraft(null)
   }
@@ -49,12 +51,17 @@ export function PurchaseCosts({ vehicleId, currency }: { vehicleId: number; curr
             {costs.map((c) => draft?.id === c.id ? null : (
               <tr key={c.id}>
                 <td>{fmtDate(c.date)}</td>
-                <td className="num">{fmtMoney(c.amount, currency)}</td>
+                <td className="num">
+                  {fmtMoney(c.amount, c.currency)}
+                  {c.currency !== currency && (c.homeAmount != null
+                    ? <span className="muted"> ({fmtMoney(c.homeAmount, currency)})</span>
+                    : <span className="muted"> (no {currency} amount, not counted)</span>)}
+                </td>
                 <td>{c.note ?? ''}</td>
                 <td>
-                  <button className="btn small" type="button" onClick={() => { save.reset(); setDraft({ id: c.id, date: c.date, amount: String(c.amount), note: c.note ?? '' }) }}>Edit</button>{' '}
+                  <button className="btn small" type="button" onClick={() => { save.reset(); remove.reset(); setDraft({ id: c.id, date: c.date, amount: String(c.amount), note: c.note ?? '', currency: c.currency }) }}>Edit</button>{' '}
                   <button className="btn small danger" type="button" disabled={remove.isPending}
-                    onClick={() => { if (window.confirm(`Delete this purchase cost (${fmtMoney(c.amount, currency)})?`)) remove.mutate(c.id) }}>Delete</button>
+                    onClick={() => { if (window.confirm(`Delete this purchase cost (${fmtMoney(c.amount, c.currency)})?`)) remove.mutate(c.id) }}>Delete</button>
                 </td>
               </tr>
             ))}
@@ -64,7 +71,7 @@ export function PurchaseCosts({ vehicleId, currency }: { vehicleId: number; curr
       {draft && (
         <div className="row" onKeyDown={keys}>
           <label>Date<DateInput aria-label="Cost date" value={draft.date} onChange={(v) => setDraft({ ...draft, date: v })} /></label>
-          <label>Amount ({currency})
+          <label>Amount ({draft.currency ?? currency})
             <input type="number" min={0} step="any" value={draft.amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })} />
           </label>
           <label>Note
@@ -75,7 +82,7 @@ export function PurchaseCosts({ vehicleId, currency }: { vehicleId: number; curr
         </div>
       )}
       {(save.isError || remove.isError) && <ul className="errors">{errorLines(save.error ?? remove.error).map((m) => <li key={m}>{m}</li>)}</ul>}
-      {!draft && <div><button className="btn small" type="button" onClick={() => { save.reset(); setDraft(EMPTY) }}>Add cost</button></div>}
+      {!draft && <div><button className="btn small" type="button" onClick={() => { save.reset(); remove.reset(); setDraft(EMPTY) }}>Add cost</button></div>}
     </fieldset>
   )
 }

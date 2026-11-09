@@ -116,9 +116,11 @@ public static class VehicleEndpoints
         if (i.FinancingStart is null) errors.Add("Financing start date is required.");
         if (i.FinancingAmount is null) errors.Add("Financing amount per payment is required.");
         else if (i.FinancingAmount <= 0) errors.Add("Financing amount per payment must be greater than 0.");
+        else if (i.FinancingAmount > PurchaseCostEndpoints.MaxAmount) errors.Add("Financing amount per payment is too large.");
         if (i.FinancingPayments is null) errors.Add("Financing number of payments is required.");
         else if (i.FinancingPayments is < 1 or > MaxFinancingPayments) errors.Add($"Financing number of payments must be between 1 and {MaxFinancingPayments}.");
         if (i.FinancingBalloon is < 0) errors.Add("Financing final payment must not be negative.");
+        else if (i.FinancingBalloon > PurchaseCostEndpoints.MaxAmount) errors.Add("Financing final payment is too large.");
         if (i.FinancingFrequency is { } f && !Enum.IsDefined(f)) errors.Add("Financing frequency must be Monthly, Quarterly or Yearly.");
     }
 

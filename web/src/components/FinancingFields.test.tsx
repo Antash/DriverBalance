@@ -15,6 +15,16 @@ describe('FinancingFields', () => {
     expect((screen.getByLabelText('Number of payments') as HTMLInputElement).value).toBe('36')
   })
 
+  it('Remove financing clears all five fields, and is hidden when there is none', () => {
+    const onChange = vi.fn()
+    const { rerender } = render(<FinancingFields currency="CZK" value={empty} onChange={onChange} />)
+    expect(screen.queryByRole('button', { name: 'Remove financing' })).toBeNull()
+    rerender(<FinancingFields currency="CZK" onChange={onChange}
+      value={{ financingStart: '2025-05-01', financingAmount: 9500, financingFrequency: 'Quarterly', financingPayments: 36, financingBalloon: 5 }} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Remove financing' }))
+    expect(onChange).toHaveBeenCalledWith(empty)
+  })
+
   it('defaults the frequency to Monthly and reports edits; clearing a field gives null', () => {
     const onChange = vi.fn()
     render(<FinancingFields currency="CZK" value={empty} onChange={onChange} />)
