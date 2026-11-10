@@ -149,4 +149,54 @@ public class DemoDataTests
         Assert.True(trips.Count(t => t.DistanceKm > 250 && t.Start.Month is 7 or 8) >= 3);
         Assert.True(trips.Count(t => t.DistanceKm > 250 && t.Start.Month == 12) >= 2);
     }
+
+    [Fact]
+    public void Expense_odometers_never_decrease_in_list_order()
+    {
+        var withOdo = Make().Expenses.Where(e => e.Odometer is not null).ToList();
+        for (var i = 1; i < withOdo.Count; i++)
+            Assert.True(withOdo[i].Odometer >= withOdo[i - 1].Odometer,
+                $"{withOdo[i].Date} {withOdo[i].Note} odo {withOdo[i].Odometer} after {withOdo[i - 1].Odometer}");
+    }
+
+    [Fact]
+    public void Every_trip_starts_where_the_previous_one_ended()
+    {
+        var trips = Make().Trips;
+        for (var i = 1; i < trips.Count; i++)
+            Assert.True(trips[i].StartAddress == trips[i - 1].EndAddress,
+                $"trip {i} ({trips[i].Start}) starts at '{trips[i].StartAddress}' but previous ended at '{trips[i - 1].EndAddress}'");
+    }
+
+    public static IEnumerable<object[]> ManyToday()
+    {
+        for (var i = 0; i < 24; i++)
+            yield return [new DateOnly(2026, 3, 1).AddDays(i * 45 + i % 3 * 7)];
+        foreach (var d in new[] { new DateOnly(2026, 3, 31), new DateOnly(2026, 11, 30), new DateOnly(2027, 2, 28),
+                     new DateOnly(2028, 2, 29), new DateOnly(2028, 8, 31), new DateOnly(2029, 2, 28) })
+            yield return [d];
+    }
+
+    [Theory]
+    [MemberData(nameof(ManyToday))]
+    public void Scheduled_work_exists_for_any_creation_day(DateOnly today)
+    {
+        var car = DemoData.Generate(today);
+        Assert.Single(car.Expenses, e => e.Flags.HasFlag(MaintenanceType.NewTyres));
+        Assert.Contains(car.Expenses, e => e.Work?.Any(w => w.Name == "HU/AU (TÜV)") == true);
+        Assert.Contains(car.Expenses, e => e.Work?.Any(w => w.Type == MaintenanceType.BrakePads) == true);
+        Assert.Contains(car.Expenses, e => e.Work?.Any(w => w.Type == MaintenanceType.BrakeFluid) == true);
+        Assert.All(car.Expenses, e => Assert.True(e.Date <= today));
+        Assert.All(car.Trips, t => Assert.True(DateOnly.FromDateTime(t.End) <= today));
+
+        var prevDate = car.PurchaseDate;
+        var prevOdo = car.HistoryStartOdometer;
+        foreach (var s in car.Expenses.Where(e => e.Flags.HasFlag(MaintenanceType.OilChange)).OrderBy(e => e.Date))
+        {
+            Assert.True(s.Date <= prevDate.AddMonths(12).AddDays(15), $"{today}: service {s.Date} too long after {prevDate}");
+            Assert.True(s.Odometer!.Value - prevOdo <= 26000);
+            prevDate = s.Date;
+            prevOdo = s.Odometer!.Value;
+        }
+    }
 }

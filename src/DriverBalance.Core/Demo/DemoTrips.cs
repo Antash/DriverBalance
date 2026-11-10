@@ -181,6 +181,9 @@ internal sealed class DemoTripSim
     private void Pair(DateOnly d, TimeSpan t, DemoPlaces.Poi? poi = null, string home = DemoPlaces.Home, Kind kind = Kind.Short, double? km = null)
     {
         poi ??= DemoPlaces.Short[_rng.Next(DemoPlaces.Short.Length)];
+        // Only go out if the way back still fits in the day: the outbound must start by 20:30 (it ends before 21:15).
+        if (t < _cursor.TimeOfDay + TimeSpan.FromMinutes(3)) t = _cursor.TimeOfDay + TimeSpan.FromMinutes(3);
+        if (t > T(20, 30)) return;
         var outKm = km ?? Math.Max(2.0, poi.Km * U(0.7, 1.0));
         if (!AddTrip(d, t, home, poi.Address, outKm, kind)) return;
         var back = _cursor.TimeOfDay + TimeSpan.FromMinutes(_rng.Next(15, 121));

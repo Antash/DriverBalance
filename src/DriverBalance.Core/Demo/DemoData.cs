@@ -57,6 +57,6 @@ public static class DemoData
             InitialTyreSetKey: DemoCosts.SummerKey,
             TyreSets: costs.TyreSets,
             Trips: sim.Trips,
-            Expenses: expenses.OrderBy(e => e.Date).ToList());
+            Expenses: expenses.OrderBy(e => e.Date).ThenBy(e => e.Odometer ?? 0).ToList());
     }
 }
