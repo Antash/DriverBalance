@@ -1,0 +1,53 @@
+# Build and test everything on every push and pull request.
+# Also called by deploy.yml, so nothing is deployed unless this passes.
+name: CI
+
+on:
+  push:
+    branches-ignore: [release] # deploy.yml runs CI for release itself
+  pull_request:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    # VolvoSync and its tests target net10.0-windows (DPAPI, Edge), so the whole solution is built on Windows.
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build (.NET, warnings are errors)
+        run: dotnet build DriverBalance.slnx -c Release -warnaserror
+
+      - name: Test (.NET)
+        run: dotnet test DriverBalance.slnx -c Release --no-build
+
+      - name: Web install
+        working-directory: web
+        run: npm ci
+
+      - name: Web lint
+        working-directory: web
+        run: npm run lint
+
+      - name: Web test
+        working-directory: web
+        run: npm test
+
+      - name: Web build
+        working-directory: web
+        run: npm run build

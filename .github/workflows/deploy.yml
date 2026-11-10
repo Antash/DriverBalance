@@ -1,0 +1,73 @@
+# Deploy to Azure App Service (F1 Linux) when the release branch moves, or by hand.
+# Go live with:  git push origin master:release
+# Needs the repository secret AZURE_WEBAPP_PUBLISH_PROFILE (App Service -> Overview -> Download publish profile).
+name: Deploy
+
+on:
+  push:
+    branches: [release]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  AZURE_WEBAPP_NAME: driverbalance
+  AZURE_WEBAPP_URL: https://driverbalance-fsa2ewdubnabdpdj.polandcentral-01.azurewebsites.net
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: ci
+    # Same OS as local publishes (the csproj web-build step is only tested on Windows); the output runs on Linux as is.
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    environment:
+      name: production
+      url: ${{ env.AZURE_WEBAPP_URL }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # Framework-dependent publish; the csproj builds the web UI into wwwroot.
+      - name: Publish
+        run: dotnet publish src/DriverBalance.Web -c Release -o publish
+
+      - name: Check the UI is in the package
+        run: test -f publish/wwwroot/index.html && test -f publish/DriverBalance.Web.dll
+
+      - name: Deploy to Azure
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: publish
+
+      - name: Smoke test
+        run: |
+          for i in $(seq 1 12); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$AZURE_WEBAPP_URL/" || true)
+            echo "attempt $i: HTTP $code"
+            if [ "$code" = "200" ]; then exit 0; fi
+            sleep 10
+          done
+          echo "The app did not answer 200 within 2 minutes; check Log stream in the portal." >&2
+          exit 1
