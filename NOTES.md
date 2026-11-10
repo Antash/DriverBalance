@@ -3,6 +3,13 @@
 Last updated: 2026-11-10. Branch `feat/hosted-auth` (demo car added), **not merged**.
 Tests: Core 169, Web 176, VolvoSync 28, web (vitest) 233, all green; `dotnet build` 0 warnings.
 
+## Start page (2026-11-10, branch `feat/landing-page`)
+Google Safe Browsing flagged the azurewebsites.net host as phishing (an empty SPA shell whose only content was "Sign in
+with Google"). Now: a real start page for signed-out visitors (`SignIn.tsx`, words in `web/src/lib/landing.ts`), a
+static copy inside `#root` of `web/index.html` between `<!--landing-->` markers (for no-JS scanners; the server strips it
+for signed-in requests, `SpaIndex` in Program.cs; a vitest keeps both copies in step), meta description / og tags, own
+favicon (was Vite's logo), "not affiliated with Volvo Cars" footer. The owner still has to request a Google review.
+
 ## Demo car (2026-11-10)
 
 A user with no car can create a demo BMW 320d Touring full of made-up data to try the app.

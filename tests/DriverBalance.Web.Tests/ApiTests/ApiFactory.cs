@@ -47,7 +47,7 @@ public class ApiFactory : WebApplicationFactory<Program>
     public ApiFactory()
     {
         Directory.CreateDirectory(Path.Combine(_dir, "wwwroot"));
-        File.WriteAllText(Path.Combine(_dir, "wwwroot", "index.html"), "<html>spa-index</html>");
+        File.WriteAllText(Path.Combine(_dir, "wwwroot", "index.html"), "<html>spa-index<div id=\"root\"><!--landing-->LANDING-PAGE<!--/landing--></div></html>");
     }
 
     public string DocumentsDir => Path.Combine(_dir, "documents");

@@ -4,10 +4,52 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DriverBalance</title>
+    <title>DriverBalance – driving statistics and car running costs</title>
+    <meta name="description" content="DriverBalance turns the driving journal you export from the Volvo Cars app into clear statistics: trips, fuel use, DPF health, oil intervals, maintenance and the full cost of owning your car. A personal, invite-only project." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="DriverBalance" />
+    <meta property="og:title" content="DriverBalance – driving statistics and car running costs" />
+    <meta property="og:description" content="Trips, fuel use, DPF health, oil intervals, maintenance and the full cost of owning your car, from the Volvo Cars app driving journal." />
+    <meta name="theme-color" content="#2a78d6" />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><!--landing-->
+      <!-- Static copy of web/src/components/SignIn.tsx for visitors without scripts; the server removes it for signed-in people. -->
+      <div class="landing">
+        <header class="landing-top">
+          <span class="brand">DriverBalance</span>
+          <a class="btn" href="/auth/login?returnUrl=%2F">Sign in with Google</a>
+        </header>
+        <main class="landing-main">
+          <section class="landing-hero">
+            <h1>Know how you drive and what your car really costs</h1>
+            <p class="landing-intro">DriverBalance turns the driving journal you export from the Volvo Cars app into clear statistics: trips, fuel use, DPF health, oil intervals, maintenance and the full cost of owning your car.</p>
+            <p><a class="btn primary" href="/auth/login?returnUrl=%2F">Sign in with Google</a></p>
+            <p class="muted">Invite-only for now. Google sign-in is used only to recognise you: DriverBalance never sees your Google password.</p>
+          </section>
+          <section class="landing-features">
+            <div class="card"><h2>Trips and habits</h2><p>Distance, driving time, when you drive, your longest journeys and a driving calendar.</p></div>
+            <div class="card"><h2>Fuel</h2><p>Consumption per trip and over time, fuel burned per active day, cold starts and short trips.</p></div>
+            <div class="card"><h2>DPF health</h2><p>For diesels: whether the particulate filter gets the long drives it needs, with a reminder when it is overdue.</p></div>
+            <div class="card"><h2>Oil and maintenance</h2><p>Every service visit with the work and parts, oil change intervals side by side, tyre sets and swaps.</p></div>
+            <div class="card"><h2>Costs</h2><p>Fuel, service, insurance, tolls and more, cost per km, and purchase, financing and resale in one cost of ownership.</p></div>
+            <div class="card"><h2>Your data stays yours</h2><p>Only you see your data. Download it or delete your account at any time. No ads, nothing sold.</p></div>
+          </section>
+          <section class="card landing-steps">
+            <h2>How it works</h2>
+            <ol>
+              <li>Export the driving journal (CSV) from the Volvo Cars app.</li>
+              <li>Import it into DriverBalance.</li>
+              <li>Add fuel, service and other costs as they happen. Not ready yet? Try a demo car with made-up data first.</li>
+            </ol>
+          </section>
+        </main>
+        <footer class="landing-foot muted">
+          <p>DriverBalance is a personal, non-commercial project. It is not affiliated with or endorsed by Volvo Cars.</p>
+          <p><a href="/privacy">Privacy</a></p>
+        </footer>
+      </div>
+    <!--/landing--></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -256,6 +256,26 @@ public sealed class HostedAuthApiTests : IClassFixture<HostedAuthApiTests.Hosted
     }
 
     [Fact]
+    public async Task NotSignedIn_StartPage_HasTheStaticLanding()
+    {
+        var r = await NoRedirects().GetAsync("/");
+        Assert.Equal(HttpStatusCode.OK, r.StatusCode);
+        var html = await r.Content.ReadAsStringAsync();
+        Assert.Contains("spa-index", html);
+        Assert.Contains("LANDING-PAGE", html);
+    }
+
+    [Fact]
+    public async Task SignedIn_StartPage_LeavesTheLandingOut()
+    {
+        var user = SignIn("g-landing", "landing@example.com");
+        var html = await (await Session(user, isAdmin: false).GetAsync("/trips")).Content.ReadAsStringAsync();
+        Assert.Contains("spa-index", html);
+        Assert.DoesNotContain("LANDING-PAGE", html);
+        Assert.DoesNotContain("<!--landing-->", html);
+    }
+
+    [Fact]
     public async Task SignInLink_GoesToGoogle_WithOurClientId_AndTheCallbackPath()
     {
         var r = await NoRedirects().GetAsync("/auth/login?returnUrl=/trips");

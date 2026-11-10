@@ -196,7 +196,9 @@ public sealed class AnalyticsApiTests(ApiFactory f) : IClassFixture<ApiFactory>
         var c = f.CreateClient();
         var page = await c.GetAsync("/settings/tokens");
         Assert.Equal(HttpStatusCode.OK, page.StatusCode);
-        Assert.Contains("spa-index", await page.Content.ReadAsStringAsync());
+        var html = await page.Content.ReadAsStringAsync();
+        Assert.Contains("spa-index", html);
+        Assert.DoesNotContain("LANDING-PAGE", html); // the local user is always signed in
         Assert.Equal(HttpStatusCode.NotFound, (await c.GetAsync("/api/nope")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await c.GetAsync("/mcp/nope")).StatusCode);
     }

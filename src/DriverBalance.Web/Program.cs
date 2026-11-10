@@ -85,9 +85,30 @@ app.MapFallback(async ctx =>
         return;
     }
     ctx.Response.ContentType = "text/html; charset=utf-8";
-    await ctx.Response.SendFileAsync(file);
+    // The static start page inside index.html is for visitors who are not signed in (and for scanners that do not run
+    // scripts); signed-in people would only see it flash before the app replaces it.
+    if (ctx.User.Identity?.IsAuthenticated != true)
+    {
+        await ctx.Response.SendFileAsync(file);
+        return;
+    }
+    using var reader = new StreamReader(file.CreateReadStream());
+    await ctx.Response.WriteAsync(SpaIndex.WithoutLanding(await reader.ReadToEndAsync()));
 });
 
 app.Run();
 
 public partial class Program;
+
+/// <summary>index.html marks its static start page with &lt;!--landing--&gt; ... &lt;!--/landing--&gt;.</summary>
+public static class SpaIndex
+{
+    public const string Start = "<!--landing-->", End = "<!--/landing-->";
+
+    public static string WithoutLanding(string html)
+    {
+        var from = html.IndexOf(Start, StringComparison.Ordinal);
+        var to = from < 0 ? -1 : html.IndexOf(End, from, StringComparison.Ordinal);
+        return to < 0 ? html : html[..from] + html[(to + End.Length)..];
+    }
+}
