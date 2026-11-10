@@ -5,11 +5,29 @@ namespace DriverBalance.VolvoSync;
 
 internal sealed record ImportOutcome(int Imported, int Skipped, DateOnly? FirstTrip, DateOnly? LastTrip, string[] Warnings);
 
-/// <summary>Talks to the local DriverBalance API (no token; the CrossSiteGuard needs an Origin header).</summary>
-internal sealed class AppClient(string appUrl, long vehicleId) : IDisposable
+/// <summary>
+/// Talks to the DriverBalance API. The CrossSiteGuard needs an Origin header. A local app needs no token (loopback is the
+/// local user); a hosted app needs an API token, sent as a bearer token when given (read from <see cref="TokenVariable"/>,
+/// never a command-line argument, so it does not show up in process listings).
+/// </summary>
+internal sealed class AppClient : IDisposable
 {
-    private readonly HttpClient _http = new() { BaseAddress = new Uri(appUrl + "/"), Timeout = TimeSpan.FromSeconds(60) };
+    /// <summary>Environment variable holding the DriverBalance API token (Settings, API tokens).</summary>
+    public const string TokenVariable = "DRIVERBALANCE_TOKEN";
+
+    private readonly string appUrl;
+    private readonly long vehicleId;
+    private readonly HttpClient _http;
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+
+    public AppClient(string appUrl, long vehicleId, string? token = null, HttpMessageHandler? handler = null)
+    {
+        this.appUrl = appUrl;
+        this.vehicleId = vehicleId;
+        // 90 s: a hosted app on a free plan may be asleep and take a while to wake up.
+        _http = new HttpClient(handler ?? new HttpClientHandler()) { BaseAddress = new Uri(appUrl + "/"), Timeout = TimeSpan.FromSeconds(90) };
+        if (!string.IsNullOrWhiteSpace(token)) _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.Trim());
+    }
 
     public async Task<DateOnly?> GetLastTripAsync(CancellationToken ct)
     {

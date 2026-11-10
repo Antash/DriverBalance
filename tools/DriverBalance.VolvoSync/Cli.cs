@@ -94,7 +94,7 @@ internal static class Cli
 
     private static async Task<int> SyncAsync(Options options, CredentialStore store)
     {
-        using var app = new AppClient(options.AppUrl, options.VehicleId);
+        using var app = new AppClient(options.AppUrl, options.VehicleId, Environment.GetEnvironmentVariable(AppClient.TokenVariable));
         var lastTrip = options.From is null ? await app.GetLastTripAsync(CancellationToken.None) : null;
         var range = SyncRange.Compute(options.From, lastTrip, DateOnly.FromDateTime(DateTime.Now));
         Console.WriteLine($"Exporting Volvo trips {range.From:yyyy-MM-dd} to {range.To:yyyy-MM-dd}.");

@@ -80,5 +80,8 @@ internal sealed record Options
           --headless          run sync without a visible window (usually blocked by Volvo's bot protection)
           --keep-open         debug: wait for Enter before closing the browser
           -h, --help          this text
+
+        Environment:
+          DRIVERBALANCE_TOKEN API token for a hosted app (Settings, API tokens); not needed for the local app
         """;
 }
