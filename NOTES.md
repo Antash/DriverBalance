@@ -1,7 +1,16 @@
 # DriverBalance — working notes (read first)
 
-Last updated: 2026-11-09 (evening). Branch `feat/web-app` (over `master` c1c16dc), **not merged**, HEAD a296644.
+Last updated: 2026-11-10. Branch `feat/hosted-auth` (demo car added), **not merged**.
 Tests: Core 125, Web 142, VolvoSync 28, web (vitest) 219, all green; `dotnet build` 0 warnings.
+
+## Demo car (2026-11-10)
+
+A user with no car can create a demo BMW 320d Touring full of made-up data to try the app.
+- `POST /api/vehicles/demo` creates it (400 "You already have a car." if the user has one; about 3 s). `DELETE /api/vehicles/{id}` removes a demo car.
+- `Vehicles.IsDemo` column, migration `DemoVehicle`. The UI shows a "Demo car with made-up data." banner with "Add your real car" / "Delete demo car".
+- Creating a real car removes the demo automatically.
+- The data generator lives in `src/DriverBalance.Core/Demo`.
+- Smoke-tested on a published build in Local mode (Local mode seeds "My Volvo" on an empty DB, so delete that row first): all six pages show the banner, no console errors.
 
 ## PAUSED HERE: public web service (design written, awaiting owner approval)
 - Design: `docs/superpowers/specs/2026-11-09-public-service-design.md` (committed). Invite-only Google sign-in, per-user

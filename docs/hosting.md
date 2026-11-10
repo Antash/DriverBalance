@@ -52,6 +52,7 @@ Deleting that folder signs everybody out.
 
 Sign in as admin, open **Admin**, type their Google address under **Invites**, and send them the app's link yourself.
 They sign in with that Google account and get an empty profile (they add a car, then import their trip export).
+On the first-car screen they can also try a demo car with made-up data, then delete it or add their real car.
 Anyone else who signs in with Google sees "This service is invite-only for now" and nothing about them is stored.
 
 - **Remove an invite that was not used**: it just disappears.
