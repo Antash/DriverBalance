@@ -171,3 +171,9 @@ a.btn { display: inline-block; text-decoration: none; color: inherit; }
 .avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
 .avatar-initials { display: inline-flex; align-items: center; justify-content: center; background: var(--border); font-size: 11px; font-weight: 600; }
 .footer { margin-top: 24px; font-size: 12px; text-align: center; }
+
+.demo-banner { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-bottom: 12px; padding: 6px 12px;
+  background: var(--warn-bg); border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
+.demo-offer .divider { text-align: center; margin: 0 0 8px; }
+.row-actions { display: flex; gap: 8px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

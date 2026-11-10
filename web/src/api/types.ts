@@ -65,6 +65,8 @@ export interface Vehicle {
   timeZone: string
   initialTyreSetId: number | null
   isDefault: boolean
+  /** The made-up example car; removed when the real car is added. */
+  isDemo: boolean
   historyStart: DateOnly | null
   historyStartOdometer: number | null
   purchaseDate: DateOnly | null

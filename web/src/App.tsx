@@ -4,6 +4,7 @@ import { BrowserRouter, Link, NavLink, Navigate, Route, Routes } from 'react-rou
 import { api, ApiError, setUnauthorizedHandler } from './api/client'
 import type { Me } from './api/account'
 import type { Vehicle } from './api/types'
+import DemoBanner from './components/DemoBanner'
 import AccountMenu from './components/AccountMenu'
 import FirstCar from './components/FirstCar'
 import { ParamsPanel } from './components/ParamsPanel'
@@ -40,6 +41,7 @@ function Shell({ me, vehicles, vehicleId, setVehicleId }: {
   const { dirty } = useParams()
   const [open, setOpen] = useState(false)
   const hosted = me.mode === 'Hosted'
+  const current = vehicles.find((v) => v.id === vehicleId)
   const admin = hosted && me.isAdmin
   return (
     <>
@@ -62,6 +64,7 @@ function Shell({ me, vehicles, vehicleId, setVehicleId }: {
         </nav>
       </header>
       <main className="main">
+        {current?.isDemo && <DemoBanner vehicle={current} />}
         <Routes>
           <Route path="/" element={<Overview />} />
           <Route path="/trips" element={<Trips />} />
