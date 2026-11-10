@@ -87,6 +87,20 @@ public sealed class DocumentStore(IConfiguration config, ILogger<DocumentStore> 
         }
     }
 
+    /// <summary>Removes every document of one vehicle (used when a whole user is deleted); IO errors are logged, not thrown.</summary>
+    public void DeleteVehicleFolder(long vehicleId)
+    {
+        try
+        {
+            var dir = Path.Combine(Root, vehicleId.ToString());
+            if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            log.LogWarning(e, "Could not delete document folder of vehicle {VehicleId}", vehicleId);
+        }
+    }
+
     public void DeleteExpenseFolder(long vehicleId, long expenseId)
     {
         try

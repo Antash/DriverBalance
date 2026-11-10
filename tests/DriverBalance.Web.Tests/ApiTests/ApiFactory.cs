@@ -25,7 +25,9 @@ public sealed class TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOptions>
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         var id = Request.Headers.TryGetValue("X-Test-User", out var v) ? v.ToString() : "1";
-        var identity = new ClaimsIdentity([new Claim("sub", id)], SchemeName);
+        var claims = new List<Claim> { new("sub", id) };
+        if (Request.Headers.ContainsKey("X-Test-Admin")) claims.Add(new Claim("admin", "true"));
+        var identity = new ClaimsIdentity(claims, SchemeName);
         return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName)));
     }
 }
@@ -71,6 +73,16 @@ public class ApiFactory : WebApplicationFactory<Program>
         {
             o.DefaultScheme = o.DefaultAuthenticateScheme = o.DefaultChallengeScheme = TestAuthHandler.SchemeName;
         });
+    }
+
+    /// <summary>Runs code against the database as no particular user (users and invites have no per-user filter) and saves.</summary>
+    public void UseDb(Action<DriverBalanceDbContext> work)
+    {
+        using var scope = Services.CreateScope();
+        var options = scope.ServiceProvider.GetRequiredService<DbContextOptions<DriverBalanceDbContext>>();
+        using var db = new DriverBalanceDbContext(options, new FixedUser(0));
+        work(db);
+        db.SaveChanges();
     }
 
     public HttpClient ClientFor(long userId)

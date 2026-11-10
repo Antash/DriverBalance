@@ -15,6 +15,8 @@ public sealed class TestDb : IDisposable
 {
     private readonly SqliteConnection _conn = new("DataSource=:memory:");
 
+    public SqliteConnection Connection => _conn;
+
     public TestDb()
     {
         _conn.Open();

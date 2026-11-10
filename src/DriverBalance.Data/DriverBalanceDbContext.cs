@@ -6,6 +6,7 @@ namespace DriverBalance.Data;
 public sealed class DriverBalanceDbContext(DbContextOptions<DriverBalanceDbContext> o, ICurrentUser user) : DbContext(o)
 {
     public DbSet<UserRow> Users => Set<UserRow>();
+    public DbSet<InviteRow> Invites => Set<InviteRow>();
     public DbSet<VehicleRow> Vehicles => Set<VehicleRow>();
     public DbSet<TripRow> Trips => Set<TripRow>();
     public DbSet<ExpenseRow> Expenses => Set<ExpenseRow>();
@@ -26,6 +27,9 @@ public sealed class DriverBalanceDbContext(DbContextOptions<DriverBalanceDbConte
         b.Entity<TyreSetRow>().HasQueryFilter(x => x.UserId == CurrentUserId);
         b.Entity<ImportBatchRow>().HasQueryFilter(x => x.UserId == CurrentUserId);
         b.Entity<ApiTokenRow>().HasQueryFilter(x => x.UserId == CurrentUserId);
+
+        b.Entity<UserRow>().HasIndex(x => x.GoogleSubject).IsUnique();
+        b.Entity<InviteRow>().HasIndex(x => x.Email).IsUnique();
 
         b.Entity<VehicleRow>().HasIndex(x => x.UserId);
         b.Entity<TripRow>().HasIndex(x => new { x.VehicleId, x.Start, x.End }).IsUnique();

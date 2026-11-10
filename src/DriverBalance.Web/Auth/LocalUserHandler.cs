@@ -20,7 +20,8 @@ public sealed class LocalUserHandler(IOptionsMonitor<AuthenticationSchemeOptions
         if (ip.IsIPv4MappedToIPv6) ip = ip.MapToIPv4();
         if (!System.Net.IPAddress.IsLoopback(ip)) return Task.FromResult(AuthenticateResult.NoResult());
 
-        var identity = new ClaimsIdentity([new Claim("sub", LocalUserId.ToString())], SchemeName);
+        // The local user is the owner of the machine, so they are also the admin of their own app.
+        var identity = new ClaimsIdentity([new Claim("sub", LocalUserId.ToString()), new Claim(HostedAuth.AdminClaim, "true")], SchemeName);
         return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName)));
     }
 }

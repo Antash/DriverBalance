@@ -25,7 +25,7 @@ public static class DbSetup
     }
 
     /// <summary>Applies migrations, then seeds user 1 and a default vehicle when the user has none.</summary>
-    public static async Task InitializeAsync(IServiceProvider services)
+    public static async Task InitializeAsync(IServiceProvider services, bool seedVehicle = true)
     {
         using var scope = services.CreateScope();
         var options = scope.ServiceProvider.GetRequiredService<DbContextOptions<DriverBalanceDbContext>>();
@@ -34,7 +34,7 @@ public static class DbSetup
 
         if (!await db.Users.AnyAsync(u => u.Id == LocalUserHandler.LocalUserId))
             db.Users.Add(new UserRow { Id = LocalUserHandler.LocalUserId, Name = "Local user", CreatedAt = DateTime.UtcNow });
-        if (!await db.Vehicles.AnyAsync())
+        if (seedVehicle && !await db.Vehicles.AnyAsync())
             db.Vehicles.Add(new VehicleRow { Name = "My Volvo", FuelType = "Diesel", IsDefault = true, ParametersJson = new AnalysisParameters().ToJson() });
         await db.SaveChangesAsync();
     }

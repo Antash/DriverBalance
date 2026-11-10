@@ -12,6 +12,24 @@ public sealed class UserRow
     public long Id { get; set; }
     public string Name { get; set; } = "";
     public DateTime CreatedAt { get; set; }
+    /// <summary>Google "sub" of the account that signs in as this user; null for the local user until linked.</summary>
+    public string? GoogleSubject { get; set; }
+    public string? Email { get; set; }
+    public string? DisplayName { get; set; }
+    public string? PictureUrl { get; set; }
+    public DateTime? LastSignInAt { get; set; }
+    /// <summary>Set when the admin removes this user's (used) invite: signed out and cannot sign in again; the data stays.</summary>
+    public bool Blocked { get; set; }
+}
+
+/// <summary>An email address that may create a profile (hosted mode). Stored lower-case.</summary>
+public sealed class InviteRow
+{
+    public long Id { get; set; }
+    public string Email { get; set; } = "";
+    public DateTime CreatedAt { get; set; }
+    public long? UsedByUserId { get; set; }
+    public DateTime? UsedAt { get; set; }
 }
 
 public sealed class VehicleRow : IUserOwned
