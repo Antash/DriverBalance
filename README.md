@@ -1,5 +1,8 @@
 # DriverBalance
 
+[![CI](https://github.com/Antash/DriverBalance/actions/workflows/ci.yml/badge.svg)](https://github.com/Antash/DriverBalance/actions/workflows/ci.yml)
+[![Deploy](https://github.com/Antash/DriverBalance/actions/workflows/deploy.yml/badge.svg?branch=release)](https://github.com/Antash/DriverBalance/actions/workflows/deploy.yml)
+
 A local web app for analysing how you drive and what your car costs. It imports trip CSV exports, groups trips into cold-start sessions, scores each session (Excellent / Good / Fair / Bad) and tracks the DPF-friendly share of your driving, fuel consumption, maintenance and tyre costs. It runs on your own machine at `http://localhost:5180`; nothing leaves it.
 
 ## Pages
