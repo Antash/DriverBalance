@@ -12,6 +12,10 @@ export class ApiError extends Error {
   }
 }
 
+let onUnauthorized: (() => void) | undefined
+/** Called when any API call answers 401 (the session ended): the app then shows the sign-in page. */
+export function setUnauthorizedHandler(handler: (() => void) | undefined) { onUnauthorized = handler }
+
 async function request<T>(method: string, path: string, body?: unknown, form?: FormData): Promise<T> {
   const init: RequestInit = { method }
   if (form) init.body = form
@@ -21,6 +25,7 @@ async function request<T>(method: string, path: string, body?: unknown, form?: F
   }
   const res = await fetch(`/api${path}`, init)
   if (!res.ok) {
+    if (res.status === 401 && path !== '/me') onUnauthorized?.() // /me is how the app asks; reacting to it would loop
     let errors: string[] | undefined
     try {
       const parsed = (await res.json()) as Partial<ApiErrorBody>
@@ -39,6 +44,6 @@ export const api = {
   get: <T>(path: string) => request<T>('GET', path),
   post: <T>(path: string, body?: unknown) => request<T>('POST', path, body),
   put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body),
-  del: <T>(path: string) => request<T>('DELETE', path),
+  del: <T>(path: string, body?: unknown) => request<T>('DELETE', path, body),
   upload: <T>(path: string, form: FormData) => request<T>('POST', path, undefined, form),
 }
