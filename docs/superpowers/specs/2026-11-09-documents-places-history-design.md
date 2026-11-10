@@ -7,8 +7,8 @@ builder's calls, made because the owner asked for the build rather than more que
 - The owner wants to keep the paperwork of a service (orders, receipts, invoices) with the record, and note where the
   service was done, reusing places they used before.
 - Stats ignore everything before the first imported trip. The owner: "count from the 0 km on odometer, all intervals
-  should go into stats, even those where there is no information but total km driven." Their first oil change was at
-  7 350 km and the trip data starts later, so the "new car → first oil change" interval is missing entirely.
+  should go into stats, even those where there is no information but total km driven." Their first oil change came several thousand km in,
+  and the trip data starts later, so the "new car → first oil change" interval is missing entirely.
 
 ## 1. Service place
 - Expenses gain `Place: string?` (≤ 100 chars, trimmed, blank → null). Shown and editable for every category except

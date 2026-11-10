@@ -20,7 +20,7 @@ public sealed class CarDetailsApiTests(ApiFactory f) : IClassFixture<ApiFactory>
             details = new
             {
                 model = " Volvo V90 ", engine = "D5 AWD", trim = "Momentum", modelYear = 2024,
-                exteriorColour = "Crystal White", interior = "Black leather",
+                exteriorColour = "Crystal White", interior = "Charcoal cloth",
                 equipment = new[] { "Harman Kardon audio", " Pilot Assist ", "", "Harman Kardon audio" },
             },
         });

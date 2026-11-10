@@ -30,7 +30,7 @@
 ### Task 1: Backend — Place field and suggestions
 **Files:** `src/DriverBalance.Core/Domain/Expense.cs` (`Place`), `src/DriverBalance.Data/Rows/Rows.cs`, `src/DriverBalance.Data/Mapping.cs`, migration `ExpensePlace`, `src/DriverBalance.Web/Services/ExpenseRules.cs` (trim, ≤ 100, blank → null; Fuel keeps Place null), `src/DriverBalance.Web/Endpoints/ExpenseEndpoints.cs` (Update copies Place; `GET /vehicles/{vid}/expenses/places`), `src/DriverBalance.Web/Mcp/CarTools.cs` (`log_maintenance` gains optional `place`).
 **Interfaces:** Expense JSON `place: string | null`. `GET /api/vehicles/{vid}/expenses/places` → `string[]`, most recent first, case-insensitive distinct keeping the latest spelling, max 50.
-- [ ] **Step 1: Failing tests** in `tests/DriverBalance.Web.Tests/ApiTests/PlaceApiTests.cs`: round trip; value trimmed; 101 chars → 400; Fuel with place → stored null; suggestions: "City Garage" (2025-01-10), "Pneu Servis" (2025-06-01), "city garage" (2026-01-10) → `["city garage", "Pneu Servis"]`.
+- [ ] **Step 1: Failing tests** in `tests/DriverBalance.Web.Tests/ApiTests/PlaceApiTests.cs`: round trip; value trimmed; 101 chars → 400; Fuel with place → stored null; suggestions: "City Garno" (2025-01-10), "Pneu Servis" (2025-06-01), "city garage" (2026-01-10) → `["city garage", "Pneu Servis"]`.
 - [ ] **Step 2: Run** `dotnet test tests/DriverBalance.Web.Tests --filter PlaceApiTests` — fails.
 - [ ] **Step 3: Implement.** Route `/expenses/places` must not collide with `/expenses/{id:long}`.
 - [ ] **Step 4: Run** `dotnet test` — green, 0 warnings.

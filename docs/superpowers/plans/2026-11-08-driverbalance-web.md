@@ -561,7 +561,7 @@ export function StatsTable / CompareTable components use MetricRow[]; StatsTable
 - [ ] **Step 1: Run the full suite.** `dotnet test` and `npm test` all green, plus `npm run build`.
 - [ ] **Step 2: Local-only real-data parity check, not committed.** Run the legacy console against a **copy** of `DriverBalance/bin/Debug/net10.0/*.json` (menu 3 and 11), and compare its numbers with the new API after migrating the same copy into a scratch DB. Report the differences as counts and metric names only; no addresses. Any difference must be explained by Rulings 2/3 or fixed.
 - [ ] **Step 3: Delete the legacy project**, update the solution, build, and run the tests.
-- [ ] **Step 4: Publish to `%LOCALAPPDATA%\DriverBalance\app`, start it, and migrate the owner's real data.** Use the Import page's legacy migration with the two JSON files from `bin/Debug` into the real DB at the default path; keep the original JSON files untouched. Verify `/api/analytics/overview` returns 200 with 1 500 trips accounted for. **Do not register autostart** (the owner decides). Mention the script in the handover.
+- [ ] **Step 4: Publish to `%LOCALAPPDATA%\DriverBalance\app`, start it, and migrate the owner's real data.** Use the Import page's legacy migration with the two JSON files from `bin/Debug` into the real DB at the default path; keep the original JSON files untouched. Verify `/api/analytics/overview` returns 200 with every trip accounted for. **Do not register autostart** (the owner decides). Mention the script in the handover.
 - [ ] **Step 5: Commit** `chore: retire console app; README, autostart script`.
 
 ---

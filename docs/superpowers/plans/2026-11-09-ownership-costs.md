@@ -39,4 +39,4 @@
 - [ ] Implement; vitest + tsc green; commit `feat(web): purchase date, cost of ownership, previous-owner tags`.
 
 ### Task 3: Import and verify (controller)
-- [ ] Back up the DB (`driverbalance.pre-ownership.db`), publish, set PurchaseDate 2025-04-14 via the API, import the records listed in the spec through the expenses API, verify Overview, Statistics 2025 and the ownership card, update NOTES.md, commit.
+- [ ] Back up the DB (`driverbalance.pre-ownership.db`), publish, set the owner's PurchaseDate via the API, import the records listed in the spec through the expenses API, verify Overview, Statistics 2025 and the ownership card, update NOTES.md, commit.

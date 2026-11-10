@@ -60,21 +60,21 @@ public class OwnershipTests
         Assert.Equal(2, o.PurchaseCosts.Count);
         Assert.Equal("Car purchase price", o.PurchaseCosts[0].Note);
         Assert.Equal(1030000m, o.PurchaseTotal);
-        Assert.Equal(894.25m, o.RunningCosts); // 1200 * 272 / 365
+        Assert.Equal(861.37m, o.RunningCosts); // 1200 * 262 / 365
         Assert.Equal(10000, o.KmDriven);
-        Assert.Equal(8.9, o.Months);
+        Assert.Equal(8.6, o.Months);
         Assert.Equal(600000m, o.EstimatedResaleValue);
         Assert.Equal(new DateOnly(2025, 12, 1), o.ResaleEstimateDate);
-        Assert.Equal(1030000m + 894.25m - 600000m, o.NetCost);
+        Assert.Equal(1030000m + 861.37m - 600000m, o.NetCost);
         Assert.Equal(Money.Round(o.NetCost!.Value / 10000m), o.NetCostPerKm);
-        Assert.Equal(Money.Round(o.NetCost!.Value / 8.9m), o.NetCostPerMonth);
+        Assert.Equal(Money.Round(o.NetCost!.Value / 8.6m), o.NetCostPerMonth);
     }
 
     [Fact]
     public void Compute_WithoutResale_NetCostIsWhatWasSpent()
     {
         var o = Ownership.Compute(Ctx(Purchase, null));
-        Assert.Equal(1030000m + 894.25m, o.NetCost);
+        Assert.Equal(1030000m + 861.37m, o.NetCost);
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public class OwnershipTests
         Assert.Equal(36 * 9500m + 200000m, o.Financing!.Total);
         Assert.Equal(1030000m, o.LumpSumTotal);
         Assert.Equal(1030000m + 542000m, o.PurchaseTotal);
-        Assert.Equal(1030000m + 542000m + 894.25m - 600000m, o.NetCost);
+        Assert.Equal(1030000m + 542000m + 861.37m - 600000m, o.NetCost);
         Assert.Equal(new DateOnly(2028, 4, 1), o.Financing.EndDate);
         Assert.Equal(36, o.Financing.Payments);
     }

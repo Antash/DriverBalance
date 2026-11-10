@@ -11,7 +11,7 @@ car is a purchase value - resale value which we don't really know, can only gues
 ## Decisions
 - **Vehicle gains** `PurchaseDate: DateOnly?` ("Bought on" — the current owner's first day), `EstimatedResaleValue:
   decimal?` and `ResaleEstimateDate: DateOnly?` (a manual guess of today's market value, in the home currency). Settings
-  edits them. When PurchaseDate is empty the UI suggests the first recorded trip date. The owner's car: 2025-04-14.
+  edits them. When PurchaseDate is empty the UI suggests the first recorded trip date.
 - **Previous owner:** maintenance records dated before PurchaseDate get a muted "previous owner" tag in the Services
   table; Oil intervals columns whose interval ends on or before PurchaseDate get "previous owner" under the heading.
 - **New expense category `Purchase`** (label "Purchase (car, warranty, transfer)"): appended to the enum; stored as a
@@ -24,9 +24,7 @@ car is a purchase value - resale value which we don't really know, can only gues
   `netCost` = purchaseTotal + runningCosts − (estimatedResaleValue ?? 0), `netCostPerKm`, `netCostPerMonth`
   (null when km/months are 0 or no PurchaseDate). The card marks resale-based figures as estimates and shows
   "Set the purchase date in Settings" when PurchaseDate is missing.
-- **Import** (done by the controller through the API, not a product feature): from `cost sheet - 2025.csv`, one
-  expense per category with the 2025 total, date 2025-04-14, covers 2025-04-14 → 2025-12-31, note "Imported from
-  cost sheet 2025 (N items)": Insurance 30 000 (2), TollsVignette 2 840 (1), Accessories 20 000 (7), Wash 2 000 (4),
-  Fuel 25 000 (16), Parking 5 000 (27), Fines 600 (1). Service 2 500 is skipped (already recorded 2025-10-22). Purchase:
-  car 1 250 000 ("Car purchase price"), warranty 35 000 ("Warranty"), registration transfer 2 500 ("Registration
-  transfer"), all 2025-04-14. Back up the DB first.
+- **Import** (done by the controller through the API, not a product feature): from the owner's yearly cost sheet, one
+  expense per category with the year's total, dated the purchase date and covering purchase date → 2025-12-31, note
+  "Imported from the 2025 sheet (N items)". A service already recorded is skipped. Purchase costs (car, warranty,
+  registration transfer) go in on the purchase date. Back up the DB first.

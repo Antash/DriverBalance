@@ -35,17 +35,17 @@ DriverBalance is a single-file .NET console tool (`DriverBalance/Program.cs`). I
 
 - Statistics that silently disagree with the current console tool on the same data.
 - An architecture that would need a rewrite to become multi-user. The owner said: "potentially multi-user service available globally... just bear this in mind when building architecture". Every record belongs to a user and a vehicle from day one.
-- Losing or corrupting the existing data (1 500 trips, 4 maintenance records).
+- Losing or corrupting the existing data (the trip history and the maintenance records).
 - Committing personal data. Trip CSVs contain home and work addresses, so real data never goes into git.
 - Navigation as painful as the console: deep menus, re-typing paths, prompts.
 
 ## Current state (facts the builder needs)
 
-- Repo: `C:\Users\user\source\repos\DriverBalance`, remote `github.com/Antash/DriverBalance`, branch `master`. `.slnx` solution, `net10.0`, single package dependency ScottPlot 5.1.57.
+- Repo: `%USERPROFILE%\source\repos\DriverBalance`, remote `github.com/Antash/DriverBalance`, branch `master`. `.slnx` solution, `net10.0`, single package dependency ScottPlot 5.1.57.
 - `DriverBalance/Program.cs` has **uncommitted local changes (+498 lines)**. That working copy, which adds maintenance records and interval reports, is the latest version of the logic and the reference for parity. Commit it as a baseline (owner's work, separate commit) before restructuring.
 - Live data sits next to the binary in `DriverBalance/bin/Debug/net10.0/`. It is not in git (bin is ignored):
-  - `triprecords.json`: 1 500 `TripRecord`s, 2025-04-14 to 2026-10-01, categories `""`, `Unassigned`, `Private`.
-  - `maintenancerecords.json`: 4 records (flags enum `MaintenanceType`): 2025-02-06 OilChange|BrakeFluid at 7 350 km cost 0; 2025-10-22 TyreSwap at 19 200 km 2 500 CZK; 2026-01-13 OilChange|BrakeFluid at 22 000 km 15 000 CZK; 2026-03-18 TyreSwap at 27 400 km 2 800 CZK.
+  - `triprecords.json`: the trip history (`TripRecord`s), categories `""`, `Unassigned`, `Private`.
+  - `maintenancerecords.json`: a few maintenance records (flags enum `MaintenanceType`, odometer, cost; some with cost 0).
 - `appsettings.json` holds `TripAnalysisParameters`. The values in that file differ from the class defaults (`ModerateCitySpeed` 35 vs 30, `MixedSpeed` 50 vs 40, `DpfMovingAverageWeeks` 3 vs 4). The file values are the ones in use.
 - CSV format: Volvo app export, `cs-CZ` culture, 11 columns (category, start time, start odometer, start address, end time, end odometer, end address, duration like `1 h, 5 min`, distance km, fuel L, notes). Numbers use NBSP/space thousands separators and comma decimals. See `TripImporter`.
 - Volvo deletes trips from the app after **400 days**, so old trips must be exported before they disappear.
@@ -207,7 +207,7 @@ New, built on data that already exists:
   - `get_stats` (period: interval, range or calendar; returns the same numbers as the UI);
   - `import_trips_csv` (CSV text).
 - Descriptions are written so an LLM fills fields correctly. For example, the odometer is optional and comes from the latest snapshot when missing. Each result returns the stored entry so the assistant can confirm it.
-- **Wiring into the family-assistant bot** (`C:\Users\user\source\repos\family-assistant`, TypeScript, Claude Agent SDK) is a separate change in that repo, done last. The bot currently runs only in-process MCP servers with `strictMcpConfig`, so it needs a new `car` server entry (HTTP MCP or an in-process proxy) added to its policy. The bot is deliberately stopped until its open admin-fence security gap is fixed (see that repo's `NOTES.md`). That fix comes first. *(Builder's call: the `car` tool is enabled only in the owner's private DM scope, not the family group, until the owner says otherwise.)* Sending the CSV to the bot as a file is in scope only if the bot can hand file contents to tools. Otherwise CSV import stays in the web UI.
+- **Wiring into the family-assistant bot** (`%USERPROFILE%\source\repos\family-assistant`, TypeScript, Claude Agent SDK) is a separate change in that repo, done last. The bot currently runs only in-process MCP servers with `strictMcpConfig`, so it needs a new `car` server entry (HTTP MCP or an in-process proxy) added to its policy. The bot is deliberately stopped until its open admin-fence security gap is fixed (see that repo's `NOTES.md`). That fix comes first. *(Builder's call: the `car` tool is enabled only in the owner's private DM scope, not the family group, until the owner says otherwise.)* Sending the CSV to the bot as a file is in scope only if the bot can hand file contents to tools. Otherwise CSV import stays in the web UI.
 
 ### Volvo automatic pull
 

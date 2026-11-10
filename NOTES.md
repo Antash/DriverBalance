@@ -60,11 +60,11 @@ A user with no car can create a demo BMW 320d Touring full of made-up data to tr
   calendar periods count from it, km in the gap before the first real reading is interpolated linearly in time.
   Pre-documents DB backup: `driverbalance.pre-documents.db`.
 - Odometer chart only on Maintenance (removed from Oil intervals; Overview still has "Last 12 months").
-- **Ownership:** vehicle has Bought on (2025-04-14 = first recorded trip; earlier records are tagged "previous owner"),
-  estimated resale value + date. Expense category **Purchase** (car 1 250 000, warranty 35 000, registration transfer 2 500)
+- **Ownership:** vehicle has Bought on (defaults to the first recorded trip; earlier records are tagged "previous owner"),
+  estimated resale value + date. Expense category **Purchase** (car, warranty, registration transfer)
   is excluded from all period money stats and used only by the Overview "Cost of ownership" card (`GET /ownership`).
-- 2025 running costs imported from the owner's sheet as one record per category, spread 2025-04-14 → 2025-12-31
-  (2025 total 100 000 = sheet total). Backup before: `driverbalance.pre-ownership.db`.
+- 2025 running costs imported from the owner's sheet as one record per category, spread from the purchase date
+  to the year end (totals match the sheet). Backup before: `driverbalance.pre-ownership.db`.
 - **Volvo sync tool** (`tools/DriverBalance.VolvoSync`, spec `docs/superpowers/specs/2026-11-09-volvo-sync-design.md`):
   `dotnet run --project tools/DriverBalance.VolvoSync -- sync` opens a visible Edge window (headless is blocked by Volvo's
   Akamai bot protection; we do not disguise it), exports the journal from the app's last trip − 2 days and posts it to
@@ -77,8 +77,8 @@ A user with no car can create a demo BMW 320d Touring full of made-up data to tr
 - Expenses page: period switch (Total / Last 12 months / each year), treemap of category shares (amount on hover),
   total spent, smoothed weekly cost per km, records at the bottom. Same period switch on Trips (+ group/trip switch);
   Oil intervals views: All / Current vs average / Current vs last.
-- 2026 sheet imported (1 Jan – 7 Nov, one record per category). Car details (Volvo V90 B4 Momentum MY2024, equipment,
-  Crystal White, black leather), resale estimate 1 100 000 CZK on 09/11/2026.
+- 2026 sheet imported (1 Jan – 7 Nov, one record per category). Car details and the resale estimate
+  are entered in Settings.
 - Categories: Purchase is hidden (API refuses new ones; only Cost of ownership uses it); Financing removed; Road tax
   merged into Road tolls (TollsVignette). The old JSON-data migration feature was removed entirely.
 - **Dates are dd/mm/yyyy everywhere** (owner: "don't use American date style"); `DateInput` replaces native date
@@ -86,7 +86,7 @@ A user with no car can create a demo BMW 320d Touring full of made-up data to tr
   Month labels like "2026-11" are still yyyy-MM (owner not asked yet).
 - **Fuel type** (Settings): Diesel, Diesel MHEV, Petrol, Petrol MHEV, Petrol PHEV, Electric (no plain hybrid — owner).
   DPF health/index/charts/parameters only for the diesels (or unset). Car details also have Transmission and AWD;
-  the owner's car is set in Settings.
+  set the owner's car in Settings.
 - Statistics tables: Days used, Km / day used, Driving hours columns; periods newest first.
 - Overview order: car card, This month/This year, odometer chart, DPF health (no sparkline), Reminders (only if any),
   Cost of ownership last. Recent expenses removed.
@@ -97,7 +97,7 @@ A user with no car can create a demo BMW 320d Touring full of made-up data to tr
 ## 2026-11-09 late: Trips page polish (commit 261e389)
 - Insights card on Trips Overview (distance, days active, driving time, **longest journey** = trips chained while stops
   are <= 4 h, across midnight and cold starts; `Journeys.Longest`, `UsageStats.LongestJourney`) and on Fuel (fuel burned,
-  average, per active day). Owner's longest so far: 900 km on 06/08/2026.
+  average, per active day).
 - Monthly score and DPF index are separate cards (DPF hidden for non-diesels).
 - Fuel trend y axis is a "focus scale" (`web/src/lib/fuelScale.ts`): 3rd-90th percentile band linear (5-11 L on real
   data), tails log-compressed and shaded, ticks in real litres; chart 420 px high.
@@ -110,7 +110,7 @@ A user with no car can create a demo BMW 320d Touring full of made-up data to tr
 - Real DB: `%LOCALAPPDATA%\DriverBalance\driverbalance.db`: the owner's trips through 2026-11-08, services, tyres, 2025 + 2026 costs.
 - Scratch testing: run the published exe with `--urls http://localhost:5182 --DriverBalance:DatabasePath=<copy> --DriverBalance:DocumentsPath=<dir>`;
   POST/PUT/DELETE need header `Origin: http://localhost:5180` (CrossSiteGuard). PUT /vehicles replaces fields: GET, change, PUT back.
-- Parity: the old console and the new engine agree exactly on the real data (900 cold starts, 30 000.00 km, 6.90 L/100, DPF 70.00 %).
+- Parity: the old console and the new engine agree exactly on the real data (cold starts, km, L/100 and DPF %).
 - `DriverBalance/bin/Debug/net10.0/*.json` is the old console's data and the only original copy. It is git-ignored and intentionally kept. Back it up before deleting.
 - Autostart is NOT registered. The owner decides.
 - A stray dev instance (`src/DriverBalance.Web/bin/Release/.../DriverBalance.Web.exe --urls :5180`, scratch DB) may still hold port 5180. Stop it before starting the real app.
