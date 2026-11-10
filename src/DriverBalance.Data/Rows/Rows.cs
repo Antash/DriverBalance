@@ -44,6 +44,8 @@ public sealed class VehicleRow : IUserOwned
     public string ParametersJson { get; set; } = "{}";
     public long? InitialTyreSetId { get; set; }
     public bool IsDefault { get; set; }
+    /// <summary>The generated example car; the user can delete it, and adding a real car removes it.</summary>
+    public bool IsDemo { get; set; }
     public DateOnly? HistoryStart { get; set; }
     public int? HistoryStartOdometer { get; set; }
     public DateOnly? PurchaseDate { get; set; }

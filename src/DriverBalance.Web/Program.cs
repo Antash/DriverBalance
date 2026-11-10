@@ -24,6 +24,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<DocumentStore>();
 builder.Services.AddScoped<ImportService>();
 builder.Services.AddScoped<VehicleDataLoader>();
+builder.Services.AddScoped<DemoCarService>();
 builder.Services.AddScoped<AnalysisSessionFactory>();
 
 if (hosting.IsHosted)

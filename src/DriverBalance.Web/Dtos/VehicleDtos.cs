@@ -7,12 +7,13 @@ namespace DriverBalance.Web;
 public sealed record VehicleDto(long Id, string Name, string HomeCurrency, string TimeZone, long? InitialTyreSetId, bool IsDefault,
     DateOnly? HistoryStart, int? HistoryStartOdometer,
     DateOnly? PurchaseDate, decimal? EstimatedResaleValue, DateOnly? ResaleEstimateDate, CarDetails Details, string? FuelType, bool HasDpf,
-    DateOnly? FinancingStart, decimal? FinancingAmount, FinancingFrequency? FinancingFrequency, int? FinancingPayments, decimal? FinancingBalloon)
+    DateOnly? FinancingStart, decimal? FinancingAmount, FinancingFrequency? FinancingFrequency, int? FinancingPayments, decimal? FinancingBalloon,
+    bool IsDemo)
 {
     public static VehicleDto From(VehicleRow r) => new(r.Id, r.Name, r.HomeCurrency, r.TimeZone, r.InitialTyreSetId, r.IsDefault, r.HistoryStart, r.HistoryStartOdometer,
         r.PurchaseDate, r.EstimatedResaleValue, r.ResaleEstimateDate, CarDetails.FromJson(r.DetailsJson),
         FuelTypes.Normalise(r.FuelType), FuelTypes.HasDpf(r.FuelType),
-        r.FinancingStart, r.FinancingAmount, r.FinancingFrequency, r.FinancingPayments, r.FinancingBalloon);
+        r.FinancingStart, r.FinancingAmount, r.FinancingFrequency, r.FinancingPayments, r.FinancingBalloon, r.IsDemo);
 }
 
 /// <summary>Allowed fuel types; the DPF only exists on diesels (or when the fuel type is not set).</summary>

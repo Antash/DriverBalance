@@ -11,6 +11,8 @@ public static class VehicleEndpoints
         var v = api.MapGroup("/vehicles");
         v.MapGet("", List);
         v.MapPost("", Create);
+        v.MapPost("/demo", CreateDemo);
+        v.MapDelete("/{vid:long}", Delete);
         v.MapGet("/{vid:long}", Get);
         v.MapPut("/{vid:long}", Update);
         v.MapGet("/{vid:long}/ownership", GetOwnership);
@@ -45,19 +47,43 @@ public static class VehicleEndpoints
     private static async Task<IResult> Get(long vid, VehicleDataLoader loader, CancellationToken ct) =>
         Results.Ok(VehicleDto.From(await loader.GetVehicleAsync(vid, ct)));
 
-    private static async Task<IResult> Create(VehicleInput input, VehicleDataLoader loader, DriverBalanceDbContext db, CancellationToken ct)
+    private static async Task<IResult> CreateDemo(DemoCarService demo, DriverBalanceDbContext db, CancellationToken ct)
+    {
+        if (await db.Vehicles.AnyAsync(ct)) throw new ApiValidationException("You already have a car.");
+        var row = await demo.CreateAsync(ct);
+        return Results.Created($"/api/vehicles/{row.Id}", VehicleDto.From(row));
+    }
+
+    /// <summary>Only the demo car can be deleted here; a real car is never removed through the API.</summary>
+    private static async Task<IResult> Delete(long vid, VehicleDataLoader loader, DriverBalanceDbContext db, DocumentStore documents, CancellationToken ct)
+    {
+        var row = await loader.GetVehicleAsync(vid, ct);
+        if (!row.IsDemo) throw new ApiValidationException("Only the demo car can be deleted.");
+        await VehicleDeletion.DeleteAsync(db, documents, vid, ct);
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> Create(VehicleInput input, VehicleDataLoader loader, DriverBalanceDbContext db, DocumentStore documents, CancellationToken ct)
     {
         var errors = Validate(input, loader.TodayFor(new VehicleRow { TimeZone = input.TimeZone ?? new VehicleRow().TimeZone }));
         if (input.InitialTyreSetId is not null) errors.Add("Initial tyre set can only be set once the vehicle has tyre sets.");
         if (errors.Count > 0) throw new ApiValidationException(errors);
 
         var row = new VehicleRow { FuelType = "", ParametersJson = new AnalysisParameters().ToJson() };
-        bool first = !await db.Vehicles.AnyAsync(ct);
+        bool first = !await db.Vehicles.AnyAsync(v => !v.IsDemo, ct);
         Apply(input, row);
         row.IsDefault = first || input.IsDefault == true;
         if (row.IsDefault) await ClearOtherDefaults(db, 0, ct);
         db.Vehicles.Add(row);
         await db.SaveChangesAsync(ct);
+        // Adding a real car replaces the demo car.
+        foreach (var demoId in await db.Vehicles.Where(v => v.IsDemo).Select(v => v.Id).ToListAsync(ct))
+            await VehicleDeletion.DeleteAsync(db, documents, demoId, ct);
+        if (row.IsDefault is false && !await db.Vehicles.AnyAsync(v => v.IsDefault, ct))
+        {
+            row.IsDefault = true;
+            await db.SaveChangesAsync(ct);
+        }
         return Results.Created($"/api/vehicles/{row.Id}", VehicleDto.From(row));
     }
 
