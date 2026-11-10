@@ -42,4 +42,23 @@ describe('FirstCar demo option', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(onCancel).toHaveBeenCalledTimes(1)
   })
+
+  it('shows pending text while the demo is created', async () => {
+    m.post.mockReturnValue(new Promise(() => {}))
+    renderIt()
+    fireEvent.click(screen.getByRole('button', { name: 'Try with a demo car' }))
+    const btn = await screen.findByRole('button', { name: 'Creating the demo car…' }) as HTMLButtonElement
+    expect(btn.disabled).toBe(true)
+    expect(screen.getByText('This takes a few seconds.')).toBeTruthy()
+  })
+
+  it('warns that adding a real car deletes the demo when opened without the demo option', () => {
+    renderIt({ allowDemo: false })
+    expect(screen.getByText('Adding your car deletes the demo car and everything in it, including anything you added to it.')).toBeTruthy()
+  })
+
+  it('does not show the deletion warning on the first-car page', () => {
+    renderIt()
+    expect(screen.queryByText(/deletes the demo car/)).toBeNull()
+  })
 })

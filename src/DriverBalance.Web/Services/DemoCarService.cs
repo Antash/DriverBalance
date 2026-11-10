@@ -13,11 +13,13 @@ public sealed class DemoCarService(DriverBalanceDbContext db, VehicleDataLoader 
         var car = DemoData.Generate(today);
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
+        var hasCar = await db.Vehicles.AnyAsync(ct); // authoritative check, inside the transaction
+        if (hasCar) throw new ApiValidationException("You already have a car.");
 
         var vehicle = new VehicleRow
         {
             Name = car.Name, FuelType = car.FuelType, HomeCurrency = car.HomeCurrency, TimeZone = car.TimeZone,
-            ParametersJson = new AnalysisParameters().ToJson(), IsDefault = true, IsDemo = true,
+            ParametersJson = new AnalysisParameters().ToJson(), IsDefault = !hasCar, IsDemo = true,
             HistoryStart = car.HistoryStart, HistoryStartOdometer = car.HistoryStartOdometer, PurchaseDate = car.PurchaseDate,
             EstimatedResaleValue = car.EstimatedResaleValue, ResaleEstimateDate = car.ResaleEstimateDate,
             DetailsJson = new CarDetails(car.Model, car.Engine, car.Trim, car.ModelYear, car.ExteriorColour, car.Interior,

@@ -7,6 +7,19 @@ public class DemoDataTests
     private static DemoCar Make() => DemoData.Generate(Today);
 
     [Fact]
+    public void Fuel_expenses_have_station_with_town_and_no_place()
+    {
+        var fuel = Make().Expenses.Where(e => e.Category == ExpenseCategory.Fuel).ToList();
+        Assert.NotEmpty(fuel);
+        Assert.All(fuel, e =>
+        {
+            Assert.Null(e.Place);
+            Assert.False(string.IsNullOrEmpty(e.Station));
+            Assert.Contains(' ', e.Station!);
+        });
+    }
+
+    [Fact]
     public void Same_today_gives_same_data()
     {
         var a = Make();

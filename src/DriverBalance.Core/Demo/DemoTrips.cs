@@ -292,7 +292,7 @@ internal sealed class DemoTripSim
 
         var price = DemoPlaces.DieselPrice(day, _country, _rng);
         _expenses.Add(new DemoExpense(day, ExpenseCategory.Fuel, Math.Round((decimal)litres * price, 2), Odometer, null,
-            null, null, litres, true, brand, town, MaintenanceType.Custom, null, null));
+            null, null, litres, true, $"{brand} {town}", null, MaintenanceType.Custom, null, null));
         _tank = TankLiters;
         _refuelAt = NextRefuelThreshold();
     }

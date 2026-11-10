@@ -1,7 +1,7 @@
 # DriverBalance — working notes (read first)
 
 Last updated: 2026-11-10. Branch `feat/hosted-auth` (demo car added), **not merged**.
-Tests: Core 125, Web 142, VolvoSync 28, web (vitest) 219, all green; `dotnet build` 0 warnings.
+Tests: Core 169, Web 176, VolvoSync 28, web (vitest) 233, all green; `dotnet build` 0 warnings.
 
 ## Demo car (2026-11-10)
 
@@ -12,17 +12,12 @@ A user with no car can create a demo BMW 320d Touring full of made-up data to tr
 - The data generator lives in `src/DriverBalance.Core/Demo`.
 - Smoke-tested on a published build in Local mode (Local mode seeds "My Volvo" on an empty DB, so delete that row first): all six pages show the banner, no console errors.
 
-## PAUSED HERE: public web service (design written, awaiting owner approval)
-- Design: `docs/superpowers/specs/2026-11-09-public-service-design.md` (committed). Invite-only Google sign-in, per-user
-  profiles and analysis parameters, Admin page (invites, users), export my data / delete my account, privacy page,
-  Azure App Service **F1 Linux**, SQLite at `/home/data` (no WAL), documents + daily DB backup in Blob Storage,
-  GitHub Actions deploy, `DriverBalance:Mode = Local | Hosted`. Its "Calls made by Claude" section lists 7 decisions for
-  the owner to confirm (access re-checked every 5 min; admin can't self-delete; 200 MB docs per user; hosted becomes the
-  source of truth; API tokens re-issued; two-user isolation tests).
-- Owner said: invite-only for now; Google only for now; shared cars not needed; other users import trips by hand (only
-  the owner has the sync tool / bot); parameters belong to the user, defaults = current values (= code defaults).
-- Next step once approved: superpowers:writing-plans → plan in `docs/superpowers/plans/`, then subagent-driven build.
-  The owner does Google console / Azure portal steps; never handle the secrets.
+## Status: hosted mode built on `feat/hosted-auth` (not merged)
+- Built: hosted mode (Google sign-in, invites, admin, account export/delete, privacy; commits 95e6b1f, 11700b4; see
+  `docs/hosting.md`), the period-switch fix, and the demo car. Design: `docs/superpowers/specs/2026-11-09-public-service-design.md`.
+- The owner tested hosted sign-in locally on https://localhost:5181 with a scratch launcher.
+- Still to do for deployment: Blob storage for documents + daily DB backup, per-user analysis parameters, GitHub Actions deploy
+  (Azure App Service F1 Linux, SQLite at `/home/data`). The owner does Google console / Azure portal steps; never handle the secrets.
 
 ## Purchase costs & financing (branch `feat/purchase-costs`, not merged)
 - Settings has a **Purchase costs** list (add / edit / delete, saved at once) and a **Financing** block (saved with the vehicle PUT).

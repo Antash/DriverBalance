@@ -47,9 +47,8 @@ public static class VehicleEndpoints
     private static async Task<IResult> Get(long vid, VehicleDataLoader loader, CancellationToken ct) =>
         Results.Ok(VehicleDto.From(await loader.GetVehicleAsync(vid, ct)));
 
-    private static async Task<IResult> CreateDemo(DemoCarService demo, DriverBalanceDbContext db, CancellationToken ct)
+    private static async Task<IResult> CreateDemo(DemoCarService demo, CancellationToken ct)
     {
-        if (await db.Vehicles.AnyAsync(ct)) throw new ApiValidationException("You already have a car.");
         var row = await demo.CreateAsync(ct);
         return Results.Created($"/api/vehicles/{row.Id}", VehicleDto.From(row));
     }

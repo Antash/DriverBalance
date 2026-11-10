@@ -27,6 +27,7 @@ export default function FirstCar({ onDone, onCancel, allowDemo = true }: { onDon
       <form className="card" onSubmit={(e) => { e.preventDefault(); if (name.trim()) create.mutate() }}>
         {allowDemo ? <h2>Add your first car</h2> : <h2 className="sr-only">Add your real car</h2>}
         <p className="muted">You can change all of this later in Settings, then import your trip export on the Import page.</p>
+        {!allowDemo && <p className="muted">Adding your car deletes the demo car and everything in it, including anything you added to it.</p>}
         <div className="form-grid">
           <label>Name<input value={name} onChange={(e) => setName(e.target.value)} placeholder="My Volvo" autoFocus /></label>
           <label>Fuel
@@ -46,7 +47,8 @@ export default function FirstCar({ onDone, onCancel, allowDemo = true }: { onDon
       {allowDemo && (
         <div className="card demo-offer">
           <p className="muted divider">or</p>
-          <p><button type="button" className="btn" disabled={busy} onClick={() => demo.mutate()}>Try with a demo car</button></p>
+          <p><button type="button" className="btn" disabled={busy} onClick={() => demo.mutate()}>{demo.isPending ? 'Creating the demo car…' : 'Try with a demo car'}</button></p>
+          {demo.isPending && <p className="muted">This takes a few seconds.</p>}
           <p className="muted">A made-up BMW with 3½ years of trips, services and costs. Delete it any time; adding your real car removes it.</p>
         </div>
       )}
