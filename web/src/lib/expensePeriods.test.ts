@@ -15,7 +15,9 @@ describe('expensePeriods', () => {
     expect(p.map((x) => x.key)).toEqual(['total', 'last12', '2026', '2025', '2024', '2023'])
     expect(p[0].from).toBe('2023-06-10')
   })
-  it('without any records offers only the last 12 months', () => {
-    expect(expensePeriods(null, '2026-03-01', null).map((p) => p.key)).toEqual(['last12'])
+  it('without any records still offers Total (as the last 12 months) and the last 12 months', () => {
+    const p = expensePeriods(null, '2026-03-01', null)
+    expect(p.map((x) => x.key)).toEqual(['total', 'last12'])
+    expect(p[0]).toEqual({ key: 'total', label: 'Total', from: p[1].from, to: p[1].to })
   })
 })

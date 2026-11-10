@@ -83,6 +83,7 @@ table.data td.num, table.data th.num { text-align: right; font-variant-numeric: 
 .segmented .btn { border-radius: 0; }
 .segmented .btn:first-child { border-radius: 6px 0 0 6px; }
 .segmented .btn:last-child { border-radius: 0 6px 6px 0; margin-left: -1px; }
+.segmented .btn:only-child { border-radius: 6px; margin-left: 0; }
 .btn.active { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
 .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 16px; overflow-x: auto; }
 .tabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 8px 12px; cursor: pointer; color: var(--text-2); white-space: nowrap; }
