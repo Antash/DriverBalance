@@ -8,7 +8,10 @@ internal sealed class SyncException(string message, Exception? inner = null) : E
 /// <summary>The whole browser flow against volvocars.com: open, sign in, set range, export, download.</summary>
 internal sealed class VolvoJournal : IAsyncDisposable
 {
+    private const string HomeUrl = "https://www.volvocars.com/cz/";
     private const string AccountUrl = "https://www.volvocars.com/cz/account/my-cars/";
+    /// <summary>Pause before the one retry after 'Access Denied' (Volvo's bot protection usually lets the next visit through).</summary>
+    private static readonly TimeSpan DeniedRetryWait = TimeSpan.FromSeconds(60);
     private const string AuthHost = "auth.volvocars.com";
     private const string Dialog = "[role=dialog], dialog[open]";
     private const string Submit = "button[type=submit], input[type=submit]";
@@ -20,6 +23,9 @@ internal sealed class VolvoJournal : IAsyncDisposable
     private IBrowserContext? _context;
     private IPage? _page;
     private string? _journalUrl;
+    private bool _homeVisited;
+    /// <summary>When this sync started: any sign-in code e-mail older than this belongs to an earlier run.</summary>
+    private readonly DateTime _startedUtc = DateTime.UtcNow;
 
     public VolvoJournal(Options options, CredentialStore credentials, bool headed)
     {
@@ -64,16 +70,12 @@ internal sealed class VolvoJournal : IAsyncDisposable
     public Task OpenJournalAsync() => RunStep("open journal", async () =>
     {
         _journalUrl ??= await DiscoverJournalUrlAsync();
-        await Page.GotoAsync(_journalUrl, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await SettleAsync();
-        await ThrowIfAccessDeniedAsync();
+        await GotoVolvoPageAsync(_journalUrl);
     });
 
     private async Task<string> DiscoverJournalUrlAsync()
     {
-        await Page.GotoAsync(AccountUrl, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await SettleAsync();
-        await ThrowIfAccessDeniedAsync();
+        await GotoVolvoPageAsync(AccountUrl);
         if (OnLoginPage)
         {
             // Not signed in: the car id cannot be discovered until after sign-in.
@@ -124,7 +126,7 @@ internal sealed class VolvoJournal : IAsyncDisposable
 
     private Task EnsureOnJournalAsync() => RunStep("show journal page", async () =>
     {
-        if (!Page.Url.Contains("/journal-log", StringComparison.OrdinalIgnoreCase))
+        if (!Page.Url.Contains("/journal-log", StringComparison.OrdinalIgnoreCase) || await IsAccessDeniedAsync())
         {
             // Signed in but landed elsewhere (e.g. the account page): rediscover the journal link.
             _journalUrl = null;
@@ -186,7 +188,7 @@ internal sealed class VolvoJournal : IAsyncDisposable
 
     private async Task EnterCodeAsync(ILocator code)
     {
-        var value = await CodeSource.GetAsync(_options.CodeFile, TimeSpan.FromMinutes(5));
+        var value = await CodeSource.GetAsync(_options.CodeFile, TimeSpan.FromMinutes(5), _startedUtc);
         await code.FillAsync(value);
         await Page.Locator(Submit).First.ClickAsync();
         await Page.WaitForURLAsync(u => !u.Contains(AuthHost, StringComparison.OrdinalIgnoreCase), new PageWaitForURLOptions { Timeout = 60_000 });
@@ -269,13 +271,45 @@ internal sealed class VolvoJournal : IAsyncDisposable
     }
 
     // ---- helpers ----
-    private async Task ThrowIfAccessDeniedAsync()
+    /// <summary>
+    /// Opens a www.volvocars.com page the way a person arrives: the home page first (once per browser session), so
+    /// Volvo's bot protection can set up its cookies, then the page itself. 'Access Denied' is retried once after a
+    /// pause, because it is usually temporary.
+    /// </summary>
+    private async Task GotoVolvoPageAsync(string url)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            if (!_homeVisited) await OpenHomeAsync();
+            await Page.GotoAsync(url, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+            await SettleAsync();
+            if (!await IsAccessDeniedAsync()) return;
+            if (attempt >= 2) throw new SyncException(DeniedMessage(headless: !_headed));
+            Console.WriteLine($"Volvo's bot protection refused the page (Access Denied); waiting {DeniedRetryWait.TotalSeconds:0} s and trying once more.");
+            _homeVisited = false;
+            await Task.Delay(DeniedRetryWait);
+        }
+    }
+
+    private async Task OpenHomeAsync()
+    {
+        await Page.GotoAsync(HomeUrl, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await SettleAsync();
+        await DismissCookieBannerAsync();
+        await Page.WaitForTimeoutAsync(3_000);
+        _homeVisited = true;
+    }
+
+    internal static string DeniedMessage(bool headless) =>
+        "Volvo's bot protection refused the page twice (Access Denied). This is usually temporary: try again in a few minutes."
+        + (headless ? " Runs with --headless are refused more often; run without it." : "");
+
+    private async Task<bool> IsAccessDeniedAsync()
     {
         var title = await Page.TitleAsync();
         var body = "";
         try { body = await Page.Locator("body").InnerTextAsync(new LocatorInnerTextOptions { Timeout = 3_000 }); } catch (PlaywrightException) { }
-        if (title.Contains("Access Denied", StringComparison.OrdinalIgnoreCase) || body.Contains("Access Denied", StringComparison.OrdinalIgnoreCase))
-            throw new SyncException("Volvo's bot protection returned 'Access Denied'. Run without --headless (a visible Edge window is not blocked).");
+        return title.Contains("Access Denied", StringComparison.OrdinalIgnoreCase) || body.Contains("Access Denied", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task SettleAsync()
