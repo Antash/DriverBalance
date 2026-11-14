@@ -94,7 +94,7 @@ A user with no car can create a demo BMW 320d Touring full of made-up data to tr
   DPF health/index/charts/parameters only for the diesels (or unset). Car details also have Transmission and AWD;
   set the owner's car in Settings.
 - Statistics tables: Days used, Km / day used, Driving hours columns; periods newest first.
-- Overview order: car card, This month/This year, Recent trips (5 newest drives with route and ≈ cost, hidden when none; added 11-14), odometer chart, DPF health (no sparkline), Reminders (only if any),
+- Overview order: car card, Reminders (only if any; moved up 11-14), This month/This year, Recent trips (5 newest drives with route and ≈ cost, hidden when none; added 11-14), odometer chart, DPF health (no sparkline),
   Cost of ownership last. Recent expenses removed.
 - DPF health explained to the owner: a long drive = Excellent (≥40 min, ≥50 km/h avg) or Good (≥30 min, ≥35 km/h),
   single trip or back-to-back trips; "needs a long drive" after 14 days; it is an estimate from trips only.

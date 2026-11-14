@@ -110,6 +110,16 @@ export default function OverviewPage() {
       {isLoading && !data && <p className="muted">Loading…</p>}
       {data && (
         <>
+          {data.reminders.length > 0 && (
+            <ChartCard title="Reminders">
+              <ul className="plain">
+                {data.reminders.map((r, i) => (
+                  <li key={`${r.kind}-${i}`}><span aria-hidden>{SEVERITY_ICON[r.severity] ?? '•'}</span> <span className="sr-only">{r.severity}: </span>{r.message}</li>
+                ))}
+              </ul>
+            </ChartCard>
+          )}
+
           <div className="chart-grid">
             <Kpis title="This month" stats={data.thisMonth} currency={cur} hasDpf={vehicle.hasDpf} />
             <Kpis title="This year" stats={data.thisYear} currency={cur} hasDpf={vehicle.hasDpf} />
@@ -120,16 +130,6 @@ export default function OverviewPage() {
           <VehicleTimeline from={addYears(today, -1)} to={addDays(today, 1)} title="Last 12 months" />
 
           {vehicle.hasDpf && data.dpfHealth && <DpfHealthStrip health={data.dpfHealth} />}
-
-          {data.reminders.length > 0 && (
-            <ChartCard title="Reminders">
-              <ul className="plain">
-                {data.reminders.map((r, i) => (
-                  <li key={`${r.kind}-${i}`}><span aria-hidden>{SEVERITY_ICON[r.severity] ?? '•'}</span> <span className="sr-only">{r.severity}: </span>{r.message}</li>
-                ))}
-              </ul>
-            </ChartCard>
-          )}
 
           <OwnershipCard currency={cur} />
         </>
