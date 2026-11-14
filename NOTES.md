@@ -129,7 +129,6 @@ A user with no car can create a demo BMW 320d Touring full of made-up data to tr
 
 ## Deferred polish (from reviews, none blocking)
 - **Charts:**
-  - The score map's y-axis label is clipped.
   - The driving-calendar year defaults to the current year, even when it has no data.
   - Interval dropdown labels show the end date twice (exclusive and inclusive).
   - The penalty curve doesn't draw the short-trip limit.
