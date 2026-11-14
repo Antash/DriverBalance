@@ -28,7 +28,8 @@ export function TripDrawer({ tripId, onClose }: { tripId: number; onClose(): voi
   ] : []
   const cost = t?.cost
   const costRows: [string, string][] = t && cost ? [
-    ['Fuel cost', cost.fuel == null || cost.pricePerLitre == null ? '— (no fuel price yet)'
+    ['Fuel cost', cost.fuel == null ? '— (no fuel price yet)'
+      : cost.pricePerLitre == null ? fmtApprox(cost.fuel, cost.currency)
       : `${fmtApprox(cost.fuel, cost.currency)} (${fmtNum(t.fuelLiters, 1)} L × ${cost.pricePerLitre.toFixed(2)} ${cost.currency}/L)`],
     ['Time share', fmtApprox(cost.time, cost.currency)],
     ['Wear share', fmtApprox(cost.wear, cost.currency)],

@@ -15,6 +15,10 @@ public class TripCostsTests
     private static AnalysisContext Ctx(IReadOnlyList<Trip> trips, params Expense[] expenses) =>
         AnalysisContext.Create(new VehicleData(trips, expenses, [], "CZK", new DateOnly(2026, 11, 8)), new AnalysisParameters());
 
+    // Zero-length trips that only widen the pool clip range [first trip day, max(last trip day, Today)].
+    private static Trip[] WithAnchors(Trip trip) =>
+        [T(new DateTime(2025, 1, 1, 8, 0, 0), 0, 0, 0), trip, T(new DateTime(2027, 1, 1, 8, 0, 0), 0, 0, 0)];
+
     private static readonly DateTime Jun1 = new(2026, 6, 1, 8, 0, 0);
 
     [Fact]
@@ -33,7 +37,7 @@ public class TripCostsTests
         Assert.Equal(46.67m, ca.Total);
         Assert.Equal(41.67m, cb.Wear);
         Assert.Equal(75.00m, cb.Total);
-        Assert.Null(ca.Fuel);
+        Assert.Equal(0m, ca.Fuel);
         Assert.Equal("CZK", ca.Currency);
     }
 
@@ -89,7 +93,7 @@ public class TripCostsTests
     public void CoveragePeriod_CountedProRata()
     {
         var trip = T(Jun1, 10, 60, 0);
-        var ctx = Ctx([trip], E("2025-01-01", ExpenseCategory.Insurance, 3650m, from: "2025-01-01", to: "2034-12-31"));
+        var ctx = Ctx(WithAnchors(trip), E("2025-01-01", ExpenseCategory.Insurance, 3650m, from: "2025-01-01", to: "2034-12-31"));
         Assert.InRange(ctx.Costs.Of(trip).Time, 364.79m, 364.81m);
     }
 
@@ -161,7 +165,7 @@ public class TripCostsTests
         var ins = E("2026-06-01", ExpenseCategory.Insurance, 3_652_059m, from: "0001-01-01", to: "9999-12-31");
         int span = DateOnly.MaxValue.DayNumber - DateOnly.MinValue.DayNumber + 1;
         decimal expected = 3_652_059m / span * 365;
-        Assert.InRange(Ctx([trip], ins).Costs.Of(trip).Time, expected - 0.01m, expected + 0.01m);
+        Assert.InRange(Ctx(WithAnchors(trip), ins).Costs.Of(trip).Time, expected - 0.01m, expected + 0.01m);
     }
 
     [Fact]
@@ -189,7 +193,7 @@ public class TripCostsTests
     public void PoolWindow_InclusivePlusMinus182Days(string date, int expectedWear)
     {
         var trip = T(Jun1, 10, 60, 0);
-        var ctx = Ctx([trip], E(date, ExpenseCategory.Repair, 500m));
+        var ctx = Ctx(WithAnchors(trip), E(date, ExpenseCategory.Repair, 500m));
         Assert.Equal((decimal)expectedWear, ctx.Costs.Of(trip).Wear);
     }
 
@@ -206,7 +210,78 @@ public class TripCostsTests
     {
         var trip = T(Jun1, 10, 60, 0);
         // 1000 days at 1/day; window ends 2026-11-30, covered from 2026-11-01 -> 30 days inside.
-        var ctx = Ctx([trip], E("2026-11-01", ExpenseCategory.Insurance, 1000m, from: "2026-11-01", to: "2029-07-27"));
+        var ctx = Ctx(WithAnchors(trip), E("2026-11-01", ExpenseCategory.Insurance, 1000m, from: "2026-11-01", to: "2029-07-27"));
         Assert.InRange(ctx.Costs.Of(trip).Time, 29.99m, 30.01m);
+    }
+
+    [Fact]
+    public void RecentTrips_NotChargedForPrepaidFuture()
+    {
+        var start = new DateOnly(2025, 1, 1);
+        var today = new DateOnly(2026, 11, 8);
+        var trips = new List<Trip>();
+        for (var d = start; d <= today; d = d.AddDays(1)) trips.Add(T(d.ToDateTime(new TimeOnly(8, 0)), 30, 60, 0));
+        var expenses = new List<Expense>();
+        var from = new DateOnly(2024, 7, 1);
+        while (from <= today)
+        {
+            var to = from.AddDays(364);
+            expenses.Add(E(from.ToString("yyyy-MM-dd"), ExpenseCategory.Insurance, 3650m, from: from.ToString("yyyy-MM-dd"), to: to.ToString("yyyy-MM-dd")));
+            from = to.AddDays(1);
+        }
+        var last = expenses[^1];
+        Assert.Equal(new DateOnly(2027, 6, 30), last.CoversTo);
+        var ctx = Ctx(trips, expenses.ToArray());
+
+        decimal spend = 0;
+        foreach (var e in expenses)
+        {
+            var days = e.CoversTo!.Value.DayNumber - e.CoversFrom!.Value.DayNumber + 1;
+            var inside = Math.Min(e.CoversTo!.Value.DayNumber, today.DayNumber) - Math.Max(e.CoversFrom!.Value.DayNumber, start.DayNumber) + 1;
+            if (inside > 0) spend += e.Amount * inside / days;
+        }
+        var total = trips.Sum(t => ctx.Costs.Of(t).Time);
+        Assert.InRange(total, spend * 0.99m, spend * 1.01m);
+
+        var mid = ctx.Costs.Of(trips.First(t => t.Start.Date == new DateTime(2025, 6, 15))).Time;
+        var lastTime = ctx.Costs.Of(trips[^1]).Time;
+        Assert.InRange(lastTime, mid * 0.95m, mid * 1.05m);
+    }
+
+    [Fact]
+    public void ZeroLitreTrip_FuelZeroWithoutPrice()
+    {
+        var trip = T(Jun1, 40, 60, 0);
+        var ctx = Ctx([trip], E("2026-06-01", ExpenseCategory.Insurance, 100m));
+        var c = ctx.Costs.Of(trip);
+        Assert.Equal(0m, c.Fuel);
+        Assert.Null(c.PricePerLitre);
+    }
+
+    [Fact]
+    public void BogusDate_IgnoredAndNormalTripUnchanged()
+    {
+        var normal = T(Jun1, 50, 60, 10);
+        var bogus = T(new DateTime(1, 1, 1, 8, 0, 0), 50, 60, 10);
+        var exp = new[]
+        {
+            E("2026-06-01", ExpenseCategory.Insurance, 1000m), E("2026-06-01", ExpenseCategory.Repair, 500m),
+            E("2026-05-20", ExpenseCategory.Fuel, 400m, 10),
+        };
+        var alone = Ctx([normal], exp).Costs.Of(normal);
+        var ctx = Ctx([bogus, normal], exp);
+        Assert.Equal(alone, ctx.Costs.Of(normal));
+        var b = ctx.Costs.Of(bogus);
+        Assert.Equal(0m, b.Time);
+        Assert.Equal(0m, b.Wear);
+    }
+
+    [Fact]
+    public void HugeLitres_DoesNotThrow()
+    {
+        var trip = T(Jun1, 50, 60, 1e30);
+        var ctx = Ctx([trip], E("2026-06-01", ExpenseCategory.Fuel, 400m, 10));
+        var c = ctx.Costs.Of(trip);
+        Assert.True(Math.Abs(c.Total) <= 1e16m);
     }
 }

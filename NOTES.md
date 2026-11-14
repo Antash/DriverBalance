@@ -1,10 +1,10 @@
 # DriverBalance — working notes (read first)
 
-Last updated: 2026-11-10. Branch `feat/hosted-auth` (demo car added), **not merged**.
-Tests: Core 169, Web 176, VolvoSync 28, web (vitest) 233, all green; `dotnet build` 0 warnings.
+Last updated: 2026-11-14. Branch `feat/hosted-auth` (demo car added), **not merged**.
+Tests: Core 192, Web 181, VolvoSync 35, web (vitest) 245, all green; `dotnet build` 0 warnings.
 
 ## Trip cost (2026-11-14, branch `feat/trip-cost`)
-- Model: per trip, fuel (litres x local average price) + a time share + a wear share of the other running costs, taken over the 12 months around the trip (time by driving time, wear by km).
+- Model: per trip, fuel (litres x local average price) + a time share + a wear share of the other running costs, taken over the 12 months around the trip (time by driving time; wear half by km, half by driving time). The pool windows are clipped to [first trip day, max(last trip day, Today)], so prepaid cover reaching past the last trip is not charged to recent trips; the fuel window is not clipped. Trips dated more than 100 years back or more than a year ahead are ignored (zero shares); a trip with 0 L gets fuel 0 even without a price.
 - Shows as an approximate `Cost` column in the Trips list (group and trip rows, breakdown in the cell tooltip) and a Cost section in the trip drawer.
 - Files: `src/DriverBalance.Core/Analysis/TripCosts.cs`, `Dtos/AnalyticsDtos.cs` (TripView / TripGroupView carry `cost`), `web/src/components/TripList.tsx`, `web/src/components/TripDrawer.tsx`, `fmtApprox` in `web/src/lib/format.ts`.
 - Deferred: cost charts, an Insights cost line, MCP exposure, configurable split and windows.

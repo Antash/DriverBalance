@@ -11,6 +11,8 @@ public sealed class TripCosts
 {
     private const int FuelHalfWindowDays = 45;
     private const int PoolHalfWindowDays = 182;
+    private const double Eps = 1e-9;
+    private const double MaxMagnitude = 1e15;
 
     private static readonly HashSet<ExpenseCategory> TimePoolCategories =
     [
@@ -26,6 +28,8 @@ public sealed class TripCosts
     private readonly string _currency;
     private readonly int _origin; // day number of index 0
     private readonly int _days;
+    private readonly int _today; // day number of Today
+    private readonly int _poolFirst, _poolLast; // day numbers; pool windows are clipped to this range
     // Prefix sums: p[i] = sum of days [0, i).
     // All-data fuel totals (not clipped to the index): the last-resort price.
     private readonly double _allFuelSpend, _allLitreSpend, _allLitres, _allTripLitres;
@@ -34,6 +38,7 @@ public sealed class TripCosts
     private TripCosts(VehicleData data)
     {
         _currency = data.HomeCurrency;
+        _today = data.Today.DayNumber;
         var counted = data.Expenses
             .Where(e => e.Category != ExpenseCategory.Purchase && Money.HomeAmountOf(e, data.HomeCurrency) is not null)
             .ToList();
@@ -42,11 +47,15 @@ public sealed class TripCosts
         int min = int.MaxValue, max = int.MinValue;
         foreach (var t in data.Trips)
         {
-            int d = DateOnly.FromDateTime(t.Start).DayNumber;
+            if (!IsPlausible(t)) continue;
+            int d = DayOf(t);
             min = Math.Min(min, d);
             max = Math.Max(max, d);
         }
-        if (min > max) { min = max = 0; }
+        if (min > max) { min = max = _today; }
+        // Prepaid cover reaching past the last trip has no driving to share it, so pool windows end at the later of the last trip and Today.
+        _poolFirst = min;
+        _poolLast = Math.Max(max, _today);
         _origin = min - PoolHalfWindowDays;
         _days = max - min + 2 * PoolHalfWindowDays + 1;
 
@@ -70,7 +79,8 @@ public sealed class TripCosts
         var tripLitres = new double[_days];
         foreach (var t in data.Trips)
         {
-            int i = DateOnly.FromDateTime(t.Start).DayNumber - _origin;
+            if (!IsPlausible(t)) continue;
+            int i = DayOf(t) - _origin;
             km[i] += t.DistanceKm;
             hours[i] += t.Duration.TotalHours;
             tripLitres[i] += t.FuelLiters;
@@ -88,6 +98,22 @@ public sealed class TripCosts
     }
 
     public static TripCosts Build(VehicleData data) => new(data);
+
+    private static int DayOf(Trip t) => DateOnly.FromDateTime(t.Start).DayNumber;
+
+    /// <summary>Trips dated more than 100 years back or more than a year ahead are bogus: left out of every sum.</summary>
+    private bool IsPlausible(Trip t)
+    {
+        int d = DayOf(t);
+        return d >= _today - 36525 && d <= _today + 366;
+    }
+
+    /// <summary>Never throws: non-finite becomes 0 and magnitudes are clamped to +-1e15.</summary>
+    private static decimal ToDecimal(double v)
+    {
+        if (!double.IsFinite(v)) return 0m;
+        return (decimal)Math.Clamp(v, -MaxMagnitude, MaxMagnitude);
+    }
 
     private static bool HasCoverage(Expense e) => e.CoversFrom is { } f && e.CoversTo is { } t && t >= f;
 
@@ -133,37 +159,44 @@ public sealed class TripCosts
         return p;
     }
 
-    private double Window(double[] prefix, int centre, int half)
+    private double Window(double[] prefix, int centre, int half, bool pool = false)
     {
         int lo = Math.Max(centre - half - _origin, 0);
         int hi = Math.Min(centre + half - _origin, _days - 1);
+        if (pool)
+        {
+            lo = Math.Max(lo, _poolFirst - _origin);
+            hi = Math.Min(hi, _poolLast - _origin);
+        }
         return hi < lo ? 0 : prefix[hi + 1] - prefix[lo];
     }
 
     private static double? Price(double litreSpend, double litres, double fuelSpend, double tripLitres)
     {
-        if (litres > 0) return litreSpend / litres;
-        if (fuelSpend > 0 && tripLitres > 0) return fuelSpend / tripLitres;
+        if (litres > Eps) return litreSpend / litres;
+        if (fuelSpend > Eps && tripLitres > Eps) return fuelSpend / tripLitres;
         return null;
     }
 
     private (double? Fuel, double Time, double Wear, double? Price) Raw(Trip trip)
     {
-        int day = DateOnly.FromDateTime(trip.Start).DayNumber;
+        if (!IsPlausible(trip)) return (0, 0, 0, null);
+        int day = DayOf(trip);
         double hours = trip.Duration.TotalHours, km = trip.DistanceKm;
 
-        double poolHours = Window(_hours, day, PoolHalfWindowDays), poolKm = Window(_km, day, PoolHalfWindowDays);
-        double timeRate = poolHours > 0 ? Window(_timePool, day, PoolHalfWindowDays) / poolHours : 0;
-        double wearPool = Window(_wearPool, day, PoolHalfWindowDays);
-        double wearPerKm = poolKm > 0 ? wearPool / poolKm : 0;
-        double wearPerHour = poolHours > 0 ? wearPool / poolHours : 0;
+        double poolHours = Window(_hours, day, PoolHalfWindowDays, true), poolKm = Window(_km, day, PoolHalfWindowDays, true);
+        double timeRate = poolHours > Eps ? Window(_timePool, day, PoolHalfWindowDays, true) / poolHours : 0;
+        double wearPool = Window(_wearPool, day, PoolHalfWindowDays, true);
+        double wearPerKm = poolKm > Eps ? wearPool / poolKm : 0;
+        double wearPerHour = poolHours > Eps ? wearPool / poolHours : 0;
 
         double? price = Price(
             Window(_litreSpend, day, FuelHalfWindowDays), Window(_litres, day, FuelHalfWindowDays),
             Window(_fuelSpend, day, FuelHalfWindowDays), Window(_tripLitres, day, FuelHalfWindowDays))
             ?? Price(_allLitreSpend, _allLitres, _allFuelSpend, _allTripLitres);
 
-        return (price is { } p ? trip.FuelLiters * p : null,
+        double? fuel = trip.FuelLiters <= Eps ? 0 : price is { } p ? trip.FuelLiters * p : null;
+        return (fuel,
             hours * timeRate,
             0.5 * km * wearPerKm + 0.5 * hours * wearPerHour,
             price);
@@ -171,10 +204,10 @@ public sealed class TripCosts
 
     private TripCost Make(double? fuel, double time, double wear, double? price)
     {
-        decimal? f = fuel is { } x ? Money.Round((decimal)x) : null;
-        return new TripCost(f, Money.Round((decimal)time), Money.Round((decimal)wear),
-            Money.Round((decimal)((fuel ?? 0) + time + wear)),
-            price is { } p ? Money.Round((decimal)p) : null, _currency);
+        decimal? f = fuel is { } x ? Money.Round(ToDecimal(x)) : null;
+        return new TripCost(f, Money.Round(ToDecimal(time)), Money.Round(ToDecimal(wear)),
+            Money.Round(ToDecimal((fuel ?? 0) + time + wear)),
+            price is { } p ? Money.Round(ToDecimal(p)) : null, _currency);
     }
 
     public TripCost Of(Trip trip)

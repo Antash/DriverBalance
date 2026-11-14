@@ -60,7 +60,9 @@ public sealed class TripCostApiTests(ApiFactory f) : IClassFixture<ApiFactory>
         var c = f.CreateClient();
         var vid = await SeedAsync(c);
         var page = await GetJsonAsync(c, $"/api/vehicles/{vid}/trips?pageSize=500");
-        var first = page.GetProperty("groups")[0].GetProperty("trips")[0];
+        var first = page.GetProperty("groups").EnumerateArray()
+            .SelectMany(g => g.GetProperty("trips").EnumerateArray())
+            .First(t => t.GetProperty("fuelLiters").GetDecimal() > 0);
         var id = first.GetProperty("id").GetInt64();
 
         var trip = await GetJsonAsync(c, $"/api/vehicles/{vid}/trips/{id}");

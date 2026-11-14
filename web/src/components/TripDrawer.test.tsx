@@ -33,6 +33,12 @@ describe('TripDrawer', () => {
     expect(screen.getByText(/Fuel at the local average price, plus a share of the other running costs over the 12 months around the trip/)).toBeTruthy()
   })
 
+  it('shows zero fuel cost for a trip without litres and without a price', async () => {
+    renderIt({ ...base, fuelLiters: 0, cost: { fuel: 0, time: 40, wear: 22.4, total: 62.4, pricePerLitre: null, currency: 'CZK' } })
+    expect(await screen.findByText('≈ 0 CZK')).toBeTruthy()
+    expect(screen.queryByText('— (no fuel price yet)')).toBeNull()
+  })
+
   it('shows no fuel price', async () => {
     renderIt({ ...base, cost: { fuel: null, time: 40, wear: 22.4, total: 62.4, pricePerLitre: null, currency: 'CZK' } })
     expect(await screen.findByText('— (no fuel price yet)')).toBeTruthy()

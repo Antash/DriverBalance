@@ -36,4 +36,18 @@ describe('TripList', () => {
     expect(screen.getByRole('columnheader', { name: 'Cost' })).toBeTruthy()
     expect(screen.getByText('≈ 142 CZK').getAttribute('title')).toContain('Fuel ≈')
   })
+
+  it('shows a dash when nothing is known about the cost', async () => {
+    const empty = { fuel: null, time: 0, wear: 0, total: 0, pricePerLitre: null, currency: 'CZK' }
+    const p = {
+      ...page,
+      groups: [{ ...page.groups[0], cost: empty, trips: [{ ...trip, cost: empty }] }],
+    } as TripPage
+    vi.mocked(api.get).mockResolvedValue(p)
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(<QueryClientProvider client={qc}><TripList /></QueryClientProvider>)
+    expect(await screen.findByRole('columnheader', { name: 'Cost' })).toBeTruthy()
+    expect(screen.queryByText('≈ 0 CZK')).toBeNull()
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+  })
 })

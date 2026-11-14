@@ -13,6 +13,9 @@ const PAGE_SIZE = 25
 const costTitle = (c: TripCost) =>
   `Fuel ${fmtApprox(c.fuel, c.currency)} · Time ${fmtApprox(c.time, c.currency)} · Wear ${fmtApprox(c.wear, c.currency)}`
 
+const costText = (c: TripCost) =>
+  c.fuel == null && c.time + c.wear === 0 ? '—' : fmtApprox(c.total, c.currency)
+
 /** Paged trip groups (one cold start each) that expand into their trips. `to` is exclusive. Uses the saved parameters. */
 export function TripList({ from, to, title = 'Trips' }: { from?: string; to?: string; title?: string }) {
   const { vehicleId } = useParams()
@@ -53,7 +56,7 @@ export function TripList({ from, to, title = 'Trips' }: { from?: string; to?: st
                   <td className="num">{fmtNum(g.distanceKm, 1)}</td>
                   <td>{fmtDuration(g.duration)}</td>
                   <td className="num">{fmtNum(g.lPer100, 1)}</td>
-                  <td className="num" title={costTitle(g.cost)}>{fmtApprox(g.cost.total, g.cost.currency)}</td>
+                  <td className="num" title={costTitle(g.cost)}>{costText(g.cost)}</td>
                   <td><span className={`score score-${g.score}`}>{g.score}</span></td>
                 </tr>,
                 ...(expanded ? g.trips.map((t) => (
@@ -63,7 +66,7 @@ export function TripList({ from, to, title = 'Trips' }: { from?: string; to?: st
                     <td colSpan={2} className="num">{fmtNum(t.distanceKm, 1)} km</td>
                     <td>{fmtDuration(t.duration)}</td>
                     <td className="num">{t.distanceKm > 0 ? fmtNum((t.fuelLiters / t.distanceKm) * 100, 1) : '—'}</td>
-                    <td className="num" title={costTitle(t.cost)}>{fmtApprox(t.cost.total, t.cost.currency)}</td>
+                    <td className="num" title={costTitle(t.cost)}>{costText(t.cost)}</td>
                     <td className="muted">{t.startAddress} → {t.endAddress}</td>
                   </tr>
                 )) : []),

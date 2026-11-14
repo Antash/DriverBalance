@@ -55,7 +55,10 @@ Worked example (made-up figures, to be used as a unit test): window with time po
   trip litres), then use prefix sums so each window is O(1). The builder chooses the implementation, but the
   trip list must not get noticeably slower.
 - Builder notes (my calls): the trip's litres are `Trip.FuelLiters`. The start date is `Trip.Start`'s date, with no timezone
-  shift. Windows near the first or last recorded trip are only partly covered by trips; the pools are not scaled for that.
+  shift. The time and wear pool windows (and the km/hours behind their rates) are clipped to
+  [first trip day, max(last trip day, Today)], so prepaid cover reaching past the last trip, with no driving to share it, does
+  not inflate recent trips' shares; the fuel window is not clipped. Trips dated outside [Today - 100 years, Today + 1 year]
+  are left out and get zero shares; a trip with 0 L gets fuel 0 even when no price exists.
   The trip GET endpoint has to open an analysis session to get the windows.
 - Uses the trip grouping from the saved parameters, like the trip list already does. The cost of a trip doesn't depend
   on the grouping.
