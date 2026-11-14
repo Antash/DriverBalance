@@ -24,6 +24,11 @@ describe('zoneRects', () => {
     expect(a.find((r) => r.score === 'Excellent')!.x0).toBe(40)
     expect(b.find((r) => r.score === 'Excellent')!.x0).toBe(60)
   })
+  it('labels each scored zone once, on its wide strip that reaches the right edge', () => {
+    const labelled = zoneRects(zones, 100, 120).filter((r) => r.label)
+    expect(labelled.map((r) => r.score)).toEqual(['Fair', 'Good', 'Excellent'])
+    expect(labelled.every((r) => r.x1 === 100)).toBe(true)
+  })
   it('covers every score except Bad', () => {
     expect(new Set(zoneRects(zones, 100, 120).map((r) => r.score))).toEqual(new Set(['Fair', 'Good', 'Excellent']))
   })

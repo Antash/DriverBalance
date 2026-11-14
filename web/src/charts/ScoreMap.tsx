@@ -21,7 +21,11 @@ function option(d: ScoreMapChart): () => EChartsOption {
       {
         name: r.label ? r.score : '', xAxis: r.x0, yAxis: r.y0,
         itemStyle: { color: scoreColor(r.score), opacity: 0.14 },
-        label: { show: !!r.label, color: t.textSecondary, position: 'insideTopRight', fontSize: 11 },
+        // Bottom right of each strip, on a backing so dots behind don't swallow it.
+        label: {
+          show: !!r.label, color: t.textSecondary, position: 'insideBottomRight', fontSize: 11,
+          backgroundColor: t.surface, padding: [1, 4], borderRadius: 3,
+        },
       },
       { xAxis: r.x1, yAxis: r.y1 },
     ])
@@ -34,9 +38,12 @@ function option(d: ScoreMapChart): () => EChartsOption {
           return `${fmtDateTime(pd.start)}<br/>${fmtNum(pd.value[0], 0)} min at ${fmtNum(pd.value[1], 0)} km/h, ${fmtNum(pd.km, 1)} km<br/>Score ${pd.score}<br/><i>Click for details</i>`
         },
       },
-      grid: { left: 8, right: 16, top: 40, bottom: 8, containLabel: true },
+      grid: { left: 8, right: 16, top: 48, bottom: 28, containLabel: true },
       xAxis: { type: 'value', min: 0, max: xMax, name: 'Driving time (min)', nameLocation: 'middle', nameGap: 26, nameTextStyle: { color: t.muted }, ...axisStyle() },
-      yAxis: { type: 'value', min: 0, max: yMax, name: 'Average speed (km/h)', nameTextStyle: { color: t.muted }, ...axisStyle() },
+      // The name starts at the axis and runs right; centred on the axis it was cut off at the card edge.
+      yAxis: { type: 'value', min: 0, max: yMax, name: 'Average speed (km/h)', nameTextStyle: { color: t.muted, align: 'left' }, ...axisStyle(),
+        // The rounded-up top is rarely on a tick, so its label would crowd the one below.
+        axisLabel: { ...axisStyle().axisLabel, showMaxLabel: false } },
       series: [
         { name: 'Zones', type: 'scatter', data: [], silent: true, markArea: { silent: true, data: areas as never } },
         ...SCORES.map((s) => ({

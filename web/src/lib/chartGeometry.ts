@@ -5,10 +5,11 @@ type Rect = { score: DrivingScore; x0: number; x1: number; y0: number; y1: numbe
 /** The four score zones as disjoint rectangles, derived from the (live) parameters returned with the chart. */
 export function zoneRects(z: ScoreMapChart['zones'], xMax: number, yMax: number): Rect[] {
   return [
-    { score: 'Fair', x0: z.shortMin, x1: z.mediumMin, y0: z.heavyKmh, y1: yMax, label: true },
-    { score: 'Fair', x0: z.mediumMin, x1: xMax, y0: z.heavyKmh, y1: z.cityKmh },
-    { score: 'Good', x0: z.mediumMin, x1: z.longMin, y0: z.cityKmh, y1: yMax, label: true },
-    { score: 'Good', x0: z.longMin, x1: xMax, y0: z.cityKmh, y1: z.mixedKmh },
+    // Labels go on the wide strips that reach the right edge: the narrow upright columns are too thin for text.
+    { score: 'Fair', x0: z.shortMin, x1: z.mediumMin, y0: z.heavyKmh, y1: yMax },
+    { score: 'Fair', x0: z.mediumMin, x1: xMax, y0: z.heavyKmh, y1: z.cityKmh, label: true },
+    { score: 'Good', x0: z.mediumMin, x1: z.longMin, y0: z.cityKmh, y1: yMax },
+    { score: 'Good', x0: z.longMin, x1: xMax, y0: z.cityKmh, y1: z.mixedKmh, label: true },
     { score: 'Excellent', x0: z.longMin, x1: xMax, y0: z.mixedKmh, y1: yMax, label: true },
   ]
 }
