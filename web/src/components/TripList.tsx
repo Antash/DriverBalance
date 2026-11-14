@@ -56,6 +56,7 @@ export function TripList({ from, to, title = 'Trips', level = 'Group', minKm = 0
 
   return (
     <ChartCard title={title} loading={isLoading} error={isError} empty={data?.total === 0}
+      emptyText={minKm > 0 || route ? `No ${noun}s match these filters.` : undefined}
       hint={level === 'Trip' ? 'Each row is one trip.' : 'Each row is one cold start; trips chained by short gaps are grouped.'}
       actions={(onMinKm || (route && onClearRoute)) && (
         <div className="row list-filters">
@@ -74,7 +75,7 @@ export function TripList({ from, to, title = 'Trips', level = 'Group', minKm = 0
       <SavedParamsNote />
       {summary && (
         <p className="summary-line">
-          {`${summary.count} ${noun}${summary.count === 1 ? '' : 's'} · ${fmtNum(summary.km, 0)} km · ${fmtApprox(summary.cost, summary.currency)}`}
+          {`${summary.count} ${noun}${summary.count === 1 ? '' : 's'} · ${fmtNum(summary.km, 0)} km · ${summary.cost > 0 ? fmtApprox(summary.cost, summary.currency) : '—'}`}
         </p>
       )}
       <div className="table-wrap">

@@ -58,6 +58,25 @@ describe('TripList', () => {
   }
   const lastUrl = () => String(vi.mocked(api.get).mock.calls.at(-1)![0])
 
+  it('explains an empty list when filters are on', async () => {
+    const none = { ...page, total: 0, groups: [], summary: { count: 0, km: 0, cost: 0, currency: 'CZK' } } as TripPage
+    vi.mocked(api.get).mockResolvedValue(none)
+    renderIt(<TripList minKm={20} onMinKm={vi.fn()} />)
+    expect(await screen.findByText('No drives match these filters.')).toBeTruthy()
+    cleanup()
+    renderIt(<TripList level="Trip" route="abc" routeLabel="A ↔ B" onClearRoute={vi.fn()} />)
+    expect(await screen.findByText('No trips match these filters.')).toBeTruthy()
+    cleanup()
+    renderIt(<TripList />)
+    expect(await screen.findByText('No trips in this period')).toBeTruthy()
+  })
+
+  it('shows a dash in the summary when the cost is unknown', async () => {
+    vi.mocked(api.get).mockResolvedValue({ ...page, summary: { count: 38, km: 6240, cost: 0, currency: 'CZK' } })
+    renderIt(<TripList />)
+    expect(await screen.findByText('38 drives · 6,240 km · —')).toBeTruthy()
+  })
+
   it('shows the summary line for everything that matches', async () => {
     vi.mocked(api.get).mockResolvedValue(page)
     renderIt(<TripList />)

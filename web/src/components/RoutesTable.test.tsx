@@ -48,6 +48,32 @@ describe('RoutesTable', () => {
     expect(onRoute).toHaveBeenCalledWith('0123456789abcdef')
   })
 
+  it('opens a route with Space and prevents scrolling', async () => {
+    vi.mocked(api.get).mockResolvedValue([route])
+    const onRoute = renderIt()
+    const row = await screen.findByRole('button', { name: /Home ↔ Work/ })
+    const notPrevented = fireEvent.keyDown(row, { key: ' ' })
+    expect(notPrevented).toBe(false)
+    expect(onRoute).toHaveBeenCalledWith('0123456789abcdef')
+  })
+
+  it('shows dashes for unknown costs and shares', async () => {
+    vi.mocked(api.get).mockResolvedValue([{ ...route, avgCost: 0, perMonth: 0, share: 0 }])
+    renderIt()
+    const row = await screen.findByRole('button', { name: /Home ↔ Work/ })
+    expect(row.textContent).not.toContain('≈ 0')
+    expect(row.textContent).not.toContain('0%')
+    expect(row.querySelectorAll('td')[4].textContent).toBe('—')
+    expect(row.querySelectorAll('td')[5].textContent).toBe('—')
+    expect(row.querySelectorAll('td')[6].textContent).toBe('—')
+  })
+
+  it('uses the new hint wording', async () => {
+    vi.mocked(api.get).mockResolvedValue([route])
+    renderIt()
+    expect(await screen.findByText("Places you drive between at least 5 times in this period, both directions together. Per month spreads a route's cost over the whole period. Click a route to list its drives.")).toBeTruthy()
+  })
+
   it('shows a round trip and uses trip wording at Trip level', async () => {
     vi.mocked(api.get).mockResolvedValue([{ ...route, roundTrip: true, to: 'Home', via: [] }])
     renderIt(vi.fn(), 'Trip')
