@@ -27,6 +27,8 @@ public sealed class TripCosts
     private readonly int _origin; // day number of index 0
     private readonly int _days;
     // Prefix sums: p[i] = sum of days [0, i).
+    // All-data fuel totals (not clipped to the index): the last-resort price.
+    private readonly double _allFuelSpend, _allLitreSpend, _allLitres, _allTripLitres;
     private readonly double[] _timePool, _wearPool, _fuelSpend, _litreSpend, _litres, _km, _hours, _tripLitres;
 
     private TripCosts(VehicleData data)
@@ -36,17 +38,17 @@ public sealed class TripCosts
             .Where(e => e.Category != ExpenseCategory.Purchase && Money.HomeAmountOf(e, data.HomeCurrency) is not null)
             .ToList();
 
+        // The index covers the trip days plus the widest window on each side; anything outside can never reach a trip's window.
         int min = int.MaxValue, max = int.MinValue;
-        void Touch(DateOnly d) { min = Math.Min(min, d.DayNumber); max = Math.Max(max, d.DayNumber); }
-        foreach (var t in data.Trips) Touch(DateOnly.FromDateTime(t.Start));
-        foreach (var e in counted)
+        foreach (var t in data.Trips)
         {
-            Touch(e.Date);
-            if (HasCoverage(e)) { Touch(e.CoversFrom!.Value); Touch(e.CoversTo!.Value); }
+            int d = DateOnly.FromDateTime(t.Start).DayNumber;
+            min = Math.Min(min, d);
+            max = Math.Max(max, d);
         }
         if (min > max) { min = max = 0; }
-        _origin = min;
-        _days = max - min + 1;
+        _origin = min - PoolHalfWindowDays;
+        _days = max - min + 2 * PoolHalfWindowDays + 1;
 
         Daily time = new(_days), wear = new(_days), fuel = new(_days), litreSpend = new(_days), litres = new(_days);
         foreach (var e in counted)
@@ -56,7 +58,8 @@ public sealed class TripCosts
             if (e.Category == ExpenseCategory.Fuel)
             {
                 Spread(fuel, e, amount);
-                if (lit is { } l) { Spread(litreSpend, e, amount); Spread(litres, e, l); }
+                _allFuelSpend += amount;
+                if (lit is { } l) { Spread(litreSpend, e, amount); Spread(litres, e, l); _allLitreSpend += amount; _allLitres += l; }
             }
             else if (TimePoolCategories.Contains(e.Category)) Spread(time, e, amount);
             else if (WearPoolCategories.Contains(e.Category)) Spread(wear, e, amount);
@@ -71,6 +74,7 @@ public sealed class TripCosts
             km[i] += t.DistanceKm;
             hours[i] += t.Duration.TotalHours;
             tripLitres[i] += t.FuelLiters;
+            _allTripLitres += t.FuelLiters;
         }
 
         _timePool = Prefix(time.Resolve());
@@ -93,11 +97,18 @@ public sealed class TripCosts
         if (HasCoverage(e))
         {
             int from = e.CoversFrom!.Value.DayNumber - _origin, to = e.CoversTo!.Value.DayNumber - _origin;
-            double perDay = value / (to - from + 1);
+            double perDay = value / ((long)to - from + 1); // full span, so the pro rata matches Money
+            from = Math.Max(from, 0);
+            to = Math.Min(to, _days - 1);
+            if (from > to) return;
             daily.Diff[from] += perDay;
             daily.Diff[to + 1] -= perDay;
         }
-        else daily.Point[e.Date.DayNumber - _origin] += value;
+        else
+        {
+            int i = e.Date.DayNumber - _origin;
+            if (i >= 0 && i < _days) daily.Point[i] += value;
+        }
     }
 
     private sealed class Daily(int length)
@@ -129,8 +140,6 @@ public sealed class TripCosts
         return hi < lo ? 0 : prefix[hi + 1] - prefix[lo];
     }
 
-    private double All(double[] prefix) => prefix[_days];
-
     private static double? Price(double litreSpend, double litres, double fuelSpend, double tripLitres)
     {
         if (litres > 0) return litreSpend / litres;
@@ -152,7 +161,7 @@ public sealed class TripCosts
         double? price = Price(
             Window(_litreSpend, day, FuelHalfWindowDays), Window(_litres, day, FuelHalfWindowDays),
             Window(_fuelSpend, day, FuelHalfWindowDays), Window(_tripLitres, day, FuelHalfWindowDays))
-            ?? Price(All(_litreSpend), All(_litres), All(_fuelSpend), All(_tripLitres));
+            ?? Price(_allLitreSpend, _allLitres, _allFuelSpend, _allTripLitres);
 
         return (price is { } p ? trip.FuelLiters * p : null,
             hours * timeRate,
