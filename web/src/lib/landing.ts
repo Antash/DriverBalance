@@ -10,7 +10,7 @@ export const LANDING = {
   signInNote:
     'Invite-only for now. Google sign-in is used only to recognise you: DriverBalance never sees your Google password.',
   features: [
-    { title: 'Trips and habits', text: 'Distance, driving time, when you drive, your longest journeys and a driving calendar.' },
+    { title: 'Trips and habits', text: 'Distance, driving time, when you drive, your longest journeys, a driving calendar and your regular routes with what they cost.' },
     { title: 'Fuel', text: 'Consumption per trip and over time, fuel burned per active day, cold starts and short trips.' },
     { title: 'Cost of every trip', text: 'An approximate cost for each trip: fuel at the local price plus a fair share of insurance, service and tyres, weighted by driving time and distance.' },
     { title: 'DPF health', text: 'For diesels: whether the particulate filter gets the long drives it needs, with a reminder when it is overdue.' },

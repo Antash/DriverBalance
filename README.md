@@ -7,11 +7,11 @@ A local web app for analysing how you drive and what your car costs. It imports 
 
 ## Pages
 
-- **Overview**: this month and this year at a glance, DPF health, recent expenses, reminders (for example "your last trip is getting old, export new trips from Volvo" and "long drive due").
-- **Trips**: imported trips grouped into cold-start sessions, with scores and an approximate cost per trip and group (see [Trip cost](#trip-cost)), a minimum-distance filter with a summary line, a Routes tab with your regular routes and what they cost, and the charts (monthly scores and DPF, calendar heatmap, fuel trend, score map, gap histogram, when you drive, penalty curve, seasonality, places and routes, vehicle timeline). Time-axis charts zoom with the mouse wheel or the slider.
+- **Overview**: reminders first (for example "your last trip is getting old, export new trips from Volvo" and "long drive due"), this month and this year at a glance, your five most recent drives with their approximate cost, the last 12 months of odometer and service, DPF health and the cost of ownership.
+- **Trips**: imported trips grouped into cold-start sessions, with scores and an approximate cost per trip and group (see [Trip cost](#trip-cost)), a minimum-distance filter and your regular routes (see [Trip filters and regular routes](#trip-filters-and-regular-routes)), and the charts (monthly scores and DPF, calendar heatmap, fuel trend, score map, gap histogram, when you drive, penalty curve, seasonality). Time-axis charts zoom with the mouse wheel or the slider.
 - **Statistics**: usage, score mix, fuel, driving mix and cost over any period, drilling down from years to months to weeks, and comparing two ranges.
-- **Intervals**: per-maintenance-type periods (oil change, brake fluid, tyre swap, ...) compared side by side.
-- **Tyres**: tyre sets, mounts and cost per km.
+- **Oil intervals**: engine oil change intervals compared side by side.
+- **Maintenance**: every service visit with its work and parts, a service milestones chart with the fitted tyre sets, and the tyre sets you own.
 - **Expenses**: maintenance and other costs in the vehicle's home currency.
 - **Import**: Volvo trip CSV import with duplicate skipping and import history.
 - **Settings**: vehicle, analysis parameters, API tokens, data export.
@@ -25,6 +25,16 @@ Every trip and trip group shows an approximate running cost (Trips, List tab; th
 - **Wear share**: maintenance, repairs and tyres over the same 12 months, spread half by km and half by driving time.
 
 Driving time rather than distance carries most of the weight: a short city trip wears the car more per km than a motorway run. Buying and financing the car are not included. Costs count only up to today (or the last trip), so prepaid insurance doesn't inflate recent trips. A trip that burned no fuel (an electric PHEV trip) has no fuel cost; electricity isn't costed yet. The MCP tool `list_recent_trips` returns the same numbers, so an assistant can answer "how much did my last trip cost?".
+
+## Trip filters and regular routes
+
+On the Trips page:
+
+- **Longer than X km** (List tab): a slider with the steps 0, 5, 10, 20, 50, 100, 200 and 500 km keeps only drives of at least that distance. A line above the list adds up everything that matches, for example `38 drives · 6,240 km · ≈ 31,900 CZK`. The Group / Trip switch decides what a row is: a drive (trips chained by short stops, one cold start) or a single trip.
+- **Routes** tab: the places you drive between at least 5 times in the chosen period, found automatically from the trip addresses. Both directions are one route (Home ↔ Work). At Group level the stops on the way are part of the route, so a school run on the way to work (`Home ↔ Work · via School`) is a different route from the direct drive, and a round trip shows as `Home ↺ · via Shop`. At Trip level every leg is its own route. Each route shows how often it was driven, when (`Weekdays · 7–8, 16–17`), the average distance, the approximate cost per drive and per month (the route's cost spread over the period), and its share of all driving cost.
+- **Click a route** to open the list with only that route's drives (`Route: Home ↔ Work ✕` above the list); the summary line then shows what that route cost in the period. The km slider still applies.
+
+Addresses are matched as text (letter case and extra spaces ignored), so two spellings of one place count as two places. Routes can't be renamed yet.
 
 ## Development
 

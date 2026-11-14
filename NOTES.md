@@ -1,13 +1,16 @@
 # DriverBalance — working notes (read first)
 
-Last updated: 2026-11-14. Branch `feat/hosted-auth` (demo car added), **not merged**.
-Tests: Core 192, Web 181, VolvoSync 35, web (vitest) 245, all green; `dotnet build` 0 warnings.
+Last updated: 2026-11-14. Trip cost merged to local master (not pushed); trip filters and routes on branch `feat/trip-filters`, not merged.
+Tests: Core 209, Web 199, VolvoSync 35, web (vitest) 272, all green; `dotnet build` 0 warnings.
 
 ## Trip filters and routes (2026-11-14, branch `feat/trip-filters`)
 
 - Trips, List tab: a "Longer than X km" slider (steps in `web/src/lib/kmSteps.ts`), a summary line (count, km, approximate cost of everything that matches), and the page's Group / Trip switch now applies to the list (Trip level is a flat list of single trips).
 - Trips, Routes tab: addresses driven between at least 5 times in the period, both directions together; clicking a route opens the List tab filtered by its key. URL state: `minKm`, `route`.
-- Server: `GET .../trips` takes `level`, `minKm`, `route` and returns `summary`; `GET .../trips/routes` lists the routes. Routes are not named yet (planned next).
+- Server: `GET .../trips` takes `level` (Group/Trip), `minKm` and `route` and returns `summary` {count, km, cost, currency} over all matches (not just the page); with no from/to it now runs from the first data to today. `GET .../trips/routes?from&to&level` lists the routes. Core: `src/DriverBalance.Core/Analysis/RegularRoutes.cs` (`Items`, `KeyOf`, `Build`); address normalization `AddressSpellings` (shared with `PlacesAnalysis`).
+- Route rules: at least `RegularRoutes.MinDrives` = 5 drives; both directions one route; group stops = end addresses of all but the last trip (duplicates collapsed, blanks and stops equal to an endpoint dropped; reversed stop order is the same route); key = first 16 hex of SHA-256 of the canonical form (a direct route has the same key at both levels). Typical: Weekdays/Weekends at >= 80 %, else Any day, plus up to two start hours with >= 20 %. Per month = route cost / (days with data in the period / 30.44). Share = route cost / cost of all drives at that level.
+- UI: `web/src/components/RoutesTable.tsx`, `web/src/lib/routes.ts`, slider and chip in `TripList.tsx`. Unknown costs show `—`; a filtered empty list says "No drives match these filters."
+- Not done (owner: naming later): route names; parked: the chip reads "Route: selected route" when the route is below 5 drives in the current period; round-trip stops show in canonical order; the routes table is not capped. Spec/plan: `docs/superpowers/specs/2026-11-14-trip-filters-routes-design.md`, `docs/superpowers/plans/2026-11-14-trip-filters-routes.md`.
 
 ## Trip cost (2026-11-14, branch `feat/trip-cost`)
 - Model: per trip, fuel (litres x local average price) + a time share + a wear share of the other running costs, taken over the 12 months around the trip (time by driving time; wear half by km, half by driving time). The pool windows are clipped to [first trip day, max(last trip day, Today)], so prepaid cover reaching past the last trip is not charged to recent trips; the fuel window is not clipped. Trips dated more than 100 years back or more than a year ahead are ignored (zero shares); a trip with 0 L gets fuel 0 even without a price.
