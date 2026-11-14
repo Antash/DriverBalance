@@ -6,6 +6,7 @@ import { DpfHealthStrip } from '../charts/DpfHealthStrip'
 import { VehicleTimeline } from '../charts/VehicleTimeline'
 import { ChartCard } from '../components/ChartCard'
 import { ExpenseForm } from '../components/ExpenseForm'
+import { RecentTrips } from '../components/RecentTrips'
 import { Modal } from '../components/Modal'
 import { Tile } from '../components/Tile'
 import type { OverviewData, Ownership, PeriodStats } from '../api/types'
@@ -113,6 +114,8 @@ export default function OverviewPage() {
             <Kpis title="This month" stats={data.thisMonth} currency={cur} hasDpf={vehicle.hasDpf} />
             <Kpis title="This year" stats={data.thisYear} currency={cur} hasDpf={vehicle.hasDpf} />
           </div>
+
+          <RecentTrips />
 
           <VehicleTimeline from={addYears(today, -1)} to={addDays(today, 1)} title="Last 12 months" />
 

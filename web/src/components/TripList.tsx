@@ -1,20 +1,15 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
-import type { TripCost, TripPage } from '../api/types'
-import { fmtDateTime, fmtApprox, fmtDuration, fmtNum } from '../lib/format'
+import type { TripPage } from '../api/types'
+import { fmtDateTime, fmtDuration, fmtNum } from '../lib/format'
+import { costText, costTitle } from '../lib/tripCost'
 import { useParams } from '../state/ParamsContext'
 import { ChartCard } from './ChartCard'
 import { SavedParamsNote } from './SavedParamsNote'
 import { TripDrawer } from './TripDrawer'
 
 const PAGE_SIZE = 25
-
-const costTitle = (c: TripCost) =>
-  `Fuel ${fmtApprox(c.fuel, c.currency)} · Time ${fmtApprox(c.time, c.currency)} · Wear ${fmtApprox(c.wear, c.currency)}`
-
-const costText = (c: TripCost) =>
-  c.fuel == null && c.time + c.wear === 0 ? '—' : fmtApprox(c.total, c.currency)
 
 /** Paged trip groups (one cold start each) that expand into their trips. `to` is exclusive. Uses the saved parameters. */
 export function TripList({ from, to, title = 'Trips' }: { from?: string; to?: string; title?: string }) {
