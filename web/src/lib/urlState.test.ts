@@ -32,10 +32,21 @@ describe('statistics url state', () => {
 
 describe('trips url state', () => {
   it('round-trips and defaults to the overview', () => {
-    const s: TripsUrlState = { tab: 'style', level: 'Trip', period: '2025' }
+    const s: TripsUrlState = { tab: 'style', level: 'Trip', period: '2025', minKm: 0, route: null }
     expect(parseTripsState(tripsStateToParams(s))).toEqual(s)
     expect(parseTripsState(tripsStateToParams({ ...s, period: 'last12' })).period).toBe('last12')
     expect(tripsStateToParams(defaultTripsState).toString()).toBe('')
     expect(parseTripsState(new URLSearchParams('tab=zzz&period=x'))).toEqual(defaultTripsState)
+  })
+
+  it('round-trips the km filter and route, and drops invalid values', () => {
+    const s: TripsUrlState = { tab: 'routes', level: 'Group', period: 'total', minKm: 20, route: '0123456789abcdef' }
+    const q = tripsStateToParams(s)
+    expect(q.get('minKm')).toBe('20')
+    expect(parseTripsState(new URLSearchParams(q.toString()))).toEqual(s)
+    expect(parseTripsState(new URLSearchParams('minKm=20&route=0123456789abcdef&tab=routes'))).toEqual(s)
+    expect(parseTripsState(new URLSearchParams('minKm=7')).minKm).toBe(0)
+    expect(parseTripsState(new URLSearchParams('route=bad')).route).toBeNull()
+    expect(tripsStateToParams(defaultTripsState).toString()).toBe('')
   })
 })

@@ -8,7 +8,7 @@ A local web app for analysing how you drive and what your car costs. It imports 
 ## Pages
 
 - **Overview**: this month and this year at a glance, DPF health, recent expenses, reminders (for example "your last trip is getting old, export new trips from Volvo" and "long drive due").
-- **Trips**: imported trips grouped into cold-start sessions, with scores and an approximate cost per trip and group (see [Trip cost](#trip-cost)), and the charts (monthly scores and DPF, calendar heatmap, fuel trend, score map, gap histogram, when you drive, penalty curve, seasonality, places and routes, vehicle timeline). Time-axis charts zoom with the mouse wheel or the slider.
+- **Trips**: imported trips grouped into cold-start sessions, with scores and an approximate cost per trip and group (see [Trip cost](#trip-cost)), a minimum-distance filter with a summary line, a Routes tab with your regular routes and what they cost, and the charts (monthly scores and DPF, calendar heatmap, fuel trend, score map, gap histogram, when you drive, penalty curve, seasonality, places and routes, vehicle timeline). Time-axis charts zoom with the mouse wheel or the slider.
 - **Statistics**: usage, score mix, fuel, driving mix and cost over any period, drilling down from years to months to weeks, and comparing two ranges.
 - **Intervals**: per-maintenance-type periods (oil change, brake fluid, tyre swap, ...) compared side by side.
 - **Tyres**: tyre sets, mounts and cost per km.

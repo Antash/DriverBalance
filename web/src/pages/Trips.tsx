@@ -11,15 +11,17 @@ import { Seasonality } from '../charts/Seasonality'
 import { TripInsights } from '../charts/TripInsights'
 import { WhenYouDrive } from '../charts/WhenYouDrive'
 import { TripDrawer } from '../components/TripDrawer'
+import { RoutesTable } from '../components/RoutesTable'
 import { TripList } from '../components/TripList'
 import { iso } from '../lib/dates'
 import { expensePeriods } from '../lib/expensePeriods'
+import { routeName, useRoutes } from '../lib/routes'
 import { parseTripsState, tripsStateToParams, TRIPS_TABS, type TripsTab, type TripsUrlState } from '../lib/urlState'
 import { useAnalytics } from '../state/ParamsContext'
 import { useVehicle } from '../state/useVehicle'
 
 const TAB_LABEL: Record<TripsTab, string> = {
-  overview: 'Overview', fuel: 'Fuel', style: 'Driving style', list: 'List',
+  overview: 'Overview', fuel: 'Fuel', style: 'Driving style', routes: 'Routes', list: 'List',
 }
 
 export default function TripsPage() {
@@ -37,6 +39,9 @@ export default function TripsPage() {
   const periods = useMemo(() => expensePeriods(vehicle.purchaseDate ?? null, today, firstTripYear), [vehicle.purchaseDate, today, firstTripYear])
   const current = periods.find((p) => p.key === state.period) ?? periods[0]
   const range = { from: current.from, to: current.to }
+  const { data: routes } = useRoutes(range.from, range.to, state.level, state.tab === 'list' && state.route != null)
+  const routeInfo = routes?.find((r) => r.key === state.route)
+  const routeText = routeInfo ? `${routeName(routeInfo)}${routeInfo.via.length > 0 ? ` · via ${routeInfo.via.join(', ')}` : ''}` : undefined
 
   return (
     <section>
@@ -92,7 +97,13 @@ export default function TripsPage() {
               </div>
             </>
           )}
-          {state.tab === 'list' && <TripList from={range.from} to={range.to} />}
+          {state.tab === 'routes' && (
+            <RoutesTable {...range} level={state.level} onRoute={(key) => update({ tab: 'list', route: key })} />
+          )}
+          {state.tab === 'list' && (
+            <TripList {...range} level={state.level} minKm={state.minKm} onMinKm={(km) => update({ minKm: km })}
+              route={state.route} routeLabel={routeText} onClearRoute={() => update({ route: null })} />
+          )}
         </div>
       )}
       {tripId != null && <TripDrawer tripId={tripId} onClose={() => setTripId(null)} />}

@@ -345,7 +345,24 @@ export interface TripGroup {
   cost: TripCost
 }
 
-export interface TripPage { total: number; page: number; pageSize: number; groups: TripGroup[] }
+export interface TripSummary { count: number; km: number; cost: number; currency: string }
+export interface TripPage { total: number; page: number; pageSize: number; groups: TripGroup[]; summary: TripSummary }
+
+export interface RegularRoute {
+  key: string
+  from: string
+  to: string
+  via: string[]
+  roundTrip: boolean
+  count: number
+  typical: string
+  avgKm: number
+  avgCost: number
+  perMonth: number
+  /** 0-1 */
+  share: number
+  currency: string
+}
 
 export type TrendLevel = 'Group' | 'Trip'
 export interface ChartBody { from?: DateOnly; to?: DateOnly; options?: { level?: TrendLevel; year?: number } }

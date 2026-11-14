@@ -3,6 +3,12 @@
 Last updated: 2026-11-14. Branch `feat/hosted-auth` (demo car added), **not merged**.
 Tests: Core 192, Web 181, VolvoSync 35, web (vitest) 245, all green; `dotnet build` 0 warnings.
 
+## Trip filters and routes (2026-11-14, branch `feat/trip-filters`)
+
+- Trips, List tab: a "Longer than X km" slider (steps in `web/src/lib/kmSteps.ts`), a summary line (count, km, approximate cost of everything that matches), and the page's Group / Trip switch now applies to the list (Trip level is a flat list of single trips).
+- Trips, Routes tab: addresses driven between at least 5 times in the period, both directions together; clicking a route opens the List tab filtered by its key. URL state: `minKm`, `route`.
+- Server: `GET .../trips` takes `level`, `minKm`, `route` and returns `summary`; `GET .../trips/routes` lists the routes. Routes are not named yet (planned next).
+
 ## Trip cost (2026-11-14, branch `feat/trip-cost`)
 - Model: per trip, fuel (litres x local average price) + a time share + a wear share of the other running costs, taken over the 12 months around the trip (time by driving time; wear half by km, half by driving time). The pool windows are clipped to [first trip day, max(last trip day, Today)], so prepaid cover reaching past the last trip is not charged to recent trips; the fuel window is not clipped. Trips dated more than 100 years back or more than a year ahead are ignored (zero shares); a trip with 0 L gets fuel 0 even without a price.
 - Shows as an approximate `Cost` column in the Trips list (group and trip rows, breakdown in the cell tooltip) and a Cost section in the trip drawer.

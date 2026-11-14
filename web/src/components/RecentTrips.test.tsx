@@ -36,6 +36,7 @@ describe('RecentTrips', () => {
     vi.mocked(api.get).mockResolvedValue({
       total: 40, page: 1, pageSize: 5,
       groups: [group([trip(1, 'Home St 1', 'Shop 2'), trip(2, 'Shop 2', 'Work Ave 5')]), group([trip(3, 'Work Ave 5', 'Home St 1')])],
+      summary: { count: 40, km: 2000, cost: 5000, currency: 'CZK' },
     } as TripPage)
     renderIt()
     expect(await screen.findByRole('heading', { name: 'Recent trips' })).toBeTruthy()
@@ -47,7 +48,7 @@ describe('RecentTrips', () => {
   })
 
   it('renders nothing without trips', async () => {
-    vi.mocked(api.get).mockResolvedValue({ total: 0, page: 1, pageSize: 5, groups: [] } as TripPage)
+    vi.mocked(api.get).mockResolvedValue({ total: 0, page: 1, pageSize: 5, groups: [], summary: { count: 0, km: 0, cost: 0, currency: 'CZK' } } as TripPage)
     const { container } = renderIt()
     await vi.waitFor(() => expect(api.get).toHaveBeenCalled())
     await new Promise((r) => setTimeout(r, 0))

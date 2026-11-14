@@ -1,4 +1,5 @@
 import { isIsoDate } from './dates'
+import { KM_STEPS } from './kmSteps'
 
 export interface StatsUrlState {
   mode: 'calendar' | 'custom'
@@ -51,26 +52,33 @@ export function statsStateToParams(s: StatsUrlState): URLSearchParams {
 
 // ---- Trips page ----
 
-export type TripsTab = 'overview' | 'fuel' | 'style' | 'list'
-export const TRIPS_TABS: TripsTab[] = ['overview', 'fuel', 'style', 'list']
+export type TripsTab = 'overview' | 'fuel' | 'style' | 'routes' | 'list'
+export const TRIPS_TABS: TripsTab[] = ['overview', 'fuel', 'style', 'routes', 'list']
 
 export interface TripsUrlState {
   tab: TripsTab
   level: 'Group' | 'Trip'
   /** 'total' (since purchase), 'last12' (past 365 days) or a calendar year such as '2025'. */
   period: string
-  /** Year shown by the calendar heatmap. */
+  /** List filter "Longer than X km": one of KM_STEPS, 0 = no filter. */
+  minKm: number
+  /** Opaque key of a regular route to filter the list by. */
+  route: string | null
 }
 
-export const defaultTripsState: TripsUrlState = { tab: 'overview', level: 'Group', period: 'total' }
+export const defaultTripsState: TripsUrlState = { tab: 'overview', level: 'Group', period: 'total', minKm: 0, route: null }
 
 export function parseTripsState(p: URLSearchParams): TripsUrlState {
   const tab = p.get('tab') as TripsTab
   const period = p.get('period') ?? ''
+  const minKm = p.get('minKm') ?? ''
+  const route = p.get('route') ?? ''
   return {
     tab: TRIPS_TABS.includes(tab) ? tab : 'overview',
     level: p.get('level') === 'Trip' ? 'Trip' : 'Group',
     period: /^(total|last12|\d{4})$/.test(period) ? period : 'total',
+    minKm: /^\d+$/.test(minKm) && KM_STEPS.includes(Number(minKm)) ? Number(minKm) : 0,
+    route: /^[0-9a-f]{16}$/.test(route) ? route : null,
   }
 }
 
@@ -79,5 +87,7 @@ export function tripsStateToParams(s: TripsUrlState): URLSearchParams {
   if (s.tab !== 'overview') p.set('tab', s.tab)
   if (s.level !== 'Group') p.set('level', s.level)
   if (s.period !== 'total') p.set('period', s.period)
+  if (s.minKm > 0) p.set('minKm', String(s.minKm))
+  if (s.route) p.set('route', s.route)
   return p
 }
