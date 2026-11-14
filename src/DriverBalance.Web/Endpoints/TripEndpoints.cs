@@ -1,6 +1,3 @@
-using DriverBalance.Data;
-using Microsoft.EntityFrameworkCore;
-
 namespace DriverBalance.Web;
 
 public static class TripEndpoints
@@ -27,13 +24,14 @@ public static class TripEndpoints
         if (to is { } t) groups = groups.Where(g => g.StartDate < t);
         var ordered = groups.OrderByDescending(g => g.Start).ToList();
 
-        return Results.Ok(new TripPage(ordered.Count, page, pageSize, ordered.Skip((page - 1) * pageSize).Take(pageSize).ToList()));
+        return Results.Ok(new TripPage(ordered.Count, page, pageSize, ordered.Skip((page - 1) * pageSize).Take(pageSize)
+            .Select(g => TripGroupView.From(g, s.Context.Costs)).ToList()));
     }
 
-    private static async Task<IResult> Get(long vid, long tripId, VehicleDataLoader loader, DriverBalanceDbContext db, CancellationToken ct)
+    private static async Task<IResult> Get(long vid, long tripId, AnalysisSessionFactory sessions, CancellationToken ct)
     {
-        await loader.GetVehicleAsync(vid, ct);
-        var row = await db.Trips.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tripId && t.VehicleId == vid, ct);
-        return row is null ? Results.NotFound() : Results.Ok(row.ToDomain());
+        var s = await sessions.OpenAsync(vid, null, ct);
+        var trip = s.Data.Trips.FirstOrDefault(t => t.Id == tripId);
+        return trip is null ? Results.NotFound() : Results.Ok(TripView.From(trip, s.Context.Costs));
     }
 }
