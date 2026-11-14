@@ -43,6 +43,8 @@ public sealed record TripGroupView(
         g.FuelLiters, g.AverageSpeedKmh, g.LPer100, g.StartDate, costs.Of(g));
 }
 
-public sealed record TripPage(int Total, int Page, int PageSize, IReadOnlyList<TripGroupView> Groups);
+public sealed record TripSummary(int Count, double Km, decimal Cost, string Currency);
+
+public sealed record TripPage(int Total, int Page, int PageSize, IReadOnlyList<TripGroupView> Groups, TripSummary Summary);
 
 public sealed record TyreSummaryResponse(IReadOnlyList<TyreSetSummary> Summaries, IReadOnlyList<TyreMountSpan> UnassignedSpans);
