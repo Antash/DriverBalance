@@ -2,28 +2,9 @@ namespace DriverBalance.Core;
 
 public static class PlacesAnalysis
 {
-    private static string Collapse(string s) => string.Join(' ', s.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
-
-    /// <summary>Normalizes addresses (trim, collapse whitespace, case-insensitive) and remembers the most common spelling.</summary>
-    private sealed class Spellings
-    {
-        private readonly Dictionary<string, Dictionary<string, int>> _map = new();
-
-        public string Add(string raw)
-        {
-            string collapsed = Collapse(raw);
-            string key = collapsed.ToLowerInvariant();
-            if (!_map.TryGetValue(key, out var d)) _map[key] = d = new Dictionary<string, int>();
-            d[collapsed] = d.GetValueOrDefault(collapsed) + 1;
-            return key;
-        }
-
-        public string Display(string key) => _map[key].MaxBy(kv => kv.Value).Key;
-    }
-
     public static IReadOnlyList<PlaceStat> Places(AnalysisContext c, Period p, int top = 15)
     {
-        var sp = new Spellings();
+        var sp = new AddressSpellings();
         var starts = new Dictionary<string, int>();
         var ends = new Dictionary<string, int>();
         foreach (var g in c.GroupsIn(p))
@@ -47,7 +28,7 @@ public static class PlacesAnalysis
 
     public static IReadOnlyList<RouteStat> Routes(AnalysisContext c, Period p, int top = 15)
     {
-        var sp = new Spellings();
+        var sp = new AddressSpellings();
         var byRoute = new Dictionary<(string From, string To), List<TripGroup>>();
         foreach (var g in c.GroupsIn(p))
         {
