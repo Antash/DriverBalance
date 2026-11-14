@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { Trip } from '../api/types'
-import { fmtDateTime, fmtDuration, fmtNum } from '../lib/format'
+import { fmtApprox, fmtDateTime, fmtDuration, fmtNum } from '../lib/format'
 import { useParams } from '../state/ParamsContext'
 
 /** Side drawer with one trip's details (GET /trips/{id}). */
@@ -26,6 +26,14 @@ export function TripDrawer({ tripId, onClose }: { tripId: number; onClose(): voi
     ['Category', t.category || '—'],
     ['Notes', t.notes || '—'],
   ] : []
+  const cost = t?.cost
+  const costRows: [string, string][] = t && cost ? [
+    ['Fuel cost', cost.fuel == null || cost.pricePerLitre == null ? '— (no fuel price yet)'
+      : `${fmtApprox(cost.fuel, cost.currency)} (${fmtNum(t.fuelLiters, 1)} L × ${cost.pricePerLitre.toFixed(2)} ${cost.currency}/L)`],
+    ['Time share', fmtApprox(cost.time, cost.currency)],
+    ['Wear share', fmtApprox(cost.wear, cost.currency)],
+    ['Trip cost', fmtApprox(cost.total, cost.currency)],
+  ] : []
   return (
     <>
       <div className="scrim" onClick={onClose} />
@@ -37,7 +45,14 @@ export function TripDrawer({ tripId, onClose }: { tripId: number; onClose(): voi
         <div className="drawer-body">
           {isError ? <p className="field-error">Could not load this trip.</p>
             : isLoading ? <p className="muted">Loading…</p>
-            : <dl className="kv">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
+            : <>
+              <dl className="kv">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
+              {costRows.length > 0 && <>
+                <h3>Cost</h3>
+                <dl className="kv">{costRows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
+                <p className="muted">Fuel at the local average price, plus a share of the other running costs over the 12 months around the trip (by driving time, and by km for wear).</p>
+              </>}
+            </>}
         </div>
       </aside>
     </>

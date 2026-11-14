@@ -1,14 +1,17 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
-import type { TripPage } from '../api/types'
-import { fmtDateTime, fmtDuration, fmtNum } from '../lib/format'
+import type { TripCost, TripPage } from '../api/types'
+import { fmtDateTime, fmtApprox, fmtDuration, fmtNum } from '../lib/format'
 import { useParams } from '../state/ParamsContext'
 import { ChartCard } from './ChartCard'
 import { SavedParamsNote } from './SavedParamsNote'
 import { TripDrawer } from './TripDrawer'
 
 const PAGE_SIZE = 25
+
+const costTitle = (c: TripCost) =>
+  `Fuel ${fmtApprox(c.fuel, c.currency)} · Time ${fmtApprox(c.time, c.currency)} · Wear ${fmtApprox(c.wear, c.currency)}`
 
 /** Paged trip groups (one cold start each) that expand into their trips. `to` is exclusive. Uses the saved parameters. */
 export function TripList({ from, to, title = 'Trips' }: { from?: string; to?: string; title?: string }) {
@@ -35,7 +38,7 @@ export function TripList({ from, to, title = 'Trips' }: { from?: string; to?: st
       <div className="table-wrap">
         <table className="data">
           <thead>
-            <tr><th /><th>Start</th><th className="num">Trips</th><th className="num">Km</th><th>Duration</th><th className="num">L/100</th><th>Score</th></tr>
+            <tr><th /><th>Start</th><th className="num">Trips</th><th className="num">Km</th><th>Duration</th><th className="num">L/100</th><th className="num">Cost</th><th>Score</th></tr>
           </thead>
           <tbody>
             {data?.groups.map((g) => {
@@ -50,6 +53,7 @@ export function TripList({ from, to, title = 'Trips' }: { from?: string; to?: st
                   <td className="num">{fmtNum(g.distanceKm, 1)}</td>
                   <td>{fmtDuration(g.duration)}</td>
                   <td className="num">{fmtNum(g.lPer100, 1)}</td>
+                  <td className="num" title={costTitle(g.cost)}>{fmtApprox(g.cost.total, g.cost.currency)}</td>
                   <td><span className={`score score-${g.score}`}>{g.score}</span></td>
                 </tr>,
                 ...(expanded ? g.trips.map((t) => (
@@ -59,6 +63,7 @@ export function TripList({ from, to, title = 'Trips' }: { from?: string; to?: st
                     <td colSpan={2} className="num">{fmtNum(t.distanceKm, 1)} km</td>
                     <td>{fmtDuration(t.duration)}</td>
                     <td className="num">{t.distanceKm > 0 ? fmtNum((t.fuelLiters / t.distanceKm) * 100, 1) : '—'}</td>
+                    <td className="num" title={costTitle(t.cost)}>{fmtApprox(t.cost.total, t.cost.currency)}</td>
                     <td className="muted">{t.startAddress} → {t.endAddress}</td>
                   </tr>
                 )) : []),

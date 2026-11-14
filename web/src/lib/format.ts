@@ -4,6 +4,10 @@ import { toDmy } from './dates'
 export const fmtMoney = (n: number | null | undefined, currency: string) =>
   n == null ? '—' : new Intl.NumberFormat('en', { style: 'currency', currency, maximumFractionDigits: 2 }).format(n)
 
+/** A rounded estimate, e.g. "≈ 142 CZK"; the em dash for null. */
+export const fmtApprox = (n: number | null | undefined, currency: string) =>
+  n == null || !Number.isFinite(n) ? '—' : `≈ ${fmtNum(n, 0)} ${currency}`
+
 export const fmtKm = (n: number | null | undefined) =>
   n == null ? '—' : `${new Intl.NumberFormat('en', { maximumFractionDigits: 0 }).format(n)} km`
 

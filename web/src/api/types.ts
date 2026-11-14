@@ -312,6 +312,8 @@ export interface PeriodStats {
 
 export interface PeriodWithStats { period: Period; stats: PeriodStats }
 
+export interface TripCost { fuel: number | null; time: number; wear: number; total: number; pricePerLitre: number | null; currency: string }
+
 export interface Trip {
   id: number
   category: string
@@ -326,6 +328,7 @@ export interface Trip {
   fuelLiters: number
   notes: string
   averageSpeedKmh: number
+  cost: TripCost
 }
 
 export interface TripGroup {
@@ -339,6 +342,7 @@ export interface TripGroup {
   averageSpeedKmh: number
   lPer100: number | null
   startDate: DateOnly
+  cost: TripCost
 }
 
 export interface TripPage { total: number; page: number; pageSize: number; groups: TripGroup[] }

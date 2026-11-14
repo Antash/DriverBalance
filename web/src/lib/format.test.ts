@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fmtDate, fmtDateTime, fmtInstant } from './format'
+import { fmtApprox, fmtDate, fmtDateTime, fmtInstant } from './format'
 
 describe('fmtDate', () => {
   it('formats ISO as dd/mm/yyyy', () => expect(fmtDate('2026-11-09')).toBe('09/11/2026'))
@@ -15,4 +15,8 @@ describe('fmtInstant', () => {
     expect(fmtInstant(new Date(2026, 10, 9, 8, 5).toISOString())).toBe('09/11/2026 08:05')
   })
   it('dashes for garbage', () => expect(fmtInstant('nope')).toBe('—'))
+})
+describe('fmtApprox', () => {
+  it('rounds with a currency', () => expect(fmtApprox(142.4, 'CZK')).toBe('≈ 142 CZK'))
+  it('dashes for null', () => expect(fmtApprox(null, 'CZK')).toBe('—'))
 })

@@ -3,6 +3,12 @@
 Last updated: 2026-11-10. Branch `feat/hosted-auth` (demo car added), **not merged**.
 Tests: Core 169, Web 176, VolvoSync 28, web (vitest) 233, all green; `dotnet build` 0 warnings.
 
+## Trip cost (2026-11-14, branch `feat/trip-cost`)
+- Model: per trip, fuel (litres x local average price) + a time share + a wear share of the other running costs, taken over the 12 months around the trip (time by driving time, wear by km).
+- Shows as an approximate `Cost` column in the Trips list (group and trip rows, breakdown in the cell tooltip) and a Cost section in the trip drawer.
+- Files: `src/DriverBalance.Core/Analysis/TripCosts.cs`, `Dtos/AnalyticsDtos.cs` (TripView / TripGroupView carry `cost`), `web/src/components/TripList.tsx`, `web/src/components/TripDrawer.tsx`, `fmtApprox` in `web/src/lib/format.ts`.
+- Deferred: cost charts, an Insights cost line, MCP exposure, configurable split and windows.
+
 ## Start page (2026-11-10, branch `feat/landing-page`)
 Google Safe Browsing flagged the azurewebsites.net host as phishing (an empty SPA shell whose only content was "Sign in
 with Google"). Now: a real start page for signed-out visitors (`SignIn.tsx`, words in `web/src/lib/landing.ts`), a
@@ -119,6 +125,7 @@ A user with no car can create a demo BMW 320d Touring full of made-up data to tr
 - **Volvo Connected Vehicle pull** (spec phase 5). Needs the owner's developer account and API key.
 - **Family-assistant bot wiring:** separate repo. Fix that bot's admin-fence gap first.
 - **Before wiring the bot:** in MCP `get_stats`, add a worked example for the exclusive `to` and print the inclusive last day. Also validate `rate`.
+- **Trip cost follow-ups:** cost charts, an Insights cost line, MCP exposure, configurable split and windows.
 
 ## Deferred polish (from reviews, none blocking)
 - **Charts:**
