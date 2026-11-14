@@ -230,6 +230,78 @@ public sealed class CarTools(DriverBalanceDbContext db, VehicleDataLoader loader
         return Ok(new { stats, parameters = s.Parameters }, summary);
     });
 
+    private const string CostModelText =
+        "Approximate running cost: fuel = the trip's litres x the average fuel price in the 3 months around the trip; " +
+        "plus a share of the other running costs over the 12 months around the trip: insurance, tolls, parking and other " +
+        "fixed costs by driving time; maintenance, repairs and tyres half by km, half by driving time. Buying and financing the car are not included.";
+
+    [McpServerTool(Name = "list_recent_trips", ReadOnly = true), Description(
+        "Recent trips with their approximate cost, newest first (defaults to the owner's default car; don't ask which car). " +
+        "Use it for \"how much did my last trip cost\" (default: the single last trip) or \"my recent trips and their cost\". " +
+        "level \"trip\" (default) = one drive as in the Volvo journal; level \"group\" = drives chained by short stops (one cold start). " +
+        "Each item has start, end, distanceKm, durationMinutes, fuelLiters, from, to and cost {fuel, time, wear, total, pricePerLitre, currency}; " +
+        "fuel is null when no fuel price is known yet. Show amounts as approximate (≈) and dates as dd/mm/yyyy. Returns `costModel` to explain the numbers.")]
+    public Task<CallToolResult> ListRecentTrips(
+        [Description("How many trips to return. Optional, default 1 (the last trip), between 1 and 50.")] int count = 1,
+        [Description("\"trip\" (default) or \"group\".")] string level = "trip",
+        [Description("First day (inclusive), yyyy-MM-dd. Optional.")] string? from = null,
+        [Description("Last day, INCLUSIVE, yyyy-MM-dd. Optional.")] string? to = null,
+        [Description(VehicleIdDoc)] long? vehicleId = null,
+        CancellationToken ct = default) => Run(async () =>
+    {
+        bool groups = (level?.Trim().ToLowerInvariant()) switch
+        {
+            null or "" or "trip" or "trips" => false,
+            "group" or "groups" => true,
+            _ => throw new ApiValidationException("level must be \"trip\" or \"group\"."),
+        };
+        var f = ParseDate(from, "from");
+        var t = ParseDate(to, "to");
+        if (f is not null && t is not null && t < f) throw new ApiValidationException("'from' must not be after 'to'.");
+        var take = Math.Clamp(count, 1, 50);
+
+        var v = await ResolveVehicleAsync(vehicleId, ct);
+        var s = await sessions.OpenAsync(v.Id, null, ct);
+        var costs = s.Context.Costs;
+        bool InRange(DateTime start) => (f is null || DateOnly.FromDateTime(start) >= f) && (t is null || DateOnly.FromDateTime(start) <= t);
+
+        var items = groups
+            ? s.Context.Groups.Where(g => InRange(g.Start)).OrderByDescending(g => g.Start).Take(take)
+                .Select(g => new TripCostItem(g.Start, g.End, Math.Round(g.DistanceKm, 1), (int)Math.Round(g.Duration.TotalMinutes),
+                    Math.Round(g.FuelLiters, 2), g.Trips[0].StartAddress, g.Trips[^1].EndAddress, g.Trips.Count, costs.Of(g)))
+                .ToList()
+            : s.Data.Trips.Where(x => InRange(x.Start)).OrderByDescending(x => x.Start).Take(take)
+                .Select(x => new TripCostItem(x.Start, x.End, Math.Round(x.DistanceKm, 1), (int)Math.Round(x.Duration.TotalMinutes),
+                    Math.Round(x.FuelLiters, 2), x.StartAddress, x.EndAddress, 1, costs.Of(x)))
+                .ToList();
+
+        decimal total = items.Sum(i => i.Cost.Total);
+        string noun = groups ? "trip group" : "trip";
+        string summary;
+        if (items.Count == 0)
+            summary = $"No {noun}s found on {v.Name}" + (f is null && t is null ? "." : " in that date range.");
+        else if (items.Count == 1)
+        {
+            var i = items[0];
+            string head = f is null && t is null ? "Last " + noun : char.ToUpperInvariant(noun[0]) + noun[1..];
+            string route = i.From.Length > 0 || i.To.Length > 0 ? $" ({i.From} → {i.To})" : "";
+            string fuel = i.Cost.Fuel is { } fu ? Approx(fu) : "unknown";
+            summary = FormattableString.Invariant(
+                $"{head} {i.Start:dd/MM/yyyy HH:mm}, {i.DistanceKm:0.#} km, {i.DurationMinutes} min{route}: ≈ {Approx(i.Cost.Total)} {v.HomeCurrency} (fuel {fuel}, time {Approx(i.Cost.Time)}, wear {Approx(i.Cost.Wear)}).");
+        }
+        else
+            summary = FormattableString.Invariant(
+                $"{items.Count} most recent {noun}s on {v.Name}, {items[^1].Start:dd/MM/yyyy} – {items[0].Start:dd/MM/yyyy}: ≈ {Approx(total)} {v.HomeCurrency} in total.");
+        return Ok(new { trips = items, count = items.Count, level = groups ? "group" : "trip", totalCost = total, currency = v.HomeCurrency, costModel = CostModelText }, summary);
+    });
+
+    private sealed record TripCostItem(DateTime Start, DateTime End, double DistanceKm, int DurationMinutes, double FuelLiters,
+        string From, string To, int TripCount, TripCost Cost);
+
+    /// <summary>One decimal below 10, whole units otherwise (same as the web UI).</summary>
+    private static string Approx(decimal v) =>
+        Math.Abs(v) < 10 ? v.ToString("0.#", CultureInfo.InvariantCulture) : v.ToString("#,0", CultureInfo.InvariantCulture);
+
     [McpServerTool(Name = "import_trips_csv"), Description(
         "Import a Volvo trip-export CSV (the full file text, as exported; non-breaking spaces and CRLF line endings are fine). " +
         "Already-imported trips are skipped. Returns the import result (imported, skipped, firstTrip, lastTrip, warnings) plus a one-line summary.")]

@@ -55,6 +55,7 @@ Every tool takes an optional `vehicleId` (default: the owner's default vehicle, 
 | `delete_expense` | id |
 | `get_stats` | kind (`interval`, `range` or `calendar`), maintenanceType?, intervalIndex? (0), from?, to? (inclusive), year?, month? |
 | `import_trips_csv` | csvText |
+| `list_recent_trips` | count? (1 = the last trip, max 50), level? (`trip` or `group`), from?, to? (inclusive) |
 
 A foreign currency with neither `homeAmount` nor `rate` is saved and the result has `needsConversion: true`; it stays out of totals until a home amount is set. With `rate`, `homeAmount = amount * rate`.
 
@@ -63,3 +64,5 @@ For `kind: "range"`, both `from` and `to` are inclusive: `from=2026-10-01, to=20
 `place` on `add_expense` is where it happened (garage, car park, shop). `log_fuel` keeps its location in `station` (the app shows `station` for fuel and `place` for everything else, and a `place` on a Fuel expense is dropped by the shared rules).
 
 `get_stats` returns `{ stats, parameters, summary }`: the same numbers as the REST API, computed with the vehicle's saved analysis parameters.
+
+`list_recent_trips` returns `{ trips, count, level, totalCost, currency, costModel, summary }`, newest first. Each item has `start`, `end`, `distanceKm`, `durationMinutes`, `fuelLiters`, `from`, `to`, `tripCount` and `cost { fuel, time, wear, total, pricePerLitre, currency }`: the same approximate trip cost as the Trips list (fuel at the local average price plus shares of the other running costs). `fuel` is null when no fuel price is known yet. `costModel` is a one-paragraph explanation a bot can repeat.

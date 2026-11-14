@@ -89,7 +89,7 @@ public sealed class McpTests(ApiFactory f) : IClassFixture<ApiFactory>
         await using var mcp = await McpHelpers.ConnectAsync(f, token.Token);
         var names = (await mcp.ListToolsAsync()).Select(t => t.Name).ToHashSet();
         string[] expected = ["add_expense", "log_fuel", "log_maintenance", "swap_tyres", "list_tyre_sets",
-            "list_recent_expenses", "delete_expense", "get_stats", "import_trips_csv"];
+            "list_recent_expenses", "delete_expense", "get_stats", "import_trips_csv", "list_recent_trips"];
         foreach (var name in expected) Assert.Contains(name, names);
     }
 
