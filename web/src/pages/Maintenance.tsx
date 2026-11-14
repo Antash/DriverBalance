@@ -151,8 +151,8 @@ export default function MaintenancePage() {
                       })}</td>
                       <td>{s.work.map((w, i) => <div key={`${w.key}-${i}`}><Since w={w} /></div>)}</td>
                       <td className="num">{cost(s.expense)}</td>
-                      <td>{s.expense.place ?? ''}</td>
-                      <td>{s.expense.note ?? ''}{legacy && <span className="muted">{s.expense.note ? ' · ' : ''}{legacy}</span>}</td>
+                      <td className="wrap">{s.expense.place ?? ''}</td>
+                      <td className="wrap">{s.expense.note ?? ''}{legacy && <span className="muted">{s.expense.note ? ' · ' : ''}{legacy}</span>}</td>
                     </tr>
                   )
                 })}

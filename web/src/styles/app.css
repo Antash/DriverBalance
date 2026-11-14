@@ -64,6 +64,8 @@ button, input, select { font: inherit; color: inherit; }
 table.data { border-collapse: collapse; width: 100%; font-size: 14px; }
 table.data th, table.data td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
 table.data th { color: var(--text-2); font-weight: 600; }
+/* Free-text columns wrap so wide tables fit the card instead of scrolling sideways. */
+table.data td.wrap { white-space: normal; min-width: 120px; }
 table.data td.num, table.data th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .dropzone { border: 2px dashed var(--axis); border-radius: 10px; padding: 28px 16px; text-align: center; cursor: pointer; color: var(--text-2); }
 .dropzone.over, .dropzone:focus-visible { border-color: var(--accent); background: var(--grid); outline: none; }
