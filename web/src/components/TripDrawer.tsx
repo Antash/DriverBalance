@@ -51,7 +51,7 @@ export function TripDrawer({ tripId, onClose }: { tripId: number; onClose(): voi
               {costRows.length > 0 && <>
                 <h3>Cost</h3>
                 <dl className="kv">{costRows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
-                <p className="muted">Fuel at the local average price, plus a share of the other running costs over the 12 months around the trip (by driving time, and by km for wear).</p>
+                <p className="muted">Fuel at the local average price, plus a share of the other running costs over the 12 months around the trip (by driving time; wear half by km).</p>
               </>}
             </>}
         </div>

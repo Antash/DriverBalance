@@ -8,13 +8,23 @@ A local web app for analysing how you drive and what your car costs. It imports 
 ## Pages
 
 - **Overview**: this month and this year at a glance, DPF health, recent expenses, reminders (for example "your last trip is getting old, export new trips from Volvo" and "long drive due").
-- **Trips**: imported trips grouped into cold-start sessions, with scores, and the charts (monthly scores and DPF, calendar heatmap, fuel trend, score map, gap histogram, when you drive, penalty curve, seasonality, places and routes, vehicle timeline). Time-axis charts zoom with the mouse wheel or the slider.
+- **Trips**: imported trips grouped into cold-start sessions, with scores and an approximate cost per trip and group (see [Trip cost](#trip-cost)), and the charts (monthly scores and DPF, calendar heatmap, fuel trend, score map, gap histogram, when you drive, penalty curve, seasonality, places and routes, vehicle timeline). Time-axis charts zoom with the mouse wheel or the slider.
 - **Statistics**: usage, score mix, fuel, driving mix and cost over any period, drilling down from years to months to weeks, and comparing two ranges.
 - **Intervals**: per-maintenance-type periods (oil change, brake fluid, tyre swap, ...) compared side by side.
 - **Tyres**: tyre sets, mounts and cost per km.
 - **Expenses**: maintenance and other costs in the vehicle's home currency.
 - **Import**: Volvo trip CSV import with duplicate skipping and import history.
 - **Settings**: vehicle, analysis parameters, API tokens, data export.
+
+## Trip cost
+
+Every trip and trip group shows an approximate running cost (Trips, List tab; the trip details panel has the breakdown):
+
+- **Fuel**: the trip's litres times the average price of 1 L in the 3 months around the trip (from fuel records with litres, else fuel spend divided by the litres burned on trips).
+- **Time share**: insurance, tolls and vignette, parking, wash, accessories, fines and other costs over the 12 months around the trip, spread by driving time.
+- **Wear share**: maintenance, repairs and tyres over the same 12 months, spread half by km and half by driving time.
+
+Driving time rather than distance carries most of the weight: a short city trip wears the car more per km than a motorway run. Buying and financing the car are not included. Costs count only up to today (or the last trip), so prepaid insurance doesn't inflate recent trips. A trip that burned no fuel (an electric PHEV trip) has no fuel cost; electricity isn't costed yet. The MCP tool `list_recent_trips` returns the same numbers, so an assistant can answer "how much did my last trip cost?".
 
 ## Development
 

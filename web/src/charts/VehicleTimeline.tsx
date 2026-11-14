@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import type { EChartsOption } from 'echarts'
+import { format as echartsFormat } from 'echarts'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { Expense, TimelineChart, TyreSet } from '../api/types'
@@ -8,11 +9,15 @@ import { Chart } from '../components/Chart'
 import { ChartCard } from '../components/ChartCard'
 import { fmtMoney, fmtNum, fmtDate } from '../lib/format'
 import { timelineWidthPercent } from '../lib/timelineWidth'
+import { tyreBandKey, tyreSetIdAt } from '../lib/tyreBands'
+import { iso } from '../lib/dates'
 import { MILESTONE_GROUPS, serviceMilestones, type MilestoneGroupKey, type ServiceMilestone } from '../lib/milestones'
 import { partLine, tyreDisplayName } from '../lib/tyreSummary'
 import { useAnalytics, useParams } from '../state/ParamsContext'
 import { useTyreSets } from '../state/useVehicle'
 import { timeAxisTooltip } from './dateTooltip'
+
+const setNameOf = (sets: TyreSet[], id: number | null) => sets.find((s) => s.id === id)?.name ?? 'Unassigned tyres'
 
 
 /** 24x24 silhouettes for the service icons. */
@@ -42,8 +47,9 @@ function timelineOption(d: TimelineChart, sets: TyreSet[], maintenance: Expense[
   return () => {
     const t = chartTheme()
     const line = d.odometer.map((p): [string, number] => [p.date, p.km])
-    const setName = (id: number | null) => sets.find((s) => s.id === id)?.name ?? 'Unassigned tyres'
-    const setIds = [...new Set(d.tyreBands.map((b) => b.tyreSetId))]
+    const key = tyreBandKey(d.tyreBands)
+    const colorOfSet = (id: number | null) => t.series[(key.find((k) => k.tyreSetId === id)?.colorIndex ?? 0) % t.series.length]
+    const odometerTooltip = timeAxisTooltip((v) => `${fmtNum(v, 0)} km`)
     const milestones = serviceMilestones(maintenance, from, end, line)
     const groupsShown = MILESTONE_GROUPS.filter((g) => milestones.some((m) => m.groups.includes(g.key)))
     const colorOf = (c: number) => (c < 0 ? t.muted : t.series[c])
@@ -72,16 +78,22 @@ function timelineOption(d: TimelineChart, sets: TyreSet[], maintenance: Expense[
         {
           name: 'Odometer', type: 'line', showSymbol: false, lineStyle: { width: 2, color: t.series[0] }, itemStyle: { color: t.series[0] },
           data: line,
-          tooltip: { trigger: 'axis', formatter: timeAxisTooltip((v) => `${fmtNum(v, 0)} km`) },
+          // The tyre set fitted that day goes into the tooltip; the bands carry no labels (long names overlap).
+          tooltip: {
+            trigger: 'axis',
+            formatter: (params: unknown) => {
+              const first = (Array.isArray(params) ? params[0] : params) as { axisValue?: number | string } | undefined
+              const at = first?.axisValue == null ? undefined : typeof first.axisValue === 'number' ? iso(new Date(first.axisValue)) : first.axisValue
+              const id = at == null ? undefined : tyreSetIdAt(d.tyreBands, at)
+              return odometerTooltip(params) + (id === undefined ? '' : `<br/>Tyres: ${echartsFormat.encodeHTML(setNameOf(sets, id))}`)
+            },
+          },
           markArea: {
             silent: true,
-            data: d.tyreBands.map((b) => {
-              const c = t.series[setIds.indexOf(b.tyreSetId) % t.series.length]
-              return [
-                { name: setName(b.tyreSetId), xAxis: b.from, itemStyle: { color: c, opacity: 0.12 }, label: { color: t.textSecondary, position: 'insideTopLeft' } },
-                { xAxis: b.to ?? end },
-              ]
-            }),
+            data: d.tyreBands.map((b) => [
+              { xAxis: b.from, itemStyle: { color: colorOfSet(b.tyreSetId), opacity: 0.12 }, label: { show: false } },
+              { xAxis: b.to ?? end },
+            ]),
           },
         },
         // Service milestones: one icon per group of work, stacked above the odometer point of the visit.
@@ -116,13 +128,31 @@ export function VehicleTimeline({ from, to, title = 'Timeline' }: { from: string
   return (
     <ChartCard title={title} loading={isLoading && !data} error={isError} empty={!!data && data.odometer.length === 0}
       emptyText="No odometer data in this period"
-      hint="Odometer over time with service milestones: oil, tyres, brakes, filters and other service; a visit with several kinds of work stacks its icons. Hover for details. Shaded bands show which tyre set was fitted.">
-      {opt && (
+      hint="Odometer over time with service milestones: oil, tyres, brakes, filters and other service; a visit with several kinds of work stacks its icons. Hover for details. Shaded bands show which tyre set was fitted (key below the chart).">
+      {opt && (widthPercent > 100
         // No zoom: up to 10 years fit the card; a longer history scrolls sideways, opening on the most recent years.
-        <div className="chart-scroll" ref={scroller}>
-          <div style={{ width: `${widthPercent}%` }}><Chart option={opt} height={260} /></div>
-        </div>
-      )}
+        ? <div className="chart-scroll" ref={scroller}>
+            <div style={{ width: `${widthPercent}%` }}><Chart option={opt} height={260} /></div>
+          </div>
+        : <Chart option={opt} height={260} />)}
+      {opt && data && <TyreKey bands={data.tyreBands} sets={sets} />}
     </ChartCard>
+  )
+}
+
+/** Colour key for the tyre-set bands: each set once, in the order first fitted. */
+function TyreKey({ bands, sets }: { bands: TimelineChart['tyreBands']; sets: TyreSet[] }) {
+  const key = tyreBandKey(bands)
+  if (key.length === 0) return null
+  const series = chartTheme().series
+  return (
+    <ul className="tyre-key" aria-label="Tyre sets">
+      {key.map((k) => (
+        <li key={k.tyreSetId ?? 'none'}>
+          <span className="swatch" style={{ background: series[k.colorIndex % series.length], opacity: 0.45 }} />
+          {setNameOf(sets, k.tyreSetId)}
+        </li>
+      ))}
+    </ul>
   )
 }

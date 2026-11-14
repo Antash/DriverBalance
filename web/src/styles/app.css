@@ -190,3 +190,4 @@ a.btn { display: inline-block; text-decoration: none; color: inherit; }
   background: var(--warn-bg); border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
 .demo-offer .divider { text-align: center; margin: 0 0 8px; }
 .row-actions { display: flex; gap: 8px; }
+.tyre-key { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--text-2); }
