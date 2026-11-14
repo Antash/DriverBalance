@@ -92,7 +92,7 @@ public static class RegularRoutes
                 double km = group.Sum(i => i.DistanceKm);
                 var route = new RegularRoute(kv.Key, sp.Display(from), sp.Display(to), via, a == b, group.Count,
                     Typical(group.Select(i => i.Start).ToList()), km / group.Count,
-                    Math.Round(total / group.Count, 2), Math.Round(total / months, 2),
+                    Money.Round(total / group.Count), Money.Round(total / months),
                     allCost > 0 ? (double)(total / allCost) : 0, c.Data.HomeCurrency);
                 return (Route: route, Km: km);
             })

@@ -172,12 +172,46 @@ public class RegularRoutesTests
         decimal routeTotal = items.Where(i => RegularRoutes.KeyOf(i) == r.Key).Sum(i => ctx.Costs.Of(i).Total);
         decimal all = items.Sum(i => ctx.Costs.Of(i).Total);
         Assert.True(routeTotal > 0);
-        decimal expected = Math.Round(routeTotal / (184m / 30.44m), 2);
-        Assert.InRange(r.PerMonth, expected - 0.01m, expected + 0.01m);
+        Assert.Equal(Money.Round(routeTotal / (184m / 30.44m)), r.PerMonth);
         Assert.InRange(r.Share, (double)(routeTotal / all) - 1e-9, (double)(routeTotal / all) + 1e-9);
         Assert.True(r.Share < 1);
         Assert.Equal(6, r.Count);
         Assert.Equal(5.0, r.AvgKm);
+    }
+
+    [Fact]
+    public void PerMonth_TodayInsidePeriod_ClipsToToday()
+    {
+        var trips = Drive(new DateTime(2025, 7, 1, 12, 0, 0), "X", "Y")
+            .Concat(Repeat(0, 0, 7, "Home", "Work")).ToList();
+        for (int i = 0; i < 6; i++) trips.AddRange(Drive(new DateTime(2025, 8, 4, 7, 10, 0).AddDays(i), "Home", "Work"));
+        var data = new VehicleData(trips, [Insurance(5000m)], [], "CZK", new DateOnly(2025, 10, 15));
+        var ctx = AnalysisContext.Create(data, new AnalysisParameters());
+        var p = CalendarPeriods.Year(2025);
+        var r = Assert.Single(RegularRoutes.Build(ctx, p, TrendLevel.Trip));
+        var routeTotal = RegularRoutes.Items(ctx, p, TrendLevel.Trip).Where(i => RegularRoutes.KeyOf(i) == r.Key).Sum(i => ctx.Costs.Of(i).Total);
+        Assert.True(routeTotal > 0);
+        Assert.Equal(Money.Round(routeTotal / (107m / 30.44m)), r.PerMonth);
+    }
+
+    [Fact]
+    public void DisplayDirection_TieIsAlphabetical()
+    {
+        // 3 drives each way: equal starts from both ends, so the alphabetically first address is shown first.
+        var trips = Repeat(3, 0, 7, "Work", "Home").Concat(Repeat(3, 10, 16, "Home", "Work")).ToList();
+        var r = Assert.Single(RegularRoutes.Build(Ctx(trips), Y2026, TrendLevel.Trip));
+        Assert.Equal("Home", r.From);
+        Assert.Equal("Work", r.To);
+    }
+
+    [Fact]
+    public void BlankIntermediateAddress_TreatedAsNoStop()
+    {
+        var withBlank = Repeat(3, 0, 7, "Home", "", "Work");
+        var trips = withBlank.Concat(Repeat(2, 10, 7, "Home", "Work")).ToList();
+        var r = Assert.Single(RegularRoutes.Build(Ctx(trips), Y2026, TrendLevel.Group));
+        Assert.Equal(5, r.Count);
+        Assert.Empty(r.Via);
     }
 
     [Fact]
