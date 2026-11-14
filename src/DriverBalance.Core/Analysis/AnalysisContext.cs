@@ -38,6 +38,10 @@ public sealed class AnalysisContext
 
     public OdometerTimeline Timeline { get; }
 
+    private TripCosts? _costs;
+    /// <summary>Approximate trip costs, built on first use.</summary>
+    public TripCosts Costs => _costs ??= TripCosts.Build(Data);
+
     public IReadOnlyList<TripGroup> Groups { get; }
     public AnalysisParameters Parameters { get; }
     public VehicleData Data { get; }
