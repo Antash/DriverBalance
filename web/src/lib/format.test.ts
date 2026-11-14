@@ -19,4 +19,7 @@ describe('fmtInstant', () => {
 describe('fmtApprox', () => {
   it('rounds with a currency', () => expect(fmtApprox(142.4, 'CZK')).toBe('≈ 142 CZK'))
   it('dashes for null', () => expect(fmtApprox(null, 'CZK')).toBe('—'))
+  it('one decimal below 10', () => expect(fmtApprox(2.13, 'EUR')).toBe('≈ 2.1 EUR'))
+  it('no trailing zero below 10', () => expect(fmtApprox(2.04, 'EUR')).toBe('≈ 2 EUR'))
+  it('whole units from 10', () => expect(fmtApprox(9.96, 'EUR')).toBe('≈ 10 EUR'))
 })
