@@ -55,9 +55,23 @@ public class VolvoCsvParserTests
     }
 
     [Fact]
-    public void Parse_NegativeClockDuration_KeptAsZeroWithWarning()
+    public void Parse_ClockFallBackMidTrip_AddsTheHourAndMovesStartToNewClock()
     {
-        var result = ParseRows(Row("00:-41 h"));
+        // Started 13:43 on summer time, stopped 13:02 on winter time: really 19 minutes.
+        var row = "Unassigned,2026-11-01 13:43,100,\"A\",2026-11-01 13:02,119,\"B\",00:-41 h,19.1,1.2,\"\"";
+        var result = ParseRows(row);
+
+        var trip = Assert.Single(result.Trips);
+        Assert.Equal(TimeSpan.FromMinutes(19), trip.Duration);
+        Assert.Equal(new DateTime(2026, 11, 1, 13, 2, 0), trip.End);
+        Assert.Equal(new DateTime(2026, 11, 1, 12, 43, 0), trip.Start);
+        Assert.Contains("clock change", Assert.Single(result.Warnings));
+    }
+
+    [Fact]
+    public void Parse_NegativeDurationOverAnHour_KeptAsZeroWithWarning()
+    {
+        var result = ParseRows(Row("-01:30 h"));
 
         var trip = Assert.Single(result.Trips);
         Assert.Equal(TimeSpan.Zero, trip.Duration);

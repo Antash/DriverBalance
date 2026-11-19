@@ -31,7 +31,7 @@ public static class VolvoCsvParser
             }
             try
             {
-                trips.Add(new Trip(
+                trips.Add(FixClockChange(new Trip(
                     Category: parts[0],
                     Start: DateTime.Parse(parts[1], Culture),
                     StartOdometer: ParseInt(parts[2]),
@@ -39,10 +39,10 @@ public static class VolvoCsvParser
                     End: DateTime.Parse(parts[4], Culture),
                     EndOdometer: ParseInt(parts[5]),
                     EndAddress: parts[6],
-                    Duration: ParseDuration(parts[7], lineNo, warnings),
+                    Duration: ParseDuration(parts[7]),
                     DistanceKm: ParseDouble(parts[8]),
                     FuelLiters: ParseDouble(parts[9]),
-                    Notes: parts[10]));
+                    Notes: parts[10]), lineNo, warnings));
             }
             catch (Exception ex) when (ex is FormatException or OverflowException or ArgumentOutOfRangeException)
             {
@@ -65,24 +65,40 @@ public static class VolvoCsvParser
         return double.IsFinite(v) ? v : throw new FormatException($"Non-finite number '{s}'.");
     }
 
-    private static TimeSpan ParseDuration(string s, int lineNo, List<string> warnings)
+    /// <summary>
+    /// Volvo computes the duration as stop − start on the car clock. When the clock falls back an hour
+    /// (summer → winter time) during a trip, the start is on the old clock and the stop on the new one,
+    /// so the duration comes out negative ("00:-41 h" for a 19-minute drive). A negative duration of at most
+    /// one hour is that case: add the hour and move the start onto the new clock (end − duration).
+    /// Anything more negative is bad data: keep the trip with no driving time.
+    /// </summary>
+    private static Trip FixClockChange(Trip trip, int lineNo, List<string> warnings)
+    {
+        if (trip.Duration >= TimeSpan.Zero) return trip;
+        var hour = TimeSpan.FromHours(1);
+        if (trip.Duration >= -hour)
+        {
+            var real = trip.Duration + hour;
+            warnings.Add($"Line {lineNo}: clock change during the trip; duration corrected to {(int)real.TotalMinutes} min and start moved to {trip.End - real:HH:mm}.");
+            return trip with { Duration = real, Start = trip.End - real };
+        }
+        warnings.Add($"Line {lineNo}: negative duration of {(int)trip.Duration.TotalMinutes} min; driving time set to 0.");
+        return trip with { Duration = TimeSpan.Zero };
+    }
+
+    private static TimeSpan ParseDuration(string s)
     {
         s = s.Trim();
-        // Newer exports write "HH:MM h" (clock style); Volvo sometimes emits a negative minute part ("00:-41 h")
-        // when the stop time is before the start time. Keep the trip, count no driving time.
+        // Newer exports write clock style "HH:MM h"; the sign (on either part) applies to the whole value.
         if (s.Contains(':'))
         {
             var clock = s.Replace("h", "").Trim().Split(':');
             if (clock.Length != 2) throw new FormatException($"Unknown duration '{s}'.");
             int h = int.Parse(clock[0].Trim(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
             int m = int.Parse(clock[1].Trim(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
-            var span = TimeSpan.FromMinutes(checked(h * 60L + m));
-            if (span < TimeSpan.Zero)
-            {
-                warnings.Add($"Line {lineNo}: negative duration '{s}'; driving time set to 0.");
-                return TimeSpan.Zero;
-            }
-            return span;
+            bool negative = h < 0 || m < 0 || clock[0].Trim().StartsWith('-');
+            long minutes = checked(Math.Abs((long)h) * 60 + Math.Abs((long)m));
+            return TimeSpan.FromMinutes(negative ? -minutes : minutes);
         }
         if (s.Contains('h'))
         {
