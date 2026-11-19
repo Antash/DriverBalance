@@ -94,6 +94,24 @@ public class VolvoCsvParserTests
     }
 
     [Fact]
+    public void Parse_SemicolonExport_RussianHeader()
+    {
+        var text = "Категория;Начало;Начальные показания (км);Начальный адрес;Окончание;Конечные показания (км);Конечный адрес;Длительность;Расстояние (км);Расход топлива (литры);Заметки пользователя\n"
+                 + "Без обозначения;2026-01-14 13:02;100;\"Street 1, Praha 4\";2026-01-14 13:31;112;\"Other 2; Praha 4\";00:29 h;11,4;1,3;\"\"";
+        var result = VolvoCsvParser.Parse(new StringReader(text));
+
+        var trip = Assert.Single(result.Trips);
+        Assert.Empty(result.Warnings);
+        Assert.Equal("Без обозначения", trip.Category);
+        Assert.Equal(new DateTime(2026, 1, 14, 13, 2, 0), trip.Start);
+        Assert.Equal("Street 1, Praha 4", trip.StartAddress);
+        Assert.Equal("Other 2; Praha 4", trip.EndAddress);
+        Assert.Equal(TimeSpan.FromMinutes(29), trip.Duration);
+        Assert.Equal(11.4, trip.DistanceKm);
+        Assert.Equal(1.3, trip.FuelLiters);
+    }
+
+    [Fact]
     public void Parse_ZeroMinutes()
     {
         var trip = Assert.Single(ParseRows(Row("0 min")).Trips);

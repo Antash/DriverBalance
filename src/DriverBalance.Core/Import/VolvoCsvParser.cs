@@ -16,14 +16,16 @@ public static class VolvoCsvParser
         var trips = new List<Trip>();
         var warnings = new List<string>();
 
-        reader.ReadLine(); // header (may carry a BOM)
+        var header = reader.ReadLine() ?? ""; // may carry a BOM
+        // English exports separate columns with ',', some locales (e.g. Russian) with ';'.
+        char separator = header.Count(c => c == ';') > header.Count(c => c == ',') ? ';' : ',';
         int lineNo = 1;
         string? line;
         while ((line = reader.ReadLine()) != null)
         {
             lineNo++;
             if (string.IsNullOrWhiteSpace(line)) continue;
-            var parts = SplitCsvLine(line);
+            var parts = SplitCsvLine(line, separator);
             if (parts.Count < ColumnCount)
             {
                 warnings.Add($"Line {lineNo}: expected {ColumnCount} columns but found {parts.Count}; row skipped.");
@@ -115,7 +117,7 @@ public static class VolvoCsvParser
         return TimeSpan.Zero;
     }
 
-    private static List<string> SplitCsvLine(string line)
+    private static List<string> SplitCsvLine(string line, char separator)
     {
         var result = new List<string>();
         bool inQuotes = false;
@@ -123,7 +125,7 @@ public static class VolvoCsvParser
         foreach (char c in line)
         {
             if (c == '"') { inQuotes = !inQuotes; continue; }
-            if (c == ',' && !inQuotes)
+            if (c == separator && !inQuotes)
             {
                 result.Add(current.ToString());
                 current.Clear();
