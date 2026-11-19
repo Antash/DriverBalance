@@ -39,7 +39,7 @@ public static class VolvoCsvParser
                     End: DateTime.Parse(parts[4], Culture),
                     EndOdometer: ParseInt(parts[5]),
                     EndAddress: parts[6],
-                    Duration: ParseDuration(parts[7]),
+                    Duration: ParseDuration(parts[7], lineNo, warnings),
                     DistanceKm: ParseDouble(parts[8]),
                     FuelLiters: ParseDouble(parts[9]),
                     Notes: parts[10]));
@@ -65,9 +65,25 @@ public static class VolvoCsvParser
         return double.IsFinite(v) ? v : throw new FormatException($"Non-finite number '{s}'.");
     }
 
-    private static TimeSpan ParseDuration(string s)
+    private static TimeSpan ParseDuration(string s, int lineNo, List<string> warnings)
     {
         s = s.Trim();
+        // Newer exports write "HH:MM h" (clock style); Volvo sometimes emits a negative minute part ("00:-41 h")
+        // when the stop time is before the start time. Keep the trip, count no driving time.
+        if (s.Contains(':'))
+        {
+            var clock = s.Replace("h", "").Trim().Split(':');
+            if (clock.Length != 2) throw new FormatException($"Unknown duration '{s}'.");
+            int h = int.Parse(clock[0].Trim(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
+            int m = int.Parse(clock[1].Trim(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
+            var span = TimeSpan.FromMinutes(checked(h * 60L + m));
+            if (span < TimeSpan.Zero)
+            {
+                warnings.Add($"Line {lineNo}: negative duration '{s}'; driving time set to 0.");
+                return TimeSpan.Zero;
+            }
+            return span;
+        }
         if (s.Contains('h'))
         {
             int hours = 0, minutes = 0;

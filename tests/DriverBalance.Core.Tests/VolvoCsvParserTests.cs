@@ -39,6 +39,46 @@ public class VolvoCsvParserTests
         Assert.Equal(TimeSpan.FromMinutes(65), trip.Duration);
     }
 
+    [Theory]
+    [InlineData("00:29 h", 29)]
+    [InlineData("01:05 h", 65)]
+    [InlineData("12:00 h", 720)]
+    [InlineData("00:00 h", 0)]
+    [InlineData("01:05", 65)]
+    public void Parse_ClockStyleDuration(string duration, int minutes)
+    {
+        var result = ParseRows(Row(duration));
+
+        var trip = Assert.Single(result.Trips);
+        Assert.Empty(result.Warnings);
+        Assert.Equal(TimeSpan.FromMinutes(minutes), trip.Duration);
+    }
+
+    [Fact]
+    public void Parse_NegativeClockDuration_KeptAsZeroWithWarning()
+    {
+        var result = ParseRows(Row("00:-41 h"));
+
+        var trip = Assert.Single(result.Trips);
+        Assert.Equal(TimeSpan.Zero, trip.Duration);
+        Assert.Single(result.Warnings);
+    }
+
+    [Fact]
+    public void Parse_NewExportRow_IsoDatesAndDotDecimals()
+    {
+        var row = "Unassigned,2026-01-19 14:52,40265,\"Street 1, Praha 4\",2026-01-19 15:22,40280,\"Other 2, Praha 9\",00:29 h,16.1,0.9,\"\"";
+        var result = ParseRows(row);
+
+        var trip = Assert.Single(result.Trips);
+        Assert.Empty(result.Warnings);
+        Assert.Equal(new DateTime(2026, 1, 19, 14, 52, 0), trip.Start);
+        Assert.Equal(40265, trip.StartOdometer);
+        Assert.Equal(TimeSpan.FromMinutes(29), trip.Duration);
+        Assert.Equal(16.1, trip.DistanceKm);
+        Assert.Equal(0.9, trip.FuelLiters);
+    }
+
     [Fact]
     public void Parse_ZeroMinutes()
     {
